@@ -37,10 +37,4 @@ out/
 .vscode/
 
 ### Custom ###
-db_dev.mv.db
-db_dev.trace.db
-db_dev.lock.db
-
-application.yml
-application-dev.yml
-application-test.yml
+*.db
