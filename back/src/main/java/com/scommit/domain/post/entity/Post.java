@@ -36,8 +36,8 @@ public class Post extends BaseEntity {
     private String thumbnail;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "is_published", nullable = false)
-    private PublishStatus isPublished;
+    @Column(name = "publish_status", nullable = false)
+    private PublishStatus publishStatus;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "access_level", nullable = false)
@@ -59,13 +59,13 @@ public class Post extends BaseEntity {
     }
 
     @Builder
-    public Post(User user, Series series, String title, String body, String thumbnail, PublishStatus isPublished, PostAccessLevel accessLevel){
+    public Post(User user, Series series, String title, String body, String thumbnail, PublishStatus publishStatus, PostAccessLevel accessLevel){
       this.user = user; 
       this.series = series ;
       this.title = title;
       this.body = body;
       this.thumbnail = thumbnail;
-      this.isPublished = isPublished;
+      this.publishStatus = publishStatus;
       this.accessLevel = accessLevel;
       this.viewCount = 0L;
     }
