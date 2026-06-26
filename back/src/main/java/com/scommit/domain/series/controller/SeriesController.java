@@ -17,7 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/series")
+@RequestMapping("/api/series")
 @RequiredArgsConstructor
 @Tag(name = "SeriesController", description = "API 시리즈 컨트롤러")
 public class SeriesController {
