@@ -16,7 +16,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BusinessException.class)
     protected ResponseEntity<RsData<Void>> handleBusinessException(BusinessException e) {
-        log.error("BusinessException", e);
+        log.warn("BusinessException: {}", e.getMessage());
         ErrorCode errorCode = e.getErrorCode();
         RsData<Void> rsData = new RsData<>(errorCode.getCode(), errorCode.getMessage());
         return new ResponseEntity<>(rsData, errorCode.getHttpStatus());
@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BindException.class)
     protected ResponseEntity<RsData<Void>> handleBindException(BindException e) {
-        log.error("BindException", e);
+        log.warn("BindException: {}", e.getMessage());
         ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
         String errorMessage = e.getBindingResult().getAllErrors().get(0).getDefaultMessage();
         
