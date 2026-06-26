@@ -43,10 +43,6 @@ public class User extends BaseEntity {
 
     @Column(name = "refresh_token", unique = true) 
     private String refreshToken;
-    
-    public enum UserRole{
-      USER, ADMIN
-    }
      
     @Builder 
     public User(String email, String password, String nickname, String profileImage, String introduction, UserRole role) {

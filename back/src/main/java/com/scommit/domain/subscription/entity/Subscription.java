@@ -33,11 +33,7 @@ public class Subscription extends BaseEntity {
     
     @Column(name = "expired_at")
     private LocalDate expiredAt;
-    
-    public enum SubscriptionTier{
-      FOLLOW, MEMBERSHIP
-    }
-    
+
     @Builder
     public Subscription(User user, User creator, SubscriptionTier tier, LocalDate startedAt, LocalDate expiredAt) {
         this.user = user;

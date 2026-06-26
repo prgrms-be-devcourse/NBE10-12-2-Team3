@@ -25,10 +25,6 @@ public class Media extends BaseEntity {
     @Column(name = "media_type", nullable = false)
     private MediaType type;
 
-    public enum MediaType{
-        IMAGE, VIDEO
-    }
-
     @Builder
     public Media(Post post, String url, MediaType type) {
         this.post = post;

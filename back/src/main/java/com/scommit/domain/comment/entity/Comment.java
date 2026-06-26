@@ -30,6 +30,7 @@ public class Comment extends BaseEntity {
     private String body;
 
     @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @Builder

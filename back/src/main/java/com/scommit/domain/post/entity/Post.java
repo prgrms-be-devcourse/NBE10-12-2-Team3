@@ -50,14 +50,6 @@ public class Post extends BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public enum PublishStatus{
-        DRAFT, PRIVATE, PUBLIC
-    }
-
-    public enum PostAccessLevel{
-        FREE, PAID
-    }
-
     @Builder
     public Post(User user, Series series, String title, String body, String thumbnail, PublishStatus publishStatus, PostAccessLevel accessLevel){
       this.user = user; 
