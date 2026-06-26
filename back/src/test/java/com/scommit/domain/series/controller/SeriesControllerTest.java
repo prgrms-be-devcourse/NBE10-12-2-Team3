@@ -11,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,6 +37,9 @@ class SeriesControllerTest {
 
     @MockitoBean
     private SeriesService seriesService;
+
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     private Series createMockSeries(Long id, Long userId, String title, String body) {
         Series series = org.mockito.Mockito.mock(Series.class);
@@ -83,7 +87,10 @@ class SeriesControllerTest {
         mockMvc.perform(get("/series"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(2))
-                .andExpect(jsonPath("$.data.content[0].title").value("제목 1"));
+                .andExpect(jsonPath("$.data.content[0].title").value("제목 1"))
+                .andExpect(jsonPath("$.data.pageNumber").value(0))
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.isLast").value(true));
     }
 
     @Test

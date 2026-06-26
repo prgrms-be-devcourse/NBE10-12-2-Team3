@@ -6,6 +6,7 @@ import com.scommit.domain.series.dto.SeriesUpdateRequest;
 import com.scommit.domain.series.dto.SeriesResponse;
 import com.scommit.domain.series.entity.Series;
 import com.scommit.domain.series.service.SeriesService;
+import com.scommit.global.dto.PageResponse;
 import com.scommit.global.dto.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,14 +25,14 @@ public class SeriesController {
 
     @GetMapping
     @Operation(summary = "시리즈 전체 조회")
-    public RsData<Page<SeriesListResponse>> getSeriesList(
+    public RsData<PageResponse<SeriesListResponse>> getSeriesList(
             @RequestParam(required = false) Long creatorId,
             @RequestParam(defaultValue = "0") int page
     ) {
         Page<Series> seriesPage = seriesService.findAll(creatorId, page);
         Page<SeriesListResponse> responses = seriesPage.map(SeriesListResponse::new);
 
-        return new RsData<>("200-1", "시리즈를 전체 조회하였습니다.", responses);
+        return new RsData<>("200-1", "시리즈를 전체 조회하였습니다.", new PageResponse<>(responses));
     }
 
     @GetMapping("/{id}")
