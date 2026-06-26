@@ -54,14 +54,14 @@ class SeriesControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("POST /series - 새 시리즈 생성 성공")
+    @DisplayName("POST /api/series - 새 시리즈 생성 성공")
     void createSeries_Success() throws Exception {
         SeriesCreateRequest request = new SeriesCreateRequest(1L, "시리즈 제목", "시리즈 설명");
         Series mockSeries = createMockSeries(1L, 1L, "시리즈 제목", "시리즈 설명");
 
         org.mockito.Mockito.when(seriesService.create(any(SeriesCreateRequest.class))).thenReturn(mockSeries);
 
-        mockMvc.perform(post("/series")
+        mockMvc.perform(post("/api/series")
                         .with(csrf())
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -73,7 +73,7 @@ class SeriesControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("GET /series - 시리즈 전체 조회 성공")
+    @DisplayName("GET /api/series - 시리즈 전체 조회 성공")
     void getAllSeries_Success() throws Exception {
         List<Series> mockSeriesList = List.of(
                 createMockSeries(1L, 1L, "제목 1", "설명 1"),
@@ -84,7 +84,7 @@ class SeriesControllerTest {
 
         org.mockito.Mockito.when(seriesService.findAll(eq(null), anyInt())).thenReturn(mockPage);
 
-        mockMvc.perform(get("/series"))
+        mockMvc.perform(get("/api/series"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(2))
                 .andExpect(jsonPath("$.data.content[0].title").value("제목 1"))
@@ -95,20 +95,20 @@ class SeriesControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("GET /series/{id} - 시리즈 상세 조회 성공")
+    @DisplayName("GET /api/series/{id} - 시리즈 상세 조회 성공")
     void getSeriesDetail_Success() throws Exception {
         Series mockSeries = createMockSeries(1L, 1L, "제목 1", "설명 1");
 
         org.mockito.Mockito.when(seriesService.findById(1L)).thenReturn(mockSeries);
 
-        mockMvc.perform(get("/series/{id}", 1L))
+        mockMvc.perform(get("/api/series/{id}", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.title").value("제목 1"));
     }
 
     @Test
     @WithMockUser
-    @DisplayName("PUT /series/{id} - 시리즈 수정 성공")
+    @DisplayName("PUT /api/series/{id} - 시리즈 수정 성공")
     void updateSeries_Success() throws Exception {
         SeriesUpdateRequest request = new SeriesUpdateRequest("수정된 제목", "수정된 설명");
         Series mockSeries = createMockSeries(1L, 1L, "수정된 제목", "수정된 설명");
@@ -116,7 +116,7 @@ class SeriesControllerTest {
         org.mockito.Mockito.when(seriesService.update(eq(1L), any(SeriesUpdateRequest.class))).thenReturn(mockSeries);
         org.mockito.Mockito.when(seriesService.findById(1L)).thenReturn(mockSeries);
 
-        mockMvc.perform(put("/series/{id}", 1L)
+        mockMvc.perform(put("/api/series/{id}", 1L)
                         .with(csrf())
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -126,16 +126,16 @@ class SeriesControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("DELETE /series/{id} - 시리즈 삭제 성공")
+    @DisplayName("DELETE /api/series/{id} - 시리즈 삭제 성공")
     void deleteSeries_Success() throws Exception {
-        mockMvc.perform(delete("/series/{id}", 1L)
+        mockMvc.perform(delete("/api/series/{id}", 1L)
                         .with(csrf()))
                 .andExpect(status().isOk());
     }
 
     @Test
     @WithMockUser
-    @DisplayName("GET /series?creatorId={id} - 특정 유저의 시리즈 전체 조회 성공")
+    @DisplayName("GET /api/series?creatorId={id} - 특정 유저의 시리즈 전체 조회 성공")
     void getSeriesByCreator_Success() throws Exception {
         List<Series> mockSeriesList = List.of(
                 createMockSeries(1L, 1L, "크리에이터 제목", "크리에이터 설명")
@@ -145,7 +145,7 @@ class SeriesControllerTest {
 
         org.mockito.Mockito.when(seriesService.findAll(eq(1L), anyInt())).thenReturn(mockPage);
 
-        mockMvc.perform(get("/series").param("creatorId", "1"))
+        mockMvc.perform(get("/api/series").param("creatorId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(1))
                 .andExpect(jsonPath("$.data.content[0].title").value("크리에이터 제목"));
@@ -153,13 +153,13 @@ class SeriesControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("POST /series - 입력값 유효성 검증 실패 (400 Bad Request)")
+    @DisplayName("POST /api/series - 입력값 유효성 검증 실패 (400 Bad Request)")
     void createSeries_ValidationError() throws Exception {
         // Given
         SeriesCreateRequest request = new SeriesCreateRequest(null, "", "설명");
 
         // When & Then
-        mockMvc.perform(post("/series")
+        mockMvc.perform(post("/api/series")
                         .with(csrf())
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -168,7 +168,7 @@ class SeriesControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("POST /series - 존재하지 않는 사용자 ID로 시리즈 생성 실패 (404 Not Found)")
+    @DisplayName("POST /api/series - 존재하지 않는 사용자 ID로 시리즈 생성 실패 (404 Not Found)")
     void createSeries_UserNotFound() throws Exception {
         // Given
         SeriesCreateRequest request = new SeriesCreateRequest(999L, "제목", "설명");
@@ -176,7 +176,7 @@ class SeriesControllerTest {
                 .thenThrow(new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // When & Then
-        mockMvc.perform(post("/series")
+        mockMvc.perform(post("/api/series")
                         .with(csrf())
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -186,27 +186,27 @@ class SeriesControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("GET /series/{id} - 존재하지 않는 시리즈 상세 조회 실패 (404 Not Found)")
+    @DisplayName("GET /api/series/{id} - 존재하지 않는 시리즈 상세 조회 실패 (404 Not Found)")
     void getSeriesDetail_NotFound() throws Exception {
         // Given
         org.mockito.Mockito.when(seriesService.findById(999L))
                 .thenThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
 
         // When & Then
-        mockMvc.perform(get("/series/{id}", 999L))
+        mockMvc.perform(get("/api/series/{id}", 999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"));
     }
 
     @Test
     @WithMockUser
-    @DisplayName("PUT /series/{id} - 입력값 유효성 검증 실패 (400 Bad Request)")
+    @DisplayName("PUT /api/series/{id} - 입력값 유효성 검증 실패 (400 Bad Request)")
     void updateSeries_ValidationError() throws Exception {
         // Given
         SeriesUpdateRequest request = new SeriesUpdateRequest("", "설명");
 
         // When & Then
-        mockMvc.perform(put("/series/{id}", 1L)
+        mockMvc.perform(put("/api/series/{id}", 1L)
                         .with(csrf())
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -215,7 +215,7 @@ class SeriesControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("PUT /series/{id} - 존재하지 않는 시리즈 수정 실패 (404 Not Found)")
+    @DisplayName("PUT /api/series/{id} - 존재하지 않는 시리즈 수정 실패 (404 Not Found)")
     void updateSeries_NotFound() throws Exception {
         // Given
         SeriesUpdateRequest request = new SeriesUpdateRequest("수정 제목", "수정 설명");
@@ -223,7 +223,7 @@ class SeriesControllerTest {
                 .thenThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
 
         // When & Then
-        mockMvc.perform(put("/series/{id}", 999L)
+        mockMvc.perform(put("/api/series/{id}", 999L)
                         .with(csrf())
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -233,14 +233,14 @@ class SeriesControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("DELETE /series/{id} - 존재하지 않는 시리즈 삭제 실패 (404 Not Found)")
+    @DisplayName("DELETE /api/series/{id} - 존재하지 않는 시리즈 삭제 실패 (404 Not Found)")
     void deleteSeries_NotFound() throws Exception {
         // Given
         org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
                 .when(seriesService).delete(999L);
 
         // When & Then
-        mockMvc.perform(delete("/series/{id}", 999L)
+        mockMvc.perform(delete("/api/series/{id}", 999L)
                         .with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"));
