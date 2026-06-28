@@ -48,7 +48,7 @@ export function ContentListCard({
       )}
     >
       {/* Thumbnail Area */}
-      <div className="relative w-full sm:w-[200px] md:w-[240px] shrink-0 aspect-video sm:aspect-auto overflow-hidden bg-neutral-900 border-r border-neutral-100">
+      <div className="relative w-full sm:w-[320px] md:w-[400px] shrink-0 aspect-video sm:aspect-auto overflow-hidden bg-neutral-900 border-r border-neutral-100">
         {thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -66,53 +66,53 @@ export function ContentListCard({
           />
         )}
 
-        {/* Access Level Badge */}
-        <div className="absolute left-3 top-3 z-10 flex gap-2">
+        {/* Bottom Left: Premium Indicator (Netflix / YouTube vibe) */}
+        <div className="absolute bottom-3 left-3 z-20">
           {isPaid ? (
-            <div className="flex items-center gap-1 rounded bg-neutral-900/90 px-2 py-1 backdrop-blur-md shadow-sm">
-              <Crown className="h-3 w-3 text-amber-500" />
-              <span className="text-[10px] font-bold text-white tracking-wide">MEMBERSHIP</span>
-            </div>
+             <div className="flex items-center gap-1.5 rounded-full bg-black/85 px-3 py-1.5 backdrop-blur-md border border-white/40 shadow-lg shadow-black/40">
+               <Crown className="h-3.5 w-3.5 text-amber-400" />
+               <span className="text-xs font-bold text-white">멤버십 전용</span>
+             </div>
           ) : (
-            <div className="flex items-center rounded bg-white/95 px-2 py-1 shadow-sm backdrop-blur-md">
-              <span className="text-[10px] font-bold text-neutral-dark tracking-wide">FREE</span>
-            </div>
+            <div className="flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 backdrop-blur-md border border-black/20 shadow-lg shadow-black/20">
+               <span className="text-xs font-bold text-primary">전체 공개</span>
+             </div>
           )}
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="flex flex-1 flex-col p-4 sm:p-5 justify-between gap-3">
+      <div className="flex flex-1 flex-col p-5 sm:p-6 md:p-8 justify-between gap-4">
         <div>
-          <div className="mb-2 flex items-center gap-2">
-             <Avatar name={authorName} className="h-4 w-4" />
-             <span className="text-[11px] font-bold text-neutral-dark truncate">{authorName}</span>
+          <div className="mb-3 flex items-center gap-2">
+             <Avatar name={authorName} className="h-5 w-5" />
+             <span className="text-xs font-bold text-neutral-dark truncate">{authorName}</span>
           </div>
 
-          <h3 className="mb-1.5 line-clamp-2 text-base font-bold leading-snug tracking-tight text-neutral-dark group-hover:text-primary transition-colors">
+          <h3 className="mb-2.5 line-clamp-2 text-xl md:text-2xl font-extrabold leading-snug tracking-tight text-neutral-dark group-hover:text-primary transition-colors">
             {title}
           </h3>
           
-          <p className="line-clamp-2 text-[13px] leading-relaxed text-neutral-meta">
+          <p className="line-clamp-2 md:line-clamp-3 text-sm md:text-base leading-relaxed text-neutral-meta">
             {description}
           </p>
         </div>
 
         {/* Footer Area: Social Proof */}
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-[12px] font-medium text-neutral-meta">{createdAt}</span>
-          <div className="flex items-center gap-3.5">
-             <div className="flex items-center gap-1.5 text-neutral-meta">
+        <div className="flex items-center justify-between pt-4 mt-auto">
+          <span className="text-sm font-medium text-neutral-meta">{createdAt}</span>
+          <div className="flex items-center gap-5">
+             <div className="flex items-center gap-2 text-neutral-meta">
                 <Bookmark className="h-4 w-4" />
-                <span className="text-[12px] font-bold">{formattedBookmarks}</span>
+                <span className="text-sm font-bold">{formattedBookmarks}</span>
              </div>
-             <div className="flex items-center gap-1.5 text-neutral-meta">
+             <div className="flex items-center gap-2 text-neutral-meta">
                 <Heart className="h-4 w-4" />
-                <span className="text-[12px] font-bold">{formattedLikes}</span>
+                <span className="text-sm font-bold">{formattedLikes}</span>
              </div>
-             <div className="flex items-center gap-1.5 text-neutral-meta">
+             <div className="flex items-center gap-2 text-neutral-meta">
                 <Eye className="h-4 w-4" />
-                <span className="text-[12px] font-bold">{formattedViews}</span>
+                <span className="text-sm font-bold">{formattedViews}</span>
              </div>
           </div>
         </div>

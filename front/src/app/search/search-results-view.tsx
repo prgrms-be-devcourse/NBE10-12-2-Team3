@@ -293,7 +293,7 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
             </div>
           )}
           <div className={cn(
-            layout === "list" ? "flex flex-col gap-3 max-w-5xl mx-auto w-full" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
+            layout === "list" ? "flex flex-col gap-4 w-full" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
           )}>
             {(activeTab === "all" ? posts.slice(0, 5) : posts.slice(startIndex, endIndex)).map((post) => (
               layout === "list"
@@ -321,7 +321,7 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
             </div>
           )}
           <div className={cn(
-            layout === "list" ? "flex flex-col gap-3 max-w-5xl mx-auto w-full" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"
+            layout === "list" ? "flex flex-col gap-4 w-full" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"
           )}>
             {(activeTab === "all" ? series.slice(0, 5) : series.slice(startIndex, endIndex)).map((s) => (
               layout === "list"

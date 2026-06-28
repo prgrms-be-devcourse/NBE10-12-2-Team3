@@ -79,12 +79,12 @@ export function ContentCard({
         {/* Bottom Left: Premium Indicator (Netflix / YouTube vibe) */}
         <div className="absolute bottom-3 left-3 z-20">
           {isPaid ? (
-             <div className="flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur-md border border-white/10 shadow-lg">
+             <div className="flex items-center gap-1.5 rounded-full bg-black/85 px-3 py-1.5 backdrop-blur-md border border-white/40 shadow-lg shadow-black/40">
                <Crown className="h-3.5 w-3.5 text-amber-400" />
                <span className="text-xs font-bold text-white">멤버십 전용</span>
              </div>
           ) : (
-            <div className="flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 backdrop-blur-md shadow-lg">
+            <div className="flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 backdrop-blur-md border border-black/20 shadow-lg shadow-black/20">
                <span className="text-xs font-bold text-primary">전체 공개</span>
              </div>
           )}

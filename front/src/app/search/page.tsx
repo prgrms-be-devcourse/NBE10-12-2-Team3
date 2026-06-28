@@ -30,7 +30,7 @@ export default async function SearchPage({
     : [];
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-20 pt-32">
+    <div className="min-h-screen bg-neutral-50 pb-20 pt-20">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-12">
         {/* 헤더 섹션 */}
         <div className="mb-10">

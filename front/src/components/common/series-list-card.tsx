@@ -34,8 +34,8 @@ export function SeriesListCard({ id, title, body, postCount, authorName, lastUpd
 
       {/* Main Card Content (White Background) */}
       <div className="relative flex flex-col sm:flex-row w-full bg-white rounded-[16px] border border-neutral-200/60 overflow-hidden group-hover:border-primary/20 transition-colors z-20">
-        {/* 썸네일 영역 */}
-        <div className="relative w-full sm:w-[200px] md:w-[240px] shrink-0 aspect-video sm:aspect-auto bg-neutral-900 border-b sm:border-b-0 sm:border-r border-neutral-100 z-10">
+      {/* 썸네일 영역 */}
+        <div className="relative w-full sm:w-[320px] md:w-[400px] shrink-0 aspect-video sm:aspect-auto bg-neutral-900 border-b sm:border-b-0 sm:border-r border-neutral-100 z-10">
           <div className="absolute inset-0 overflow-hidden">
           <img 
             src={thumbnailUrl || "/images/default_series.jpg"} 
@@ -55,19 +55,19 @@ export function SeriesListCard({ id, title, body, postCount, authorName, lastUpd
       </div>
 
       {/* 내용 영역 */}
-      <div className="flex flex-col flex-1 p-4 sm:p-5 min-w-0 justify-center">
-        <div className="flex flex-wrap items-center gap-2 mb-1.5">
-          <span className="flex items-center gap-1 text-[11px] font-medium text-neutral-400">
-            <Calendar className="h-3 w-3" />
+      <div className="flex flex-col flex-1 p-5 sm:p-6 md:p-8 min-w-0 justify-center">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <span className="flex items-center gap-1 text-[12px] md:text-[13px] font-medium text-neutral-400">
+            <Calendar className="h-4 w-4" />
             {lastUpdatedAt}
           </span>
         </div>
         
-        <div className="flex-1 min-w-0 pr-4">
-          <h3 className="text-lg font-bold text-neutral-dark truncate group-hover:text-primary transition-colors mb-2">
+        <div className="flex-1 min-w-0 pr-4 mt-1">
+          <h3 className="text-xl md:text-2xl font-extrabold text-neutral-dark truncate group-hover:text-primary transition-colors mb-3">
             {title}
           </h3>
-          <p className="text-[14px] leading-relaxed text-neutral-500 line-clamp-2 mb-4">
+          <p className="text-sm md:text-base leading-relaxed text-neutral-500 line-clamp-2 md:line-clamp-3 mb-6">
             {body || "내용이 없습니다."}
           </p>
           
@@ -82,8 +82,8 @@ export function SeriesListCard({ id, title, body, postCount, authorName, lastUpd
       </div>
 
       {/* 우측 빈 공간 채우기 (화살표 인디케이터) */}
-      <div className="hidden sm:flex items-center justify-center pr-6 pl-2 text-neutral-300 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300">
-        <ChevronRight className="h-6 w-6" />
+      <div className="hidden sm:flex items-center justify-center pr-8 pl-4 text-neutral-300 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300">
+        <ChevronRight className="h-8 w-8" />
       </div>
       </div>
     </Link>

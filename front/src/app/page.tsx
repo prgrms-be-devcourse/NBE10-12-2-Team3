@@ -191,22 +191,29 @@ export default function Home() {
               </h2>
               <p className="mt-1 text-sm text-neutral-meta">구독자들이 가장 많이 읽고 있는 압도적 퀄리티의 게시글</p>
             </div>
-          </div>
-          
-          {/* IntersectionObserver 화살표 (데스크탑 전용) */}
-          <div className="hidden md:block absolute top-[55%] -translate-y-1/2 left-0 right-0 pointer-events-none z-20">
-             <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-12 relative">
-               {premiumLeft && (
-                 <button onClick={() => scrollByPage(premiumRef, "left")} className="absolute -left-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-md text-neutral-600 shadow-xl pointer-events-auto hover:bg-white hover:scale-110 transition-all animate-in fade-in slide-in-from-left-2">
-                   <ChevronLeft className="h-4 w-4" />
-                 </button>
-               )}
-               {premiumRight && (
-                 <button onClick={() => scrollByPage(premiumRef, "right")} className="absolute -right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-md text-neutral-600 shadow-xl pointer-events-auto hover:bg-white hover:scale-110 transition-all animate-in fade-in slide-in-from-right-2">
-                   <ChevronRight className="h-4 w-4" />
-                 </button>
-               )}
-             </div>
+            {/* 데스크탑 전용 좌우 네비게이션 버튼 (제목 우측 이동) */}
+            <div className="hidden md:flex items-center gap-2">
+              <button 
+                onClick={() => scrollByPage(premiumRef, "left")} 
+                disabled={!premiumLeft}
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 transition-all",
+                  premiumLeft ? "hover:bg-neutral-100 hover:text-neutral-900 shadow-sm hover:scale-105" : "opacity-30 cursor-not-allowed"
+                )}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button 
+                onClick={() => scrollByPage(premiumRef, "right")} 
+                disabled={!premiumRight}
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 transition-all",
+                  premiumRight ? "hover:bg-neutral-100 hover:text-neutral-900 shadow-sm hover:scale-105" : "opacity-30 cursor-not-allowed"
+                )}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
           
           {/* Horizontal Scroll for premium content (Edge Masking + overflow-hidden on desktop) */}
@@ -239,21 +246,29 @@ export default function Home() {
               </h2>
               <p className="mt-1 text-sm text-neutral-meta">누구나 조건 없이 바로 읽을 수 있는 무료 공개 콘텐츠</p>
             </div>
-          </div>
-
-          <div className="hidden md:block absolute top-[55%] -translate-y-1/2 left-0 right-0 pointer-events-none z-20">
-             <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-12 relative">
-               {freeLeft && (
-                 <button onClick={() => scrollByPage(freeRef, "left")} className="absolute -left-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-md text-neutral-600 shadow-xl pointer-events-auto hover:bg-white hover:scale-110 transition-all animate-in fade-in slide-in-from-left-2">
-                   <ChevronLeft className="h-4 w-4" />
-                 </button>
-               )}
-               {freeRight && (
-                 <button onClick={() => scrollByPage(freeRef, "right")} className="absolute -right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-md text-neutral-600 shadow-xl pointer-events-auto hover:bg-white hover:scale-110 transition-all animate-in fade-in slide-in-from-right-2">
-                   <ChevronRight className="h-4 w-4" />
-                 </button>
-               )}
-             </div>
+            {/* 데스크탑 전용 좌우 네비게이션 버튼 (제목 우측 이동) */}
+            <div className="hidden md:flex items-center gap-2">
+              <button 
+                onClick={() => scrollByPage(freeRef, "left")} 
+                disabled={!freeLeft}
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 transition-all",
+                  freeLeft ? "hover:bg-neutral-100 hover:text-neutral-900 shadow-sm hover:scale-105" : "opacity-30 cursor-not-allowed"
+                )}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button 
+                onClick={() => scrollByPage(freeRef, "right")} 
+                disabled={!freeRight}
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 transition-all",
+                  freeRight ? "hover:bg-neutral-100 hover:text-neutral-900 shadow-sm hover:scale-105" : "opacity-30 cursor-not-allowed"
+                )}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           <div ref={freeRef} className={cn("flex gap-6 overflow-x-auto md:overflow-hidden scrollbar-hide snap-x relative", getMaskClass(freeLeft, freeRight))}>
@@ -314,10 +329,10 @@ export default function Home() {
 
         {/* --- 6. Bottom CTA (Full-width Soft Background) --- */}
         {!isLoggedIn && (
-          <section className="w-full mt-32 bg-neutral-50/80 border-t border-neutral-200/60 pt-28 pb-32">
+          <section className="w-full mt-32 bg-[#ebebeb] pt-28 pb-32">
             <div className="mx-auto max-w-[1000px] px-4 sm:px-6 lg:px-8 xl:px-12">
               <div className="flex flex-col items-center justify-center text-center">
-                <h2 className="mb-4 text-3xl md:text-[40px] font-extrabold tracking-tight text-neutral-dark leading-tight">
+                <h2 className="mb-4 text-3xl md:text-[40px] font-extrabold tracking-tight text-neutral-900 leading-tight">
                   가장 깊이 있는 개발 인사이트, <br className="hidden md:block" />
                   지금 바로 내 것으로 만드세요.
                 </h2>
