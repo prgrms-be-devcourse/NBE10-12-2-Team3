@@ -38,3 +38,4 @@ out/
 
 ### Custom ###
 *.db
+src/main/resources/static/media/*
