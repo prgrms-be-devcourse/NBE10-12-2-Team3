@@ -13,7 +13,15 @@ import java.time.LocalDate;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "subscriptions")
+@Table(
+    name = "subscriptions",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_subscription_user_creator",
+            columnNames = {"user_id", "creator_id"}
+        )
+    }
+)
 public class Subscription extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -41,5 +49,12 @@ public class Subscription extends BaseEntity {
         this.tier = tier;
         this.startedAt = startedAt;
         this.expiredAt = expiredAt;
+    }
+
+    public void resurrectFollow() {
+        this.tier = SubscriptionTier.FOLLOW;
+        this.startedAt = LocalDate.now();
+        this.expiredAt = null;
+        this.restore();
     }
 }
