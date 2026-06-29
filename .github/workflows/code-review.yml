@@ -1,0 +1,122 @@
+name: AI PR CodeReview
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review] # Draft에서 Ready로 변경될 때도 트리거
+
+jobs:
+  review:
+    # Draft PR이면 Job 자체를 스킵 (옵션 1)
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write # 라벨 추가를 위한 권한
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-node@v4
+      - run: npm install @google/generative-ai
+
+      - name: Get Filtered Diff
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          # 패키지 매니저 Lock 파일이나 SVG 등은 리뷰에서 제외 (옵션 2)
+          git diff origin/${{ github.event.pull_request.base.ref }}...HEAD -- . ':(exclude)*.lock' ':(exclude)package-lock.json' ':(exclude)*.svg' > diff.txt
+
+      - name: Run Advanced Review
+        uses: actions/github-script@v7
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} # 안전한 주입
+        with:
+          script: |
+            const fs = require("fs");
+            const diff_output = fs.readFileSync("diff.txt", "utf8").trim();
+            if (!diff_output) {
+              console.log("No relevant changes to review.");
+              return;
+            }
+            
+            const { GoogleGenerativeAI } = require("@google/generative-ai");
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            
+            // gemini-3.5-flash 모델 사용 및 JSON 강제 출력 설정 (옵션 4)
+            const model = genAI.getGenerativeModel({ 
+              model: "gemini-3.5-flash",
+              generationConfig: { responseMimeType: "application/json" }
+            });
+            
+            // PR 의도 파악을 위한 제목 및 본문 컨텍스트 (옵션 3)
+            const prTitle = context.payload.pull_request.title || "No Title";
+            const prBody = context.payload.pull_request.body || "No Body";
+            
+            // 옵션 5, 6을 위한 복합 프롬프트
+            const prompt = `
+            당신은 시니어 소프트웨어 엔지니어입니다. 주어진 PR 정보와 Git Diff를 바탕으로 꼼꼼한 코드 리뷰를 진행하세요.
+            반드시 아래에 명시된 JSON 스키마 구조로만 반환해야 합니다. 마크다운이나 다른 설명은 절대 추가하지 마세요.
+            
+            [PR Context]
+            Title: ${prTitle}
+            Description: ${prBody}
+            
+            [Git Diff]
+            ${diff_output}
+            
+            [응답해야 할 JSON 구조]
+            {
+              "summary_report": "PR 변경사항에 대한 아키텍처, 성능, 보안 측면의 전체적인 요약 및 조언 (마크다운 형식)",
+              "inline_comments": [
+                {
+                  "path": "파일경로",
+                  "line": 해당 라인 숫자,
+                  "text": "개선 제안 내용"
+                }
+              ]
+            }`;
+            
+            // API 호출
+            const result = await model.generateContent(prompt);
+            const responseText = await result.response.text();
+            
+            let reviewData;
+            try {
+              reviewData = JSON.parse(responseText);
+            } catch (e) {
+              console.error("JSON Parse Error. Raw response:", responseText);
+              return;
+            }
+            
+            const { summary_report, inline_comments } = reviewData;
+            
+            // 1. 전체 요약 리뷰 코멘트 달기 (옵션 5)
+            if (summary_report) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: "## 🤖 Gemini 3.5 Flash 리뷰 요약\n\n" + summary_report
+              });
+            }
+            
+            
+            // 2. 라인별 인라인 코멘트 달기 (옵션 5)
+            if (inline_comments && inline_comments.length > 0) {
+              const formattedComments = inline_comments.map(c => ({
+                path: c.path,
+                line: Number(c.line),
+                body: c.text,
+                side: 'RIGHT'
+              }));
+            
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                event: 'COMMENT',
+                comments: formattedComments
+              });
+            }
+            
+            console.log("Advanced Review Process Completed.");
