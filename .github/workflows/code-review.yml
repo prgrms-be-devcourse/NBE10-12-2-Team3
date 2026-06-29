@@ -18,6 +18,7 @@ jobs:
         with: { fetch-depth: 0 }
 
       - uses: actions/setup-node@v4
+      # 단일 패키지만 설치하므로 시간 단축을 위해 캐싱(actions/cache)은 의도적으로 생략함
       - run: npm install @google/generative-ai
 
       - name: Get Filtered Diff
@@ -52,6 +53,7 @@ jobs:
             const prTitle = context.payload.pull_request.title || "No Title";
             const prBody = context.payload.pull_request.body || "No Body";
             
+            // 구조 단순화를 위해 프롬프트를 외부 파일로 분리하지 않고 인라인으로 유지함
             // 옵션 5, 6을 위한 복합 프롬프트
             const prompt = `
             당신은 시니어 소프트웨어 엔지니어입니다. 주어진 PR 정보와 Git Diff를 바탕으로 꼼꼼한 코드 리뷰를 진행하세요.
@@ -90,14 +92,35 @@ jobs:
             
             const { summary_report, inline_comments } = reviewData;
             
-            // 1. 전체 요약 리뷰 코멘트 달기 (옵션 5)
+            // 1. 전체 요약 리뷰 덮어쓰기 (댓글 도배 방지)
             if (summary_report) {
-              await github.rest.issues.createComment({
+              const bodyText = "## 🤖 Gemini AI 리뷰 요약\n\n" + summary_report;
+              
+              // 기존에 봇이 작성한 요약 댓글이 있는지 검색
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.payload.pull_request.number,
-                body: "## 🤖 Gemini 3.5 Flash 리뷰 요약\n\n" + summary_report
               });
+              const botComment = comments.find(c => c.user.type === 'Bot' && c.body.includes("## 🤖 Gemini AI 리뷰 요약"));
+              
+              if (botComment) {
+                // 기존 댓글 덮어쓰기 (Update)
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: bodyText
+                });
+              } else {
+                // 새 댓글 작성 (Create)
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  body: bodyText
+                });
+              }
             }
             
             
@@ -110,6 +133,7 @@ jobs:
                 side: 'RIGHT'
               }));
             
+              // PR 머지를 강제로 막지 않기 위해 REQUEST_CHANGES 대신 COMMENT 형식으로 의도적 설정함
               await github.rest.pulls.createReview({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
