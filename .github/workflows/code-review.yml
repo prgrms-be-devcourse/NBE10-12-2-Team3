@@ -44,7 +44,7 @@ jobs:
             
             // gemini-3.5-flash 모델 사용 및 JSON 강제 출력 설정 (옵션 4)
             const model = genAI.getGenerativeModel({ 
-              model: "gemini-3.5-flash",
+              model: "gemini-3.5-flash-latest",
               generationConfig: { responseMimeType: "application/json" }
             });
             
