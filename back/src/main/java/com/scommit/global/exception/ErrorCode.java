@@ -14,6 +14,10 @@ public enum ErrorCode {
     // 401 Unauthorized
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "401-1", "인증되지 않은 사용자입니다."),
 
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "401-2", "이메일 또는 비밀번호가 올바르지 않습니다."),
+    PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "401-3", "비밀번호가 일치하지 않습니다."),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "401-4", "리프레시 토큰이 유효하지 않습니다."),
+
     // 403 Forbidden
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "403-1", "접근 권한이 없습니다."),
 
