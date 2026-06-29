@@ -42,9 +42,9 @@ jobs:
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             
-            // gemini-3.5-flash 모델 사용 및 JSON 강제 출력 설정 (옵션 4)
+            // gemini-2.5-flash 모델 사용 및 JSON 강제 출력 설정 (옵션 4)
             const model = genAI.getGenerativeModel({ 
-              model: "gemini-3.5-flash-latest",
+              model: "gemini-2.5-flash",
               generationConfig: { responseMimeType: "application/json" }
             });
             
