@@ -1,6 +1,6 @@
-package com.scommit.domain.comment.entity;
+package com.scommit.domain.post.comment.entity;
 
-import com.scommit.domain.post.entity.Post;
+import com.scommit.domain.post.post.entity.Post;
 import com.scommit.domain.user.entity.User;
 import com.scommit.global.base.BaseEntity;
 import jakarta.persistence.*;
