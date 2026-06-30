@@ -1,4 +1,4 @@
-package com.scommit.domain.series.entity;
+package com.scommit.domain.series.series.entity;
 
 import com.scommit.domain.user.entity.User;
 import com.scommit.global.base.BaseEntity;
@@ -23,23 +23,23 @@ public class Series extends BaseEntity {
 
     @Column(nullable = false)
     private String title;
-   
-    private String body;  
-      
-    @LastModifiedDate   
+
+    private String body;
+
+    @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-    
-    @Builder
-    public Series(User user, String title, String body){
-      this.user = user;
-      this.title = title;
-      this.body = body;
-    }
 
-    public void update(String title, String body){
+    @Builder
+    public Series(User user, String title, String body) {
+        this.user = user;
         this.title = title;
         this.body = body;
     }
- }
+
+    public void update(String title, String body) {
+        this.title = title;
+        this.body = body;
+    }
+}
     
