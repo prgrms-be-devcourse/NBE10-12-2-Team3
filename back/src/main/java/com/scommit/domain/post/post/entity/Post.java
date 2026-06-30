@@ -21,8 +21,7 @@ import java.time.LocalDateTime;
 public class Post extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-   // @JoinColumn(name = "user_id", nullable = false)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = true) // TODO: Security 완료 후 nullable = false로 복구
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)

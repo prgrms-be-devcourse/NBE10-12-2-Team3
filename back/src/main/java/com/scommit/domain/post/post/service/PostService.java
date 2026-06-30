@@ -6,6 +6,8 @@ import com.scommit.domain.post.post.entity.Post;
 import com.scommit.domain.post.post.entity.PostAccessLevel;
 import com.scommit.domain.post.post.entity.PublishStatus;
 import com.scommit.domain.post.post.repository.PostRepository;
+import com.scommit.domain.series.entity.Series;
+import com.scommit.domain.series.repository.SeriesRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -20,15 +22,17 @@ import java.util.List;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final SeriesRepository seriesRepository;
     // TODO: Security 완료 후 UserRepository 추가
-    // TODO: SeriesRepository 추가
 
     // 게시글 생성
     @Transactional
     public PostResponse createPost(String title, String body, String thumbnail,
                                    PublishStatus publishStatus, PostAccessLevel accessLevel, Long seriesId) {
         // TODO: Security 완료 후 로그인 유저로 교체
-        // TODO: seriesId로 Series 조회 후 연결 (준서님 SeriesRepository 완료 후)
+        Series series = seriesId != null
+                ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
+                : null;
 
         Post post = Post.builder()
                 .title(title)
@@ -36,6 +40,7 @@ public class PostService {
                 .thumbnail(thumbnail)
                 .publishStatus(publishStatus)
                 .accessLevel(accessLevel)
+                .series(series)
                 .build();
 
         return new PostResponse(postRepository.save(post));
@@ -71,9 +76,11 @@ public class PostService {
         }
 
         // TODO: 본인 게시글인지 확인 (Security 완료 후)
-        // TODO: seriesId로 Series 조회 후 연결 (준서님 SeriesRepository 완료 후)
+        Series series = seriesId != null
+                ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
+                : null;
 
-        post.update(title, body, thumbnail, publishStatus, accessLevel, null);
+        post.update(title, body, thumbnail, publishStatus, accessLevel, series);
 
         return new PostResponse(post);
     }
