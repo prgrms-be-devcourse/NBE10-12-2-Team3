@@ -1,5 +1,6 @@
 package com.scommit.domain.series.series.controller;
 
+import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.series.series.dto.SeriesCreateRequest;
 import com.scommit.domain.series.series.dto.SeriesUpdateRequest;
 import com.scommit.domain.series.series.entity.Series;
@@ -42,7 +43,7 @@ class SeriesControllerTest {
 
     private Series createMockSeries(Long id, Long userId, String title, String body) {
         Series series = mock(Series.class);
-        com.scommit.domain.user.entity.User user = mock(com.scommit.domain.user.entity.User.class);
+        User user = mock(User.class);
         when(user.getId()).thenReturn(userId);
         when(series.getId()).thenReturn(id);
         when(series.getUser()).thenReturn(user);

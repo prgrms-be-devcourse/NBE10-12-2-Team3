@@ -2,8 +2,8 @@ package com.scommit.domain.series.series.service;
 
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.repository.SeriesRepository;
-import com.scommit.domain.user.entity.User;
-import com.scommit.domain.user.repository.UserRepository;
+import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
