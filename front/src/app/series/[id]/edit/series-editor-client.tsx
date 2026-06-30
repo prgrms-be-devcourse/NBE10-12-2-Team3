@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { X, Image as ImageIcon, LayoutList, ChevronDown, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, {useState} from "react";
+import {useRouter} from "next/navigation";
+import {Check, ChevronDown, Image as ImageIcon, LayoutList, X} from "lucide-react";
+import {Button} from "@/components/ui/button";
 
 interface SeriesEditorClientProps {
   initialData: {
@@ -20,7 +20,6 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
   
   const [title, setTitle] = useState(initialData.title);
   const [body, setBody] = useState(initialData.body);
-  const [selectedPostIds, setSelectedPostIds] = useState<string[]>(initialData.postIds || []);
   const [isSaving, setIsSaving] = useState(false);
 
   // Pagination for Posts (Mock state)
@@ -36,14 +35,6 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
   const myPosts = allDummyPosts.slice(0, (page + 1) * 6);
   const hasMore = myPosts.length < allDummyPosts.length;
 
-  const togglePostSelection = (postId: string) => {
-    setSelectedPostIds(prev => 
-      prev.includes(postId) 
-        ? prev.filter(id => id !== postId) 
-        : [...prev, postId]
-    );
-  };
-
   const handleSave = async () => {
     if (!title.trim()) return;
 
@@ -53,7 +44,7 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
       const payload = {
         title,
         body,
-        postIds: selectedPostIds,
+        postIds: posts.map(p => p.id),
       };
       
       console.log("저장 요청 페이로드:", payload);

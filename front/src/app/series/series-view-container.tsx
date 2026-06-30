@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, {useEffect, useState} from "react";
 import Link from "next/link";
-import { LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight, PenSquare, FolderOpen } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { SeriesCard } from "@/components/common/series-card";
-import { SeriesListCard } from "@/components/common/series-list-card";
-import { cn } from "@/lib/utils";
+import {ChevronLeft, ChevronRight, FolderOpen, LayoutGrid, List as ListIcon, PenSquare} from "lucide-react";
+import {useRouter, useSearchParams} from "next/navigation";
+import {Button} from "@/components/ui/button";
+import {SeriesCard} from "@/components/common/series-card";
+import {SeriesListCard} from "@/components/common/series-list-card";
+import {cn} from "@/lib/utils";
 
 interface Series {
   id: number | string;
@@ -28,7 +28,6 @@ interface SeriesViewContainerProps {
 export function SeriesViewContainer({ seriesList, currentPage, totalPages }: SeriesViewContainerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sort = searchParams?.get("sort") || "updatedAt,desc";
   
   // 뷰 모드 로컬 스토리지 연동 (검색 페이지와 동일한 "search_layout" 키 사용)
   const [layout, setLayout] = useState<"list" | "grid">("grid");
@@ -37,9 +36,9 @@ export function SeriesViewContainer({ seriesList, currentPage, totalPages }: Ser
   useEffect(() => {
     const savedLayout = localStorage.getItem("search_layout") as "list" | "grid";
     if (savedLayout) {
-      setLayout(savedLayout);
+      setTimeout(() => setLayout(savedLayout), 0);
     }
-    setIsMounted(true);
+    setTimeout(() => setIsMounted(true), 0);
   }, []);
 
   const handleLayoutChange = (newLayout: "list" | "grid") => {

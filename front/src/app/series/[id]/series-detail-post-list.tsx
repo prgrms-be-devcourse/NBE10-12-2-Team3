@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ContentListCard } from "@/components/common/content-list-card";
-import { ContentCard } from "@/components/common/content-card";
-import { cn } from "@/lib/utils";
+import React, {useEffect, useState} from "react";
+import {ChevronLeft, ChevronRight, LayoutGrid, List} from "lucide-react";
+import {useRouter, useSearchParams} from "next/navigation";
+import {Button} from "@/components/ui/button";
+import {ContentListCard} from "@/components/common/content-list-card";
+import {ContentCard} from "@/components/common/content-card";
+import {cn} from "@/lib/utils";
 
 interface Post {
   id: string | number;
@@ -33,10 +33,10 @@ export function SeriesDetailPostList({ posts, totalPosts, currentPage, totalPage
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    setTimeout(() => setIsMounted(true), 0);
     const savedLayout = localStorage.getItem("series_detail_layout") as "grid" | "list";
     if (savedLayout === "grid" || savedLayout === "list") {
-      setLayout(savedLayout);
+      setTimeout(() => setLayout(savedLayout), 0);
     }
   }, []);
 

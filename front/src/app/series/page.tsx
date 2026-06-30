@@ -1,4 +1,4 @@
-import { SeriesViewContainer } from "./series-view-container";
+import {SeriesViewContainer} from "./series-view-container";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ export default async function SeriesPage({
     id: i + (page - 1) * 10,
     title: `실무 밀착형 아키텍처 설계 패턴 ${i + 1 + (page - 1) * 10}편`,
     body: "실제 프로덕션 환경에서 마주하는 다양한 병목 현상을 해결하기 위한 데이터베이스 튜닝과 아키텍처 설계 노하우를 깊이 있게 파헤칩니다.",
-    postCount: Math.floor(Math.random() * 20) + 1,
+    postCount: (i * 3) % 20 + 1, // Deterministic mock data instead of Math.random
     authorName: "시니어개발자",
     lastUpdatedAt: "2026-06-29",
     thumbnailUrl: "", // 빈 문자열로 두면 SeriesCard에서 범용 <img>의 fallback 작동
