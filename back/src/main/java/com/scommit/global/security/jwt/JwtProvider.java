@@ -2,26 +2,54 @@ package com.scommit.global.security.jwt;
 
 import com.scommit.domain.user.user.entity.UserRole;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ClaimsBuilder;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.time.Duration;
+import java.util.Date;
 
 @Component
 public class JwtProvider {
-    @Value("${jwt.secretKey}")
-    private String secretKey;
-    @Value("${jwt.accessTokenExpiration}")
-    private Duration accessTokenExpiration;
 
-    public String generateAccessToken(Long userId, UserRole role) {
+    private final SecretKey signingKey;
+    private final Duration accessTokenExpiration;
 
-        throw new UnsupportedOperationException();
+    public JwtProvider(
+            @Value("${jwt.secret-key}") String secretKey,
+            @Value("${jwt.token.access-token-expiration}") Duration accessTokenExpiration
+    ) {
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+        this.accessTokenExpiration = accessTokenExpiration;
     }
 
-    public Claims parseAccessToken(String token) {
-        throw new UnsupportedOperationException();
+    public String generateAccessToken(Long userId, UserRole role) {
+        Date now = new Date();
+        Date expirationDate = new Date(now.getTime() + accessTokenExpiration.toMillis());
+        return Jwts.builder()
+                .claim("id", userId)
+                .claim("role", role.name())
+                .issuedAt(now)
+                .expiration(expirationDate)
+                .signWith(signingKey)
+                .compact();
+    }
+
+    public record AccessTokenPayload(Long id, UserRole role) {}
+
+    public AccessTokenPayload parseAccessToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return new AccessTokenPayload(
+                claims.get("id", Long.class),
+                UserRole.valueOf(claims.get("role", String.class))
+        );
     }
 }

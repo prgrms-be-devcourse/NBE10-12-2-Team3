@@ -1,13 +1,13 @@
 package com.scommit.global.security.jwt;
 
 import com.scommit.domain.user.user.entity.UserRole;
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,16 +15,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class JwtProviderTest {
 
     // HS256은 최소 32바이트(256비트) 키 필요
-    private static final String SECRET = "test-secret-key-for-jwt-unit-testing-minimum-32bytes-required";
-    private static final long EXPIRATION_MS = 3_600_000L;
+    private static final String SECRET = "dGVzdC1zZWNyZXQta2V5LWZvci1qd3QtdW5pdC10ZXN0aW5nLW1pbmltdW0tMzJieXRlcy1yZXF1aXJlZA==";
+    private static final Duration EXPIRATION = Duration.ofHours(1);
 
     private JwtProvider jwtProvider;
 
     @BeforeEach
     void setUp() {
-        jwtProvider = new JwtProvider();
-        ReflectionTestUtils.setField(jwtProvider, "secretKey", SECRET);
-        ReflectionTestUtils.setField(jwtProvider, "accessTokenExpiration", EXPIRATION_MS);
+        jwtProvider = new JwtProvider(SECRET, EXPIRATION);
     }
 
     @Test
@@ -40,25 +38,14 @@ class JwtProviderTest {
     class ParseAccessToken {
 
         @Test
-        @DisplayName("sub 클레임에 userId가 문자열로 저장된다")
-        void sub_containsUserId() {
+        @DisplayName("id 클레임에 userId가 저장된다")
+        void id_containsUserId() {
             Long userId = 42L;
             String token = jwtProvider.generateAccessToken(userId, UserRole.USER);
 
-            Claims claims = jwtProvider.parseAccessToken(token);
+            JwtProvider.AccessTokenPayload payload = jwtProvider.parseAccessToken(token);
 
-            assertThat(claims.getSubject()).isEqualTo(String.valueOf(userId));
-        }
-
-        @Test
-        @DisplayName("email 클레임이 그대로 복원된다")
-        void email_isPreserved() {
-            String email = "user@example.com";
-            String token = jwtProvider.generateAccessToken(1L, UserRole.USER);
-
-            Claims claims = jwtProvider.parseAccessToken(token);
-
-            assertThat(claims.get("email", String.class)).isEqualTo(email);
+            assertThat(payload.id()).isEqualTo(userId);
         }
 
         @Test
@@ -66,10 +53,9 @@ class JwtProviderTest {
         void role_restoredAsEnum_user() {
             String token = jwtProvider.generateAccessToken(1L, UserRole.USER);
 
-            Claims claims = jwtProvider.parseAccessToken(token);
-            UserRole parsedRole = UserRole.valueOf(claims.get("role", String.class));
+            JwtProvider.AccessTokenPayload payload = jwtProvider.parseAccessToken(token);
 
-            assertThat(parsedRole).isEqualTo(UserRole.USER);
+            assertThat(payload.role()).isEqualTo(UserRole.USER);
         }
 
         @Test
@@ -77,19 +63,16 @@ class JwtProviderTest {
         void role_restoredAsEnum_admin() {
             String token = jwtProvider.generateAccessToken(1L, UserRole.ADMIN);
 
-            Claims claims = jwtProvider.parseAccessToken(token);
-            UserRole parsedRole = UserRole.valueOf(claims.get("role", String.class));
+            JwtProvider.AccessTokenPayload payload = jwtProvider.parseAccessToken(token);
 
-            assertThat(parsedRole).isEqualTo(UserRole.ADMIN);
+            assertThat(payload.role()).isEqualTo(UserRole.ADMIN);
         }
     }
 
     @Test
     @DisplayName("parseAccessToken: 만료된 토큰은 ExpiredJwtException을 던진다")
     void parseAccessToken_expired_throwsExpiredJwtException() {
-        JwtProvider expiredProvider = new JwtProvider();
-        ReflectionTestUtils.setField(expiredProvider, "secretKey", SECRET);
-        ReflectionTestUtils.setField(expiredProvider, "accessTokenExpiration", -1L);
+        JwtProvider expiredProvider = new JwtProvider(SECRET, Duration.ofMillis(-1));
         String expiredToken = expiredProvider.generateAccessToken(1L, UserRole.USER);
 
         assertThatThrownBy(() -> expiredProvider.parseAccessToken(expiredToken))

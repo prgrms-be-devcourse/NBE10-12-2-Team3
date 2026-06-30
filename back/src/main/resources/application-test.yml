@@ -15,5 +15,8 @@ logging:
     org.hibernate.SQL: debug
 
 jwt:
-  secretKey: test-secret-key-for-jwt-unit-testing-minimum-32bytes-required
-  accessTokenExpiration: 30m
+  secret-key: dGVzdC1zZWNyZXQta2V5LWZvci1qd3QtdW5pdC10ZXN0aW5nLW1pbmltdW0tMzJieXRlcy1yZXF1aXJlZA==
+  token:
+    access-token-expiration: 30m
+  cookie:
+    max-age: 30m
