@@ -21,6 +21,11 @@ public class UserService {
         if (userRepository.existsByEmail(email)) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
+
+        if (userRepository.existsByNickname(nickname)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+        }
+
         String encodedPassword = passwordEncoder.encode(password);
         User user = User.builder()
                 .email(email)
