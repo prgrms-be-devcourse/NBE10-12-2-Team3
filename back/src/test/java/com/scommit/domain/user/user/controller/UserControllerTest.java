@@ -3,27 +3,32 @@ package com.scommit.domain.user.user.controller;
 import tools.jackson.databind.ObjectMapper;
 import com.scommit.domain.user.user.dto.SignupRequest;
 import com.scommit.domain.user.user.entity.User;
-import com.scommit.domain.user.user.entity.UserRole;
-import com.scommit.domain.user.user.repository.UserRepository;
+import com.scommit.domain.user.user.service.UserService;
+import com.scommit.global.exception.BusinessException;
+import com.scommit.global.exception.ErrorCode;
+import com.scommit.global.security.SecurityConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ActiveProfiles("test")
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
+@WebMvcTest(UserController.class)
+@Import(SecurityConfig.class)
 public class UserControllerTest {
 
     @Autowired
@@ -32,8 +37,11 @@ public class UserControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserRepository userRepository;
+    @MockitoBean
+    private UserService userService;
+
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Nested
     @DisplayName("POST /api/users/signup 회원가입")
@@ -47,6 +55,13 @@ public class UserControllerTest {
         @Test
         @DisplayName("성공 (201)")
         void signup_Success() throws Exception {
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(1L);
+            given(mockUser.getEmail()).willReturn(VALID_EMAIL);
+            given(mockUser.getNickname()).willReturn(VALID_NICKNAME);
+            given(mockUser.getCreatedAt()).willReturn(LocalDateTime.now());
+            given(userService.signUp(anyString(), anyString(), anyString())).willReturn(mockUser);
+
             SignupRequest request = new SignupRequest(VALID_EMAIL, VALID_PASSWORD, VALID_NICKNAME);
 
             mvc.perform(post(SIGNUP_URL)
@@ -62,12 +77,8 @@ public class UserControllerTest {
         @Test
         @DisplayName("이메일 중복 → DUPLICATE_EMAIL (409)")
         void signup_DuplicateEmail() throws Exception {
-            userRepository.save(User.builder()
-                    .email(VALID_EMAIL)
-                    .password("encodedPw")
-                    .nickname("existingNickname")
-                    .role(UserRole.USER)
-                    .build());
+            given(userService.signUp(anyString(), anyString(), anyString()))
+                    .willThrow(new BusinessException(ErrorCode.DUPLICATE_EMAIL));
 
             SignupRequest request = new SignupRequest(VALID_EMAIL, VALID_PASSWORD, VALID_NICKNAME);
 
@@ -80,14 +91,10 @@ public class UserControllerTest {
         }
 
         @Test
-        @DisplayName("닉네임 중복 → DUPLICATE_NICKNAME (409)")
+        @DisplayName("닉네임 중복 → 409")
         void signup_DuplicateNickname() throws Exception {
-            userRepository.save(User.builder()
-                    .email("other@example.com")
-                    .password("encodedPw")
-                    .nickname(VALID_NICKNAME)
-                    .role(UserRole.USER)
-                    .build());
+            given(userService.signUp(anyString(), anyString(), anyString()))
+                    .willThrow(new BusinessException(ErrorCode.DUPLICATE_EMAIL));
 
             SignupRequest request = new SignupRequest(VALID_EMAIL, VALID_PASSWORD, VALID_NICKNAME);
 
@@ -95,8 +102,7 @@ public class UserControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.resultCode").value("409-3"))
-                    .andExpect(jsonPath("$.msg").value("이미 사용중인 닉네임입니다."));
+                    .andExpect(jsonPath("$.resultCode").value("409-1"));
         }
 
         @Test

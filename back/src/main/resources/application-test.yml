@@ -10,9 +10,6 @@ spring:
       hibernate:
         format_sql: true
 
-file:
-  path: /tmp/test-uploads
-
 logging:
   level:
     org.hibernate.SQL: debug
