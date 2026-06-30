@@ -58,11 +58,13 @@ jobs:
             const prompt = `
             당신은 시니어 소프트웨어 엔지니어입니다. 주어진 PR 정보와 Git Diff를 바탕으로 꼼꼼한 코드 리뷰를 진행하세요.
             반드시 아래에 명시된 JSON 스키마 구조로만 반환해야 합니다. 마크다운이나 다른 설명은 절대 추가하지 마세요.
+            summary_report 필드에는 제목(예: "# 리뷰 요약" 같은 헤더)을 포함하지 마세요. 본문 내용만 작성하세요.
             
             인라인 코멘트(text)를 작성할 때는 반드시 내용 맨 앞에 문제의 심각도를 나타내는 Pn 룰을 달아주세요. 형식은 반드시 "P1: ", "P2: ", "P3: " 로 시작해야 합니다.
             - P1: 꼭 (버그, 보안 취약점 등 반드시 수정해야 하는 필수 사항)
             - P2: 애매 (더 나은 설계나 성능 제안 등 적극 권장하되 논의가 가능한 사항)
             - P3: 참고의견 (네이밍 컨벤션, 사소한 팁 등 무시해도 괜찮은 가벼운 제안)
+            인라인 코멘트는 반드시 개선이 필요한 사항만 작성하세요. 칭찬이나 "잘 작성되었습니다" 같은 긍정적 평가는 인라인 코멘트로 달지 마세요.
 
             [레이어 침범 체크] 아래 항목이 발견되면 반드시 인라인 코멘트로 지적하세요.
             - Controller에서 @Repository를 직접 주입하거나 호출하는 경우 (P1)
@@ -98,7 +100,7 @@ jobs:
                 } catch (e) {
                   if (e.status === 503 && i < retries - 1) {
                     const waitMs = (i + 1) * 10000;
-                    console.log(`Gemini 503, ${waitMs / 1000}s 후 재시도... (${i + 1}/${retries - 1})`);
+                    console.log(`Gemini 503, ${waitMs / 1000}s 후 재시도... (${i + 1}/${retries})`);
                     await new Promise(r => setTimeout(r, waitMs));
                   } else {
                     throw e;
@@ -153,7 +155,9 @@ jobs:
 
             // 1. 전체 요약 리뷰 덮어쓰기 (댓글 도배 방지)
             if (summary_report) {
-              const bodyText = "## 🤖 Gemini AI 리뷰 요약\n\n" + summary_report;
+              // Gemini가 summary_report에 제목을 포함해 반환할 경우 중복 방지
+              const cleanReport = summary_report.replace(/^#+\s*.+\n+/, '').trim();
+              const bodyText = "## 🤖 Gemini AI 리뷰 요약\n\n" + cleanReport;
               
               // 기존에 봇이 작성한 요약 댓글이 있는지 검색
               const { data: comments } = await github.rest.issues.listComments({
