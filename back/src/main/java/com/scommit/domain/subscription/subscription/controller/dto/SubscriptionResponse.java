@@ -12,7 +12,10 @@ import java.time.LocalDate;
 public class SubscriptionResponse {
     private Long creatorId;
     private String nickname;
-    private String profileImage;
+    
+    // 창작자의 프로필 이미지 입니다.
+    private String creatorProfileImage;
+    
     private SubscriptionTier tier;
     private LocalDate startedAt;
     private LocalDate expiredAt;
@@ -21,7 +24,7 @@ public class SubscriptionResponse {
         return SubscriptionResponse.builder()
                 .creatorId(info.creatorId())
                 .nickname(info.nickname())
-                .profileImage(info.profileImage())
+                .creatorProfileImage(info.creatorProfileImage())
                 .tier(info.tier())
                 .startedAt(info.startedAt())
                 .expiredAt(info.expiredAt())

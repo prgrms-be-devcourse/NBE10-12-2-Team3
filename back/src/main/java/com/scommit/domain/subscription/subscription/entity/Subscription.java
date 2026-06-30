@@ -63,9 +63,9 @@ public class Subscription extends BaseEntity {
         this.expiredAt = LocalDate.now().plusMonths(1);
     }
 
+    // 해지시 데이터를 삭제하지 않고 팔로우 티어로 강등 처리
     public void downgradeToFollow() {
         this.tier = SubscriptionTier.FOLLOW;
-        // YouTube premium downgrade logic: typically keep it active until expiredAt, but for this implementation we reset it
         this.expiredAt = null;
     }
 }

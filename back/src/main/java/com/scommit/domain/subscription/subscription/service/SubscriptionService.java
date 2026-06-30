@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
+import com.scommit.domain.subscription.subscription.service.dto.SubscriptionInfo;
 
 @Service
 @RequiredArgsConstructor
@@ -109,10 +111,10 @@ public class SubscriptionService {
         subscription.downgradeToFollow();
     }
 
-    public java.util.List<com.scommit.domain.subscription.subscription.service.dto.SubscriptionInfo> getMySubscriptions(Long userId) {
-        java.util.List<Subscription> subscriptions = subscriptionRepository.findMySubscriptions(userId);
+    public List<SubscriptionInfo> getMySubscriptions(Long userId) {
+        List<Subscription> subscriptions = subscriptionRepository.findMySubscriptions(userId);
         return subscriptions.stream()
-                .map(com.scommit.domain.subscription.subscription.service.dto.SubscriptionInfo::from)
+                .map(SubscriptionInfo::from)
                 .toList();
     }
 }
