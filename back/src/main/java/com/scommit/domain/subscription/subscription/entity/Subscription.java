@@ -1,4 +1,4 @@
-package com.scommit.domain.subscription.entity;
+package com.scommit.domain.subscription.subscription.entity;
 
 import com.scommit.domain.user.entity.User;
 import com.scommit.global.base.BaseEntity;
@@ -51,10 +51,21 @@ public class Subscription extends BaseEntity {
         this.expiredAt = expiredAt;
     }
 
-    public void resurrectFollow() {
+    public void restoreSubscription() {
         this.tier = SubscriptionTier.FOLLOW;
         this.startedAt = LocalDate.now();
         this.expiredAt = null;
         this.restore();
+    }
+
+    public void upgradeToMembership() {
+        this.tier = SubscriptionTier.MEMBERSHIP;
+        this.expiredAt = LocalDate.now().plusMonths(1);
+    }
+
+    public void downgradeToFollow() {
+        this.tier = SubscriptionTier.FOLLOW;
+        // YouTube premium downgrade logic: typically keep it active until expiredAt, but for this implementation we reset it
+        this.expiredAt = null;
     }
 }
