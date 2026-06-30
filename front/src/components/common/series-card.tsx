@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, {useState} from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Calendar, MoreVertical, Pencil, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {useRouter} from "next/navigation";
+import {Calendar, MoreVertical, Pencil, Trash2} from "lucide-react";
+import {cn} from "@/lib/utils";
 
 interface SeriesCardProps {
   id: number | string;
@@ -80,10 +80,11 @@ export function SeriesCard({
       </div>
 
       {/* Main Card Content */}
-      <div className="relative flex flex-col h-full w-full bg-white rounded-[16px] border border-neutral-200/60 overflow-hidden z-20">
-        
+        <div className="relative flex flex-col h-full w-full bg-white rounded-[16px] border border-neutral-200/60 z-20">
+
         {/* 카드 상단: 썸네일 영역 */}
-        <div className="relative aspect-video w-full bg-neutral-900 border-b border-neutral-100 z-10">
+            <div
+                className="relative aspect-video w-full bg-neutral-900 border-b border-neutral-100 z-10 overflow-hidden rounded-t-[16px]">
           <div className="absolute inset-0 overflow-hidden">
             <img 
               src={thumbnailUrl || "/images/default_series.jpg"} 

@@ -21,6 +21,7 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
   const [title, setTitle] = useState(initialData.title);
   const [body, setBody] = useState(initialData.body);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedPostIds, setSelectedPostIds] = useState<string[]>(initialData.postIds || []);
 
   // Pagination for Posts (Mock state)
   const [page, setPage] = useState(0);
@@ -35,6 +36,12 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
   const myPosts = allDummyPosts.slice(0, (page + 1) * 6);
   const hasMore = myPosts.length < allDummyPosts.length;
 
+  const handleTogglePost = (postId: string) => {
+    setSelectedPostIds(prev =>
+        prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
+    );
+  };
+
   const handleSave = async () => {
     if (!title.trim()) return;
 
@@ -44,7 +51,7 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
       const payload = {
         title,
         body,
-        postIds: posts.map(p => p.id),
+        postIds: selectedPostIds,
       };
       
       console.log("저장 요청 페이로드:", payload);
@@ -156,8 +163,9 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
                         {myPosts.map(post => {
                           const isSelected = selectedPostIds.includes(post.id);
                           return (
-                            <label 
-                              key={post.id} 
+                              <label
+                                  key={post.id}
+                                  onClick={() => handleTogglePost(post.id)}
                               className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-sm ${
                                 isSelected ? 'border-primary bg-primary/5' : 'border-neutral-200 bg-white hover:border-neutral-300'
                               }`}

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, {useState} from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Calendar, ChevronRight, MoreVertical, Pencil, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {useRouter} from "next/navigation";
+import {Calendar, ChevronRight, MoreVertical, Pencil, Trash2} from "lucide-react";
+import {cn} from "@/lib/utils";
 
 interface SeriesListCardProps {
   id: number | string;
@@ -79,7 +79,8 @@ export function SeriesListCard({
       </div>
 
       {/* Main Card Content (White Background) */}
-      <div className="relative flex flex-col sm:flex-row w-full bg-white rounded-[16px] border border-neutral-200/60 overflow-visible sm:overflow-hidden group-hover:border-primary/20 transition-colors z-20">
+        <div
+            className="relative flex flex-col sm:flex-row w-full bg-white rounded-[16px] border border-neutral-200/60 overflow-visible group-hover:border-primary/20 transition-colors z-20">
       
         {/* 썸네일 영역 */}
         <div className="relative w-full sm:w-[320px] md:w-[400px] shrink-0 aspect-video sm:aspect-auto bg-neutral-900 border-b sm:border-b-0 sm:border-r border-neutral-100 z-10 overflow-hidden sm:rounded-l-[16px]">
