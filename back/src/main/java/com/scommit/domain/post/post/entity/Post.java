@@ -1,4 +1,4 @@
-package com.scommit.domain.post.entity;
+package com.scommit.domain.post.post.entity;
 
 import com.scommit.domain.series.entity.Series;
 import com.scommit.domain.user.entity.User;
@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -16,10 +17,12 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "posts")
+@EntityListeners(AuditingEntityListener.class)
 public class Post extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+   // @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -60,5 +63,14 @@ public class Post extends BaseEntity {
       this.publishStatus = publishStatus;
       this.accessLevel = accessLevel;
       this.viewCount = 0L;
+    }
+
+    public void update(String title, String body, String thumbnail, PublishStatus publishStatus, PostAccessLevel accessLevel, Series series){
+        this.title = title;
+        this.body = body;
+        this.thumbnail = thumbnail;
+        this.publishStatus = publishStatus;
+        this.accessLevel = accessLevel;
+        this.series = series;
     }
 }
