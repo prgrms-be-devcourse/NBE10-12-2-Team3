@@ -1,10 +1,10 @@
-package com.scommit.domain.user.controller;
+package com.scommit.domain.user.user.controller;
 
 import tools.jackson.databind.ObjectMapper;
-import com.scommit.domain.user.dto.SignupRequest;
-import com.scommit.domain.user.entity.User;
-import com.scommit.domain.user.entity.UserRole;
-import com.scommit.domain.user.repository.UserRepository;
+import com.scommit.domain.user.user.dto.SignupRequest;
+import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.entity.UserRole;
+import com.scommit.domain.user.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

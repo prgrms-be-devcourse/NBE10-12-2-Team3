@@ -1,8 +1,8 @@
-package com.scommit.domain.user.service;
+package com.scommit.domain.user.user.service;
 
-import com.scommit.domain.user.entity.User;
-import com.scommit.domain.user.entity.UserRole;
-import com.scommit.domain.user.repository.UserRepository;
+import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.entity.UserRole;
+import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;

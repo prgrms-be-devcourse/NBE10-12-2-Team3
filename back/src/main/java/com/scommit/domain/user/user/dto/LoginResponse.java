@@ -1,7 +1,7 @@
-package com.scommit.domain.user.dto;
+package com.scommit.domain.user.user.dto;
 
-import com.scommit.domain.user.entity.User;
-import com.scommit.domain.user.entity.UserRole;
+import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.entity.UserRole;
 
 public record LoginResponse(
         String accessToken,

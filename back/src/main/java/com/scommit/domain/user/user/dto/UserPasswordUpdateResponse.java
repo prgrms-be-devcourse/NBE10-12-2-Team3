@@ -1,4 +1,4 @@
-package com.scommit.domain.user.dto;
+package com.scommit.domain.user.user.dto;
 
 public record UserPasswordUpdateResponse(
         String accessToken,

@@ -1,9 +1,9 @@
-package com.scommit.domain.user.controller;
+package com.scommit.domain.user.user.controller;
 
-import com.scommit.domain.user.dto.SignupRequest;
-import com.scommit.domain.user.dto.SignupResponse;
-import com.scommit.domain.user.entity.User;
-import com.scommit.domain.user.service.UserService;
+import com.scommit.domain.user.user.dto.SignupRequest;
+import com.scommit.domain.user.user.dto.SignupResponse;
+import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.service.UserService;
 import com.scommit.global.dto.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

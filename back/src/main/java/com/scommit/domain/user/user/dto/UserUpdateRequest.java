@@ -1,4 +1,4 @@
-package com.scommit.domain.user.dto;
+package com.scommit.domain.user.user.dto;
 
 import jakarta.validation.constraints.Size;
 
