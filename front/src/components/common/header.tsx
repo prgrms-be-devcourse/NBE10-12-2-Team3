@@ -141,7 +141,7 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">🌟 창작자</Link>
             <Link href="/" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">✍️ 게시글</Link>
-            <Link href="/" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">📚 시리즈</Link>
+            <Link href="/series" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">📚 시리즈</Link>
           </nav>
         </div>
 
