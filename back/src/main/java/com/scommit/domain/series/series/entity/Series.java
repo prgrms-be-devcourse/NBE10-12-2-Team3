@@ -42,4 +42,3 @@ public class Series extends BaseEntity {
         this.body = body;
     }
 }
-    
