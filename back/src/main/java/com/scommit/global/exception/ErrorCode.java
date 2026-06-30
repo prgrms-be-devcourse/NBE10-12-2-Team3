@@ -14,10 +14,6 @@ public enum ErrorCode {
     // 401 Unauthorized
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "401-1", "인증되지 않은 사용자입니다."),
 
-    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "401-2", "이메일 또는 비밀번호가 올바르지 않습니다."),
-    PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "401-3", "비밀번호가 일치하지 않습니다."),
-    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "401-4", "리프레시 토큰이 유효하지 않습니다."),
-
     // 403 Forbidden
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "403-1", "접근 권한이 없습니다."),
 
@@ -29,7 +25,6 @@ public enum ErrorCode {
     // 409 Conflict
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "409-1", "이미 사용중인 이메일입니다."),
     ALREADY_SUBSCRIBED(HttpStatus.CONFLICT, "409-2", "이미 구독중인 창작자입니다."),
-    DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "409-3", "이미 사용중인 닉네임입니다."),
 
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "500-1", "서버 내부 오류가 발생했습니다.");

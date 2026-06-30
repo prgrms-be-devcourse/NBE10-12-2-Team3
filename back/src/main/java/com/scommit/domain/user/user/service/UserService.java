@@ -23,7 +23,7 @@ public class UserService {
         }
 
         if (userRepository.existsByNickname(nickname)) {
-            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL); // TODO: ErrorCode 모은 후 DUPLICATE_NICKNAME 등으로 수정
         }
 
         String encodedPassword = passwordEncoder.encode(password);
