@@ -63,6 +63,13 @@ jobs:
             - P1: 꼭 (버그, 보안 취약점 등 반드시 수정해야 하는 필수 사항)
             - P2: 애매 (더 나은 설계나 성능 제안 등 적극 권장하되 논의가 가능한 사항)
             - P3: 참고의견 (네이밍 컨벤션, 사소한 팁 등 무시해도 괜찮은 가벼운 제안)
+
+            [레이어 침범 체크] 아래 항목이 발견되면 반드시 인라인 코멘트로 지적하세요.
+            - Controller에서 @Repository를 직접 주입하거나 호출하는 경우 (P1)
+            - Controller의 Request/Response DTO를 Service 메서드에 파라미터로 직접 전달하는 경우 (P2)
+            - Service 클래스에서 Controller 레이어의 DTO(Request/Response)를 import하거나 사용하는 경우 (P2)
+            - Controller에서 Entity를 @RequestBody로 직접 받거나 응답으로 직접 반환하는 경우 (P1)
+            - Service에서 Entity를 Controller에 직접 반환하는 경우 (P2)
             
             [PR Context]
             Title: ${prTitle}
