@@ -13,3 +13,7 @@ spring:
 logging:
   level:
     org.hibernate.SQL: debug
+
+jwt:
+  secretKey: test-secret-key-for-jwt-unit-testing-minimum-32bytes-required
+  accessTokenExpiration: 30m
