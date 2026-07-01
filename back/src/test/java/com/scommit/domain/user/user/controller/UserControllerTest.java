@@ -1,13 +1,16 @@
 package com.scommit.domain.user.user.controller;
 
 import tools.jackson.databind.ObjectMapper;
+import com.scommit.domain.user.user.dto.LoginRequest;
 import com.scommit.domain.user.user.dto.SignupRequest;
 import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.service.UserService;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import com.scommit.global.security.SecurityConfig;
 import com.scommit.global.security.jwt.JwtFilter;
+import com.scommit.global.security.jwt.JwtProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,6 +30,7 @@ import java.time.LocalDateTime;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -53,6 +57,9 @@ public class UserControllerTest {
 
     @MockitoBean
     private JwtFilter jwtFilter;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
 
     @Nested
     @DisplayName("POST /api/users/signup 회원가입")
@@ -194,6 +201,142 @@ public class UserControllerTest {
             SignupRequest request = new SignupRequest(VALID_EMAIL, VALID_PASSWORD, "a".repeat(21));
 
             mvc.perform(post(SIGNUP_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/users/login 로그인")
+    class Login {
+
+        private static final String LOGIN_URL = "/api/users/login";
+        private static final String VALID_EMAIL = "test@example.com";
+        private static final String VALID_PASSWORD = "password123";
+        private static final String NICKNAME = "testuser";
+        private static final String MOCK_ACCESS_TOKEN = "mocked.access.token";
+        private static final String NEW_REFRESH_TOKEN = "11111111-1111-1111-1111-111111111111";
+        private static final String EXISTING_REFRESH_TOKEN = "22222222-2222-2222-2222-222222222222";
+
+        private User mockUserWithRefreshToken(String refreshToken) {
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(1L);
+            given(mockUser.getEmail()).willReturn(VALID_EMAIL);
+            given(mockUser.getNickname()).willReturn(NICKNAME);
+            given(mockUser.getRole()).willReturn(UserRole.USER);
+            given(mockUser.getRefreshToken()).willReturn(refreshToken);
+            return mockUser;
+        }
+
+        @Test
+        @DisplayName("성공 (200) - 최초 로그인: RefreshToken 신규 발급 값이 응답에 포함된다")
+        void login_Success_FirstLogin() throws Exception {
+            User mockUser = mockUserWithRefreshToken(NEW_REFRESH_TOKEN);
+            given(userService.login(VALID_EMAIL, VALID_PASSWORD)).willReturn(mockUser);
+            given(jwtProvider.generateAccessToken(1L, VALID_EMAIL, NICKNAME, UserRole.USER))
+                    .willReturn(MOCK_ACCESS_TOKEN);
+
+            LoginRequest request = new LoginRequest(VALID_EMAIL, VALID_PASSWORD);
+
+            mvc.perform(post(LOGIN_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    .andExpect(jsonPath("$.data.accessToken").value(MOCK_ACCESS_TOKEN))
+                    .andExpect(jsonPath("$.data.refreshToken").value(NEW_REFRESH_TOKEN))
+                    .andExpect(jsonPath("$.data.expiresIn").isNumber())
+                    .andExpect(jsonPath("$.data.user.id").value(1))
+                    .andExpect(jsonPath("$.data.user.email").value(VALID_EMAIL))
+                    .andExpect(jsonPath("$.data.user.nickname").value(NICKNAME))
+                    .andExpect(jsonPath("$.data.user.role").value("USER"));
+
+            verify(userService).issueRefreshTokenIfAbsent(mockUser);
+        }
+
+        @Test
+        @DisplayName("성공 (200) - 재로그인: 기존 RefreshToken 값이 그대로 응답에 포함된다")
+        void login_Success_ReLogin_KeepsExistingRefreshToken() throws Exception {
+            User mockUser = mockUserWithRefreshToken(EXISTING_REFRESH_TOKEN);
+            given(userService.login(VALID_EMAIL, VALID_PASSWORD)).willReturn(mockUser);
+            given(jwtProvider.generateAccessToken(1L, VALID_EMAIL, NICKNAME, UserRole.USER))
+                    .willReturn(MOCK_ACCESS_TOKEN);
+
+            LoginRequest request = new LoginRequest(VALID_EMAIL, VALID_PASSWORD);
+
+            mvc.perform(post(LOGIN_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.accessToken").value(MOCK_ACCESS_TOKEN))
+                    .andExpect(jsonPath("$.data.refreshToken").value(EXISTING_REFRESH_TOKEN));
+
+            verify(userService).issueRefreshTokenIfAbsent(mockUser);
+        }
+
+        @Test
+        @DisplayName("실패 - 비밀번호 불일치 → 401")
+        void login_WrongPassword() throws Exception {
+            given(userService.login(VALID_EMAIL, VALID_PASSWORD))
+                    .willThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+            LoginRequest request = new LoginRequest(VALID_EMAIL, VALID_PASSWORD);
+
+            mvc.perform(post(LOGIN_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.resultCode").value("401-1"))
+                    .andExpect(jsonPath("$.msg").value("인증되지 않은 사용자입니다."));
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 이메일 → 401 (비밀번호 불일치와 동일 처리)")
+        void login_EmailNotFound() throws Exception {
+            given(userService.login(VALID_EMAIL, VALID_PASSWORD))
+                    .willThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+            LoginRequest request = new LoginRequest(VALID_EMAIL, VALID_PASSWORD);
+
+            mvc.perform(post(LOGIN_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.resultCode").value("401-1"));
+        }
+
+        @Test
+        @DisplayName("이메일 누락 → 400")
+        void login_BlankEmail() throws Exception {
+            LoginRequest request = new LoginRequest("", VALID_PASSWORD);
+
+            mvc.perform(post(LOGIN_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+
+        @Test
+        @DisplayName("이메일 형식 오류 → 400")
+        void login_InvalidEmailFormat() throws Exception {
+            LoginRequest request = new LoginRequest("not-an-email", VALID_PASSWORD);
+
+            mvc.perform(post(LOGIN_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+
+        @Test
+        @DisplayName("비밀번호 누락 → 400")
+        void login_BlankPassword() throws Exception {
+            LoginRequest request = new LoginRequest(VALID_EMAIL, "");
+
+            mvc.perform(post(LOGIN_URL)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())

@@ -1,6 +1,7 @@
 package com.scommit.domain.user.user.service;
 
 import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
@@ -12,6 +13,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -111,6 +115,114 @@ class UserServiceTest {
 
             verify(userRepository, never()).save(any(User.class));
             verify(passwordEncoder, never()).encode(anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("로그인")
+    class Login {
+
+        private static final String EMAIL = "test@example.com";
+        private static final String PASSWORD = "password123";
+        private static final String WRONG_PASSWORD = "wrongPassword";
+        private static final String ENCODED_PASSWORD = "encodedPassword";
+        private static final String NICKNAME = "testuser";
+
+        private User buildUser() {
+            return User.builder()
+                    .email(EMAIL)
+                    .password(ENCODED_PASSWORD)
+                    .nickname(NICKNAME)
+                    .role(UserRole.USER)
+                    .build();
+        }
+
+        @Test
+        @DisplayName("성공: 이메일과 비밀번호가 일치하면 유저를 반환한다.")
+        void login_Success() {
+            // Given
+            User user = buildUser();
+            given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches(PASSWORD, ENCODED_PASSWORD)).willReturn(true);
+
+            // When
+            User result = userService.login(EMAIL, PASSWORD);
+
+            // Then
+            assertThat(result.getEmail()).isEqualTo(EMAIL);
+        }
+
+        @Test
+        @DisplayName("실패: 존재하지 않는 이메일이면 UNAUTHORIZED 예외를 던진다.")
+        void login_EmailNotFound() {
+            // Given
+            given(userRepository.findByEmail(EMAIL)).willReturn(Optional.empty());
+
+            // When & Then
+            assertThatThrownBy(() -> userService.login(EMAIL, PASSWORD))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("실패: 비밀번호가 일치하지 않으면 UNAUTHORIZED 예외를 던진다.")
+        void login_WrongPassword() {
+            // Given
+            User user = buildUser();
+            given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches(WRONG_PASSWORD, ENCODED_PASSWORD)).willReturn(false);
+
+            // When & Then
+            assertThatThrownBy(() -> userService.login(EMAIL, WRONG_PASSWORD))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+        }
+    }
+
+    @Nested
+    @DisplayName("리프레시 토큰 발급 (issueRefreshTokenIfAbsent)")
+    class IssueRefreshTokenIfAbsent {
+
+        private User buildUser() {
+            return User.builder()
+                    .email("test@example.com")
+                    .password("encodedPassword")
+                    .nickname("testuser")
+                    .role(UserRole.USER)
+                    .build();
+        }
+
+        @Test
+        @DisplayName("최초 로그인: refreshToken이 없으면 새 UUID를 발급하고 저장한다.")
+        void issueRefreshTokenIfAbsent_FirstLogin_IssuesAndSavesNewToken() {
+            // Given
+            User user = buildUser();
+            assertThat(user.getRefreshToken()).isNull();
+
+            // When
+            userService.issueRefreshTokenIfAbsent(user);
+
+            // Then
+            assertThat(user.getRefreshToken()).isNotNull();
+            assertThat(user.getRefreshToken())
+                    .matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        @DisplayName("재로그인: refreshToken이 이미 있으면 기존 값을 유지하고 저장하지 않는다.")
+        void issueRefreshTokenIfAbsent_AlreadyExists_KeepsExistingTokenWithoutSaving() {
+            // Given
+            User user = buildUser();
+            String existingRefreshToken = "existing-refresh-token-uuid";
+            ReflectionTestUtils.setField(user, "refreshToken", existingRefreshToken);
+
+            // When
+            userService.issueRefreshTokenIfAbsent(user);
+
+            // Then
+            assertThat(user.getRefreshToken()).isEqualTo(existingRefreshToken);
+            verify(userRepository, never()).save(any(User.class));
         }
     }
 }

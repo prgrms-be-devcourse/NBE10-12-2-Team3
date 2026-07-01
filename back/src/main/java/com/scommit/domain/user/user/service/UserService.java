@@ -41,4 +41,13 @@ public class UserService {
     public Optional<User> getUserByRefreshToken(String refreshToken) {
         return userRepository.findByRefreshToken(refreshToken);
     }
+
+    public User login(String email, String password) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Transactional
+    public void issueRefreshTokenIfAbsent(User user) {
+        throw new UnsupportedOperationException();
+    }
 }
