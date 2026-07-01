@@ -1,6 +1,6 @@
 package com.scommit.domain.subscription.entity;
 
-import com.scommit.domain.user.entity.User;
+import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

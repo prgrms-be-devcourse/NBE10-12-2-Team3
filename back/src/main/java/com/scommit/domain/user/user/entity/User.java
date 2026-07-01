@@ -1,4 +1,4 @@
-package com.scommit.domain.user.entity;
+package com.scommit.domain.user.user.entity;
 
 import com.scommit.global.base.BaseEntity;
 import jakarta.persistence.Column;

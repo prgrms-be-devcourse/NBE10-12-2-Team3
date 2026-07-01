@@ -1,4 +1,4 @@
-package com.scommit.domain.user.entity;
+package com.scommit.domain.user.user.entity;
 
 public enum UserRole {
     USER,
