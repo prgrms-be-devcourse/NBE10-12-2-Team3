@@ -5,10 +5,12 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -17,6 +19,8 @@ import java.util.Optional;
 public class SecurityHelper { // 14183의 Rq 복붙
     private final HttpServletRequest req;
     private final HttpServletResponse resp;
+    @Value("${jwt.cookie.max-age}")
+    private Duration cookieMaxAge;
 
     public User getActor() {
         return Optional.ofNullable(
@@ -68,7 +72,7 @@ public class SecurityHelper { // 14183의 Rq 복붙
         cookie.setAttribute("SameSite", "Lax"); // TODO: 포트 다를 때 Strict로도 되는지 확인
 
         if (value.isBlank()) cookie.setMaxAge(0);
-        else cookie.setMaxAge(60 * 60 * 24 * 365);
+        else cookie.setMaxAge((int) cookieMaxAge.toSeconds());
 
         resp.addCookie(cookie);
     }
