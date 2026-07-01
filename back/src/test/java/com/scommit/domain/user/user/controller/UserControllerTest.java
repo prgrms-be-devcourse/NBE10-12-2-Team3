@@ -1,8 +1,11 @@
 package com.scommit.domain.user.user.controller;
 
+import tools.jackson.databind.ObjectMapper;
 import com.scommit.domain.user.user.dto.LoginRequest;
 import com.scommit.domain.user.user.dto.SignupRequest;
 import com.scommit.domain.user.user.dto.UserDeleteRequest;
+import com.scommit.domain.user.user.dto.UserPasswordUpdateRequest;
+import com.scommit.domain.user.user.dto.UserUpdateRequest;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.service.UserService;
@@ -34,10 +37,18 @@ import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -425,6 +436,230 @@ public class UserControllerTest {
                     .andExpect(jsonPath("$.resultCode").value("401-1"));
 
             verify(securityHelper, never()).deleteCookie(anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/users/me 내 정보 조회")
+    class GetMe {
+
+        private static final String ME_URL = "/api/users/me";
+        private static final String EMAIL = "test@example.com";
+        private static final String NICKNAME = "testuser";
+        private static final String INTRODUCTION = "안녕하세요";
+
+        private User mockActor() {
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(1L);
+            given(mockUser.getEmail()).willReturn(EMAIL);
+            given(mockUser.getNickname()).willReturn(NICKNAME);
+            given(mockUser.getIntroduction()).willReturn(INTRODUCTION);
+            given(mockUser.getCreatedAt()).willReturn(LocalDateTime.of(2026, 1, 1, 0, 0));
+            given(mockUser.getUpdatedAt()).willReturn(LocalDateTime.of(2026, 1, 2, 0, 0));
+            return mockUser;
+        }
+
+        @Test
+        @DisplayName("성공 (200) - 로그인한 유저 자신의 정보를 반환한다")
+        void getMe_Success() throws Exception {
+            User actor = mockActor();
+            given(securityHelper.getActor()).willReturn(actor);
+
+            mvc.perform(get(ME_URL))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    .andExpect(jsonPath("$.data.id").value(1))
+                    .andExpect(jsonPath("$.data.email").value(EMAIL))
+                    .andExpect(jsonPath("$.data.profile.nickname").value(NICKNAME))
+                    .andExpect(jsonPath("$.data.profile.introduction").value(INTRODUCTION))
+                    .andExpect(jsonPath("$.data.createdAt").exists())
+                    .andExpect(jsonPath("$.data.updatedAt").exists());
+        }
+
+        @Test
+        @DisplayName("실패 - 인증되지 않은 사용자 → 401")
+        void getMe_Unauthorized() throws Exception {
+            given(securityHelper.getActor()).willReturn(null);
+
+            mvc.perform(get(ME_URL))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.resultCode").value("401-1"));
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/users/me 내 정보 수정")
+    class UpdateMe {
+
+        private static final String ME_URL = "/api/users/me";
+        private static final String NEW_NICKNAME = "newnickname";
+        private static final String NEW_PROFILE_IMAGE = "https://example.com/new.png";
+        private static final String NEW_INTRODUCTION = "수정된 소개글입니다.";
+
+        private User mockActor() {
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(1L);
+            return mockUser;
+        }
+
+        @Test
+        @DisplayName("성공 (200) - 닉네임, 프로필 이미지, 소개글을 수정한다")
+        void updateMe_Success() throws Exception {
+            User actor = mockActor();
+            given(securityHelper.getActor()).willReturn(actor);
+
+            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, NEW_PROFILE_IMAGE, NEW_INTRODUCTION);
+
+            mvc.perform(patch(ME_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    .andExpect(jsonPath("$.data.profile.nickname").value(NEW_NICKNAME))
+                    .andExpect(jsonPath("$.data.profile.introduction").value(NEW_INTRODUCTION));
+        }
+
+        @Test
+        @DisplayName("실패 - 인증되지 않은 사용자 → 401")
+        void updateMe_Unauthorized() throws Exception {
+            given(securityHelper.getActor()).willReturn(null);
+
+            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, NEW_PROFILE_IMAGE, NEW_INTRODUCTION);
+
+            mvc.perform(patch(ME_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.resultCode").value("401-1"));
+        }
+
+        @Test
+        @DisplayName("닉네임 2자 미만 → 400")
+        void updateMe_NicknameTooShort() throws Exception {
+            UserUpdateRequest request = new UserUpdateRequest("a", NEW_PROFILE_IMAGE, NEW_INTRODUCTION);
+
+            mvc.perform(patch(ME_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+
+        @Test
+        @DisplayName("닉네임 20자 초과 → 400")
+        void updateMe_NicknameTooLong() throws Exception {
+            UserUpdateRequest request = new UserUpdateRequest("a".repeat(21), NEW_PROFILE_IMAGE, NEW_INTRODUCTION);
+
+            mvc.perform(patch(ME_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+
+        @Test
+        @DisplayName("소개글 100자 초과 → 400")
+        void updateMe_IntroductionTooLong() throws Exception {
+            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, NEW_PROFILE_IMAGE, "a".repeat(101));
+
+            mvc.perform(patch(ME_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/users/me/password 비밀번호 변경")
+    class UpdatePassword {
+
+        private static final String PASSWORD_URL = "/api/users/me/password";
+        private static final String EMAIL = "test@example.com";
+        private static final String NICKNAME = "testuser";
+        private static final String CURRENT_PASSWORD = "password123";
+        private static final String NEW_PASSWORD = "newpassword456";
+        private static final String MOCK_ACCESS_TOKEN = "mocked.access.token";
+        private static final String REFRESH_TOKEN = "33333333-3333-3333-3333-333333333333";
+
+        private User mockActor() {
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(1L);
+            given(mockUser.getEmail()).willReturn(EMAIL);
+            given(mockUser.getNickname()).willReturn(NICKNAME);
+            given(mockUser.getRole()).willReturn(UserRole.USER);
+            given(mockUser.getRefreshToken()).willReturn(REFRESH_TOKEN);
+            return mockUser;
+        }
+
+        @Test
+        @DisplayName("성공 (200) - 비밀번호 변경 후 새 토큰을 발급한다")
+        void updatePassword_Success() throws Exception {
+            User actor = mockActor();
+            given(securityHelper.getActor()).willReturn(actor);
+            given(jwtProvider.generateAccessToken(1L, EMAIL, NICKNAME, UserRole.USER))
+                    .willReturn(MOCK_ACCESS_TOKEN);
+
+            UserPasswordUpdateRequest request = new UserPasswordUpdateRequest(CURRENT_PASSWORD, NEW_PASSWORD);
+
+            mvc.perform(put(PASSWORD_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    .andExpect(jsonPath("$.data.accessToken").value(MOCK_ACCESS_TOKEN))
+                    .andExpect(jsonPath("$.data.refreshToken").value(REFRESH_TOKEN))
+                    .andExpect(jsonPath("$.data.expiresIn").isNumber());
+        }
+
+        @Test
+        @DisplayName("실패 - 인증되지 않은 사용자 → 401")
+        void updatePassword_Unauthorized() throws Exception {
+            given(securityHelper.getActor()).willReturn(null);
+
+            UserPasswordUpdateRequest request = new UserPasswordUpdateRequest(CURRENT_PASSWORD, NEW_PASSWORD);
+
+            mvc.perform(put(PASSWORD_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.resultCode").value("401-1"));
+        }
+
+        @Test
+        @DisplayName("현재 비밀번호 누락 → 400")
+        void updatePassword_BlankCurrentPassword() throws Exception {
+            UserPasswordUpdateRequest request = new UserPasswordUpdateRequest("", NEW_PASSWORD);
+
+            mvc.perform(put(PASSWORD_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+
+        @Test
+        @DisplayName("새 비밀번호 누락 → 400")
+        void updatePassword_BlankNewPassword() throws Exception {
+            UserPasswordUpdateRequest request = new UserPasswordUpdateRequest(CURRENT_PASSWORD, "");
+
+            mvc.perform(put(PASSWORD_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+
+        @Test
+        @DisplayName("새 비밀번호 6자 미만 → 400")
+        void updatePassword_NewPasswordTooShort() throws Exception {
+            UserPasswordUpdateRequest request = new UserPasswordUpdateRequest(CURRENT_PASSWORD, "12345");
+
+            mvc.perform(put(PASSWORD_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
         }
     }
 
