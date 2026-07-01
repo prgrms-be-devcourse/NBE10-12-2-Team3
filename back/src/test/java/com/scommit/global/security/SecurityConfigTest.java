@@ -42,9 +42,9 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("/api/user/** 에 유효한 토큰으로 요청하면 인증을 통과한다 (401이 아니다)")
+    @DisplayName("/api/users/** 에 유효한 토큰으로 요청하면 인증을 통과한다 (401이 아니다)")
     void protectedEndpoint_withValidToken_notUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/user/profile")
+        mockMvc.perform(get("/api/users/profile")
                         .header("Authorization", "Bearer " + validToken()))
                 .andExpect(result ->
                         assertThat(result.getResponse().getStatus())
@@ -52,24 +52,24 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("/api/user/** 에 토큰 없이 요청하면 401이다")
+    @DisplayName("/api/users/** 에 토큰 없이 요청하면 401이다")
     void protectedEndpoint_withNoToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/user/profile"))
+        mockMvc.perform(get("/api/users/profile"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("/api/user/** 에 만료된 토큰으로 요청하면 401이다")
+    @DisplayName("/api/users/** 에 만료된 토큰으로 요청하면 401이다")
     void protectedEndpoint_withExpiredToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/user/profile")
+        mockMvc.perform(get("/api/users/profile")
                         .header("Authorization", "Bearer " + expiredToken()))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("/auth/login 은 토큰 없이 요청해도 401이 아니다 (permitAll)")
+    @DisplayName("/api/users/login 은 토큰 없이 요청해도 401이 아니다 (permitAll)")
     void loginEndpoint_withNoToken_notUnauthorized() throws Exception {
-        mockMvc.perform(get("/auth/login"))
+        mockMvc.perform(get("/api/users/login"))
                 .andExpect(result ->
                         assertThat(result.getResponse().getStatus())
                                 .isNotEqualTo(HttpStatus.UNAUTHORIZED.value()));
