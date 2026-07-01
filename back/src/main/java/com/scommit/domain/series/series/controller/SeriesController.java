@@ -4,7 +4,6 @@ import com.scommit.domain.series.series.dto.SeriesCreateRequest;
 import com.scommit.domain.series.series.dto.SeriesListResponse;
 import com.scommit.domain.series.series.dto.SeriesResponse;
 import com.scommit.domain.series.series.dto.SeriesUpdateRequest;
-import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.service.SeriesService;
 import com.scommit.domain.series.seriesmedia.dto.SeriesMediaResponse;
 import com.scommit.domain.series.seriesmedia.service.SeriesMediaService;
@@ -14,7 +13,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -34,9 +32,8 @@ public class SeriesController {
     public RsData<SeriesResponse> createSeries(
             @RequestBody @Valid SeriesCreateRequest request
     ) {
-        Series series = seriesService.createSeries(request.title(), request.body(), request.userId());
-
-        return new RsData<>("201-1", "시리즈를 생성하였습니다.", new SeriesResponse(series));
+        SeriesResponse response = seriesService.createSeries(request.title(), request.body(), request.userId());
+        return new RsData<>("201-1", "시리즈를 생성하였습니다.", response);
     }
 
     @GetMapping
@@ -45,10 +42,8 @@ public class SeriesController {
             @RequestParam(required = false) Long creatorId,
             @RequestParam(defaultValue = "0") int page
     ) {
-        Page<Series> seriesPage = seriesService.getSeriesList(creatorId, page);
-        Page<SeriesListResponse> responses = seriesPage.map(SeriesListResponse::new);
-
-        return new RsData<>("200-1", "시리즈를 전체 조회하였습니다.", new PageResponse<>(responses));
+        PageResponse<SeriesListResponse> response = new PageResponse<>(seriesService.getSeriesList(creatorId, page));
+        return new RsData<>("200-1", "시리즈를 전체 조회하였습니다.", response);
     }
 
     @GetMapping("/{id}")
@@ -56,9 +51,8 @@ public class SeriesController {
     public RsData<SeriesResponse> getSeries(
             @PathVariable long id
     ) {
-        Series series = seriesService.getSeries(id);
-
-        return new RsData<>("200-1", "시리즈를 상세 조회하였습니다.", new SeriesResponse(series));
+        SeriesResponse response = seriesService.getSeries(id);
+        return new RsData<>("200-1", "시리즈를 상세 조회하였습니다.", response);
     }
 
     @PutMapping("/{id}")
@@ -67,9 +61,8 @@ public class SeriesController {
             @PathVariable long id,
             @RequestBody @Valid SeriesUpdateRequest request
     ) {
-        Series series = seriesService.updateSeries(id, request.title(), request.body());
-
-        return new RsData<>("200-1", "시리즈를 수정하였습니다.", new SeriesResponse(series));
+        SeriesResponse response = seriesService.updateSeries(id, request.title(), request.body());
+        return new RsData<>("200-1", "시리즈를 수정하였습니다.", response);
     }
 
     @DeleteMapping("/{id}")
