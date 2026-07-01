@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PenSquare, Calendar, ChevronRight, Heart, Share2, UserPlus, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SeriesDetailPostList } from "./series-detail-post-list";
+import { MOCK_POSTS, MOCK_SERIES } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 
@@ -21,35 +22,25 @@ export default async function SeriesDetailPage({
   // TODO: 실제 API 연동 (GET /api/series/{id}?page={page-1}&size=12)
   const isMySeries = true; // TODO: 권한 체크 로직 연동 시 교체
 
-  // 더미 데이터
+  // 더미 데이터 (TODO: 실제 API 연동 시 교체)
+  const mockSeries = MOCK_SERIES.find((s) => s.id === Number(id));
   const series = {
     id,
-    title: "실무 밀착형 아키텍처 설계 패턴",
-    body: "실제 프로덕션 환경에서 마주하는 다양한 병목 현상을 해결하기 위한 데이터베이스 튜닝과 아키텍처 설계 노하우를 깊이 있게 파헤칩니다.\n\n이 시리즈에서는 다음과 같은 내용을 다룹니다:\n1. 대용량 트래픽 처리 전략\n2. 인덱스 최적화와 쿼리 튜닝\n3. 마이크로서비스 아키텍처 전환기\n\n매주 월요일 새로운 포스트가 업로드됩니다.",
-    authorName: "시니어개발자",
+    title: mockSeries?.title ?? "시리즈",
+    body: mockSeries?.body ?? "",
+    authorName: mockSeries?.authorName ?? "알 수 없음",
     createdAt: "2026-06-01",
     updatedAt: "2026-06-29",
     thumbnailUrl: "",
   };
 
-  // 백엔드에 아직 없는 '연관 게시글 목록' 더미 데이터 (10개씩 페이징)
-  const totalPosts = 42; // 총 42개의 포스트라 가정
-  const totalPages = Math.ceil(totalPosts / 10);
-  const itemsCount = page === totalPages ? (totalPosts % 10 === 0 ? 10 : totalPosts % 10) : 10; 
-  
-  const mockPosts = Array.from({ length: itemsCount }).map((_, i) => {
-    const descendingIndex = totalPosts - ((page - 1) * 10 + i);
-    return {
-      id: `post-${descendingIndex}`,
-      title: `아키텍처 설계 패턴 ${descendingIndex}장: 핵심 전략과 실전 도입`,
-      description: "본격적인 아키텍처 설계에 앞서 알아야 할 필수 개념들을 정리합니다. 가장 중요한 것은 요구사항 분석입니다.",
-      accessLevel: descendingIndex % 3 === 0 ? "PAID" : "FREE" as "FREE" | "PAID",
-      authorName: series.authorName,
-      createdAt: "2026-06-29",
-      viewCount: 1520 + descendingIndex * 100,
-      thumbnailUrl: "",
-    };
-  });
+  // 해당 시리즈 작성자의 포스트만 필터링 (TODO: 실제 API 연동 시 seriesId 기준으로 교체)
+  const PAGE_SIZE = 10;
+  const seriesPosts = MOCK_POSTS.filter((p) => p.authorName === series.authorName);
+  const totalPosts = seriesPosts.length;
+  const totalPages = Math.ceil(totalPosts / PAGE_SIZE);
+  const start = (page - 1) * PAGE_SIZE;
+  const mockPosts = seriesPosts.slice(start, start + PAGE_SIZE);
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-20">
