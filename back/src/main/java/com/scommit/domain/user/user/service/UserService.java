@@ -40,11 +40,11 @@ public class UserService {
     }
 
     public Optional<User> getUserByRefreshToken(String refreshToken) {
-        return userRepository.findByRefreshToken(refreshToken);
+        return userRepository.findByRefreshTokenAndDeletedAtIsNull(refreshToken);
     }
 
     public User login(String email, String password) {
-        Optional<User> user = userRepository.findByEmail(email);
+        Optional<User> user = userRepository.findByEmailAndDeletedAtIsNull(email);
         if (user.isEmpty()) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND); // TODO: ErrorCode 모은 후 401 INVALID_CREDENTIALS 등으로 수정
         }
