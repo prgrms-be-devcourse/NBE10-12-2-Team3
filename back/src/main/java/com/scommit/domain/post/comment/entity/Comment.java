@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "comments")
+@EntityListeners(AuditingEntityListener.class)
 public class Comment extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -23,7 +25,7 @@ public class Comment extends BaseEntity {
     private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true) // TODO: 유저 연동 완료 후 nullable = false로 복구
     private User user;
 
     @Column(columnDefinition = "TEXT")
