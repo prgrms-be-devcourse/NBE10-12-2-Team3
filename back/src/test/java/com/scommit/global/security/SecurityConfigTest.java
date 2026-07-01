@@ -29,16 +29,16 @@ class SecurityConfigTest {
     @Autowired
     private JwtProvider jwtProvider;
 
-    @Value("${jwt.secretKey}")
+    @Value("${jwt.secret-key}")
     private String secretKey;
 
     private String validToken() {
-        return jwtProvider.generateAccessToken(1L, UserRole.USER);
+        return jwtProvider.generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
     }
 
     private String expiredToken() {
         return new JwtProvider(secretKey, Duration.ofMillis(-1))
-                .generateAccessToken(1L, UserRole.USER);
+                .generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
     }
 
     @Test

@@ -10,6 +10,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -34,5 +36,9 @@ public class UserService {
                 .role(UserRole.USER)
                 .build();
         return userRepository.save(user);
+    }
+
+    public Optional<User> getUserByRefreshToken(String refreshToken) {
+        return userRepository.findByRefreshToken(refreshToken);
     }
 }

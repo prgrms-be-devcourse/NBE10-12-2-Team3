@@ -28,7 +28,7 @@ class JwtProviderTest {
     @Test
     @DisplayName("generateAccessToken: 토큰 문자열을 반환한다")
     void generateAccessToken_returnsNonEmptyToken() {
-        String token = jwtProvider.generateAccessToken(1L, UserRole.USER);
+        String token = jwtProvider.generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
 
         assertThat(token).isNotNull().isNotEmpty();
     }
@@ -41,7 +41,7 @@ class JwtProviderTest {
         @DisplayName("id 클레임에 userId가 저장된다")
         void id_containsUserId() {
             Long userId = 42L;
-            String token = jwtProvider.generateAccessToken(userId, UserRole.USER);
+            String token = jwtProvider.generateAccessToken(userId, "user@test.com", "nickname", UserRole.USER);
 
             JwtProvider.AccessTokenPayload payload = jwtProvider.parseAccessToken(token);
 
@@ -49,9 +49,29 @@ class JwtProviderTest {
         }
 
         @Test
+        @DisplayName("email 클레임이 저장되고 그대로 복원된다")
+        void email_isRestored() {
+            String token = jwtProvider.generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
+
+            JwtProvider.AccessTokenPayload payload = jwtProvider.parseAccessToken(token);
+
+            assertThat(payload.email()).isEqualTo("user@test.com");
+        }
+
+        @Test
+        @DisplayName("nickname 클레임이 저장되고 그대로 복원된다")
+        void nickname_isRestored() {
+            String token = jwtProvider.generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
+
+            JwtProvider.AccessTokenPayload payload = jwtProvider.parseAccessToken(token);
+
+            assertThat(payload.nickname()).isEqualTo("nickname");
+        }
+
+        @Test
         @DisplayName("role 클레임이 저장되고 UserRole enum으로 복원된다 - USER")
         void role_restoredAsEnum_user() {
-            String token = jwtProvider.generateAccessToken(1L, UserRole.USER);
+            String token = jwtProvider.generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
 
             JwtProvider.AccessTokenPayload payload = jwtProvider.parseAccessToken(token);
 
@@ -61,7 +81,7 @@ class JwtProviderTest {
         @Test
         @DisplayName("role 클레임이 저장되고 UserRole enum으로 복원된다 - ADMIN")
         void role_restoredAsEnum_admin() {
-            String token = jwtProvider.generateAccessToken(1L, UserRole.ADMIN);
+            String token = jwtProvider.generateAccessToken(1L, "admin@test.com", "admin", UserRole.ADMIN);
 
             JwtProvider.AccessTokenPayload payload = jwtProvider.parseAccessToken(token);
 
@@ -73,7 +93,7 @@ class JwtProviderTest {
     @DisplayName("parseAccessToken: 만료된 토큰은 ExpiredJwtException을 던진다")
     void parseAccessToken_expired_throwsExpiredJwtException() {
         JwtProvider expiredProvider = new JwtProvider(SECRET, Duration.ofMillis(-1));
-        String expiredToken = expiredProvider.generateAccessToken(1L, UserRole.USER);
+        String expiredToken = expiredProvider.generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
 
         assertThatThrownBy(() -> expiredProvider.parseAccessToken(expiredToken))
                 .isInstanceOf(ExpiredJwtException.class);

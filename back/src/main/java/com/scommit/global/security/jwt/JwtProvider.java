@@ -27,11 +27,13 @@ public class JwtProvider {
         this.accessTokenExpiration = accessTokenExpiration;
     }
 
-    public String generateAccessToken(Long userId, UserRole role) {
+    public String generateAccessToken(Long userId, String email, String nickname, UserRole role) {
         Date now = new Date();
         Date expirationDate = new Date(now.getTime() + accessTokenExpiration.toMillis());
         return Jwts.builder()
                 .claim("id", userId)
+                .claim("email", email)
+                .claim("nickname", nickname)
                 .claim("role", role.name())
                 .issuedAt(now)
                 .expiration(expirationDate)
@@ -39,7 +41,7 @@ public class JwtProvider {
                 .compact();
     }
 
-    public record AccessTokenPayload(Long id, UserRole role) {}
+    public record AccessTokenPayload(Long id, String email, String nickname, UserRole role) {}
 
     public AccessTokenPayload parseAccessToken(String token) {
         Claims claims = Jwts.parser()
@@ -49,6 +51,8 @@ public class JwtProvider {
                 .getPayload();
         return new AccessTokenPayload(
                 claims.get("id", Long.class),
+                claims.get("email", String.class),
+                claims.get("nickname", String.class),
                 UserRole.valueOf(claims.get("role", String.class))
         );
     }
