@@ -39,6 +39,7 @@ import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -335,6 +336,62 @@ public class UserControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/users/logout 로그아웃")
+    class Logout {
+
+        private static final String LOGOUT_URL = "/api/users/logout";
+
+        private User mockActor() {
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(1L);
+            return mockUser;
+        }
+
+        @Test
+        @DisplayName("성공 (200) - accessToken, refreshToken 쿠키를 삭제한다")
+        void logout_Success() throws Exception {
+            User actor = mockActor();
+            given(securityHelper.getActor()).willReturn(actor);
+
+            mvc.perform(post(LOGOUT_URL))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    .andExpect(jsonPath("$.msg").value("로그아웃되었습니다."));
+
+            verify(securityHelper).deleteCookie("accessToken");
+            verify(securityHelper).deleteCookie("refreshToken");
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/users 회원탈퇴")
+    class Withdraw {
+
+        private static final String WITHDRAW_URL = "/api/users";
+
+        private User mockActor() {
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(1L);
+            return mockUser;
+        }
+
+        @Test
+        @DisplayName("성공 (200) - 계정을 삭제하고 accessToken, refreshToken 쿠키를 제거한다")
+        void withdraw_Success() throws Exception {
+            User actor = mockActor();
+            given(securityHelper.getActor()).willReturn(actor);
+
+            mvc.perform(delete(WITHDRAW_URL))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    .andExpect(jsonPath("$.msg").value("회원탈퇴가 완료되었습니다."));
+
+            verify(securityHelper).deleteCookie("accessToken");
+            verify(securityHelper).deleteCookie("refreshToken");
         }
     }
 
