@@ -64,7 +64,7 @@ public class JwtFilter extends OncePerRequestFilter { // 14183의 CustomAuthenti
         }
 
         // 인증, 인가가 필요없는 API 요청이라면 패스
-        if (List.of("/api/users/login", "/api/users/logout", "/api/v1/users/signup").contains(request.getRequestURI())) {
+        if (List.of("/api/users/login", "/api/users/signup").contains(request.getRequestURI())) {
             filterChain.doFilter(request, response);
             return;
         }

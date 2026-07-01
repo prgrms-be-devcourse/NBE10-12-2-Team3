@@ -101,8 +101,8 @@ public class SecurityConfig {
                         ).permitAll()
                         // 일반 인증 필요 경로
                         .requestMatchers("/api/**").authenticated()
-                        // api가 아닌 명시되지 않은 경로는 인증 요구하지 않음
-                        .anyRequest().permitAll()
+                        // api가 아닌 명시되지 않은 경로는 인증 요구
+                        .anyRequest().authenticated()
                 );
 
         return http.build();

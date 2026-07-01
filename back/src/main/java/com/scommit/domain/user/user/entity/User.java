@@ -81,7 +81,7 @@ public class User extends BaseEntity {
     private List<String> getAuthoritiesAsStringList() {
         List<String> authorities = new ArrayList<>();
 
-        if (role.equals(UserRole.USER)) {
+        if (role.equals(UserRole.ADMIN)) {
             authorities.add("ROLE_ADMIN");
         }
 
