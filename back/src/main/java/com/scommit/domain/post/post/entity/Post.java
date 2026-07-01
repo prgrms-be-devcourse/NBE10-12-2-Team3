@@ -1,6 +1,6 @@
 package com.scommit.domain.post.post.entity;
 
-import com.scommit.domain.series.entity.Series;
+import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.user.entity.User;
 import com.scommit.global.base.BaseEntity;
 import jakarta.persistence.*;
