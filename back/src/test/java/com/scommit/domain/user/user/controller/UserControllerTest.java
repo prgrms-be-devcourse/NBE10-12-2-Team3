@@ -360,7 +360,7 @@ public class UserControllerTest {
             mvc.perform(post(LOGOUT_URL))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.resultCode").value("200-1"))
-                    .andExpect(jsonPath("$.msg").value("로그아웃되었습니다."));
+                    .andExpect(jsonPath("$.msg").value("로그아웃에 성공했습니다."));
 
             verify(securityHelper).deleteCookie("accessToken");
             verify(securityHelper).deleteCookie("refreshToken");

@@ -53,4 +53,11 @@ public class UserService {
         }
         return user.get();
     }
+
+    @Transactional
+    public void logout(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        user.resetRefreshToken();
+    }
 }
