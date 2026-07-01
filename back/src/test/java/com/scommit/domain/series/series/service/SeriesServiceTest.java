@@ -1,5 +1,7 @@
 package com.scommit.domain.series.series.service;
 
+import com.scommit.domain.series.series.dto.SeriesListResponse;
+import com.scommit.domain.series.series.dto.SeriesResponse;
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.repository.SeriesRepository;
 import com.scommit.domain.user.user.entity.User;
@@ -76,13 +78,13 @@ class SeriesServiceTest {
             when(seriesRepository.save(any(Series.class))).thenReturn(series);
 
             // When
-            Series result = seriesService.createSeries("시리즈 제목", "시리즈 설명", 1L);
+            SeriesResponse result = seriesService.createSeries("시리즈 제목", "시리즈 설명", 1L);
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(100L);
-            assertThat(result.getTitle()).isEqualTo("시리즈 제목");
-            assertThat(result.getUser().getId()).isEqualTo(1L);
+            assertThat(result.id()).isEqualTo(100L);
+            assertThat(result.title()).isEqualTo("시리즈 제목");
+            assertThat(result.userId()).isEqualTo(1L);
             verify(seriesRepository, times(1)).save(any(Series.class));
         }
 
@@ -114,11 +116,11 @@ class SeriesServiceTest {
             when(seriesRepository.findAllByDeletedAtIsNull(any(Pageable.class))).thenReturn(page);
 
             // When
-            Page<Series> result = seriesService.getSeriesList(null, 0);
+            Page<SeriesListResponse> result = seriesService.getSeriesList(null, 0);
 
             // Then
             assertThat(result.getContent()).hasSize(1);
-            assertThat(result.getContent().getFirst().getTitle()).isEqualTo("제목1");
+            assertThat(result.getContent().getFirst().title()).isEqualTo("제목1");
             verify(seriesRepository, times(1)).findAllByDeletedAtIsNull(any(Pageable.class));
             verify(seriesRepository, never()).findByUserIdAndDeletedAtIsNull(anyLong(), any(Pageable.class));
         }
@@ -132,7 +134,7 @@ class SeriesServiceTest {
             when(seriesRepository.findByUserIdAndDeletedAtIsNull(eq(1L), any(Pageable.class))).thenReturn(page);
 
             // When
-            Page<Series> result = seriesService.getSeriesList(1L, 0);
+            Page<SeriesListResponse> result = seriesService.getSeriesList(1L, 0);
 
             // Then
             assertThat(result.getContent()).hasSize(1);
@@ -153,12 +155,12 @@ class SeriesServiceTest {
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
 
             // When
-            Series result = seriesService.getSeries(1L);
+            SeriesResponse result = seriesService.getSeries(1L);
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(1L);
-            assertThat(result.getTitle()).isEqualTo("제목1");
+            assertThat(result.id()).isEqualTo(1L);
+            assertThat(result.title()).isEqualTo("제목1");
         }
 
         @Test
@@ -198,11 +200,11 @@ class SeriesServiceTest {
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
 
             // When
-            Series result = seriesService.updateSeries(1L, "수정된 제목", "수정된 설명");
+            SeriesResponse result = seriesService.updateSeries(1L, "수정된 제목", "수정된 설명");
 
             // Then
-            assertThat(result.getTitle()).isEqualTo("수정된 제목");
-            assertThat(result.getBody()).isEqualTo("수정된 설명");
+            assertThat(result.title()).isEqualTo("수정된 제목");
+            assertThat(result.body()).isEqualTo("수정된 설명");
         }
 
         @Test

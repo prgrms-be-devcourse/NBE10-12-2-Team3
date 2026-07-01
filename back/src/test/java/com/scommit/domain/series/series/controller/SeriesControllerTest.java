@@ -2,12 +2,12 @@ package com.scommit.domain.series.series.controller;
 
 import com.scommit.domain.media.media.entity.MediaType;
 import com.scommit.domain.series.series.dto.SeriesCreateRequest;
+import com.scommit.domain.series.series.dto.SeriesListResponse;
+import com.scommit.domain.series.series.dto.SeriesResponse;
 import com.scommit.domain.series.series.dto.SeriesUpdateRequest;
-import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.service.SeriesService;
 import com.scommit.domain.series.seriesmedia.dto.SeriesMediaResponse;
 import com.scommit.domain.series.seriesmedia.service.SeriesMediaService;
-import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import com.scommit.global.security.jwt.JwtFilter;
@@ -28,7 +28,8 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -55,15 +56,12 @@ class SeriesControllerTest {
     @MockitoBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
-    private Series createMockSeries(Long id, Long userId, String title, String body) {
-        Series series = mock(Series.class);
-        User user = mock(User.class);
-        when(user.getId()).thenReturn(userId);
-        when(series.getId()).thenReturn(id);
-        when(series.getUser()).thenReturn(user);
-        when(series.getTitle()).thenReturn(title);
-        when(series.getBody()).thenReturn(body);
-        return series;
+    private SeriesResponse createMockSeriesResponse(Long id, Long userId, String title, String body) {
+        return new SeriesResponse(id, userId, title, body, null, null);
+    }
+
+    private SeriesListResponse createMockSeriesListResponse(Long id, Long userId, String title) {
+        return new SeriesListResponse(id, userId, title, null, null);
     }
 
     @Test
@@ -71,9 +69,9 @@ class SeriesControllerTest {
     @DisplayName("POST /api/series - 새 시리즈 생성 성공")
     void createSeries_Success() throws Exception {
         SeriesCreateRequest request = new SeriesCreateRequest(1L, "시리즈 제목", "시리즈 설명");
-        Series mockSeries = createMockSeries(1L, 1L, "시리즈 제목", "시리즈 설명");
+        SeriesResponse mockResponse = createMockSeriesResponse(1L, 1L, "시리즈 제목", "시리즈 설명");
 
-        when(seriesService.createSeries(anyString(), anyString(), anyLong())).thenReturn(mockSeries);
+        when(seriesService.createSeries(anyString(), anyString(), anyLong())).thenReturn(mockResponse);
 
         mockMvc.perform(post("/api/series")
                         .with(csrf())
@@ -89,12 +87,12 @@ class SeriesControllerTest {
     @WithMockUser
     @DisplayName("GET /api/series - 시리즈 전체 조회 성공")
     void getAllSeries_Success() throws Exception {
-        List<Series> mockSeriesList = List.of(
-                createMockSeries(1L, 1L, "제목 1", "설명 1"),
-                createMockSeries(2L, 2L, "제목 2", "설명 2")
+        List<SeriesListResponse> mockSeriesList = List.of(
+                createMockSeriesListResponse(1L, 1L, "제목 1"),
+                createMockSeriesListResponse(2L, 2L, "제목 2")
         );
 
-        org.springframework.data.domain.Page<Series> mockPage = new org.springframework.data.domain.PageImpl<>(mockSeriesList);
+        org.springframework.data.domain.Page<SeriesListResponse> mockPage = new org.springframework.data.domain.PageImpl<>(mockSeriesList);
 
         when(seriesService.getSeriesList(eq(null), anyInt())).thenReturn(mockPage);
 
@@ -111,9 +109,9 @@ class SeriesControllerTest {
     @WithMockUser
     @DisplayName("GET /api/series/{id} - 시리즈 상세 조회 성공")
     void getSeriesDetail_Success() throws Exception {
-        Series mockSeries = createMockSeries(1L, 1L, "제목 1", "설명 1");
+        SeriesResponse mockResponse = createMockSeriesResponse(1L, 1L, "제목 1", "설명 1");
 
-        when(seriesService.getSeries(1L)).thenReturn(mockSeries);
+        when(seriesService.getSeries(1L)).thenReturn(mockResponse);
 
         mockMvc.perform(get("/api/series/{id}", 1L))
                 .andExpect(status().isOk())
@@ -125,9 +123,9 @@ class SeriesControllerTest {
     @DisplayName("PUT /api/series/{id} - 시리즈 수정 성공")
     void updateSeries_Success() throws Exception {
         SeriesUpdateRequest request = new SeriesUpdateRequest("수정된 제목", "수정된 설명");
-        Series mockSeries = createMockSeries(1L, 1L, "수정된 제목", "수정된 설명");
+        SeriesResponse mockResponse = createMockSeriesResponse(1L, 1L, "수정된 제목", "수정된 설명");
 
-        when(seriesService.updateSeries(eq(1L), anyString(), anyString())).thenReturn(mockSeries);
+        when(seriesService.updateSeries(eq(1L), anyString(), anyString())).thenReturn(mockResponse);
 
         mockMvc.perform(put("/api/series/{id}", 1L)
                         .with(csrf())
@@ -150,11 +148,11 @@ class SeriesControllerTest {
     @WithMockUser
     @DisplayName("GET /api/series?creatorId={id} - 특정 유저의 시리즈 전체 조회 성공")
     void getSeriesByCreator_Success() throws Exception {
-        List<Series> mockSeriesList = List.of(
-                createMockSeries(1L, 1L, "크리에이터 제목", "크리에이터 설명")
+        List<SeriesListResponse> mockSeriesList = List.of(
+                createMockSeriesListResponse(1L, 1L, "크리에이터 제목")
         );
 
-        org.springframework.data.domain.Page<Series> mockPage = new org.springframework.data.domain.PageImpl<>(mockSeriesList);
+        org.springframework.data.domain.Page<SeriesListResponse> mockPage = new org.springframework.data.domain.PageImpl<>(mockSeriesList);
 
         when(seriesService.getSeriesList(eq(1L), anyInt())).thenReturn(mockPage);
 
