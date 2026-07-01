@@ -58,11 +58,20 @@ jobs:
             const prompt = `
             당신은 시니어 소프트웨어 엔지니어입니다. 주어진 PR 정보와 Git Diff를 바탕으로 꼼꼼한 코드 리뷰를 진행하세요.
             반드시 아래에 명시된 JSON 스키마 구조로만 반환해야 합니다. 마크다운이나 다른 설명은 절대 추가하지 마세요.
+            summary_report 필드에는 제목(예: "# 리뷰 요약" 같은 헤더)을 포함하지 마세요. 본문 내용만 작성하세요.
             
             인라인 코멘트(text)를 작성할 때는 반드시 내용 맨 앞에 문제의 심각도를 나타내는 Pn 룰을 달아주세요. 형식은 반드시 "P1: ", "P2: ", "P3: " 로 시작해야 합니다.
             - P1: 꼭 (버그, 보안 취약점 등 반드시 수정해야 하는 필수 사항)
             - P2: 애매 (더 나은 설계나 성능 제안 등 적극 권장하되 논의가 가능한 사항)
             - P3: 참고의견 (네이밍 컨벤션, 사소한 팁 등 무시해도 괜찮은 가벼운 제안)
+            인라인 코멘트는 반드시 개선이 필요한 사항만 작성하세요. 칭찬이나 "잘 작성되었습니다" 같은 긍정적 평가는 인라인 코멘트로 달지 마세요.
+
+            [레이어 침범 체크] 아래 항목이 발견되면 반드시 인라인 코멘트로 지적하세요.
+            - Controller에서 @Repository를 직접 주입하거나 호출하는 경우 (P1)
+            - Controller의 Request/Response DTO를 Service 메서드에 파라미터로 직접 전달하는 경우 (P2)
+            - Service 클래스에서 Controller 레이어의 DTO(Request/Response)를 import하거나 사용하는 경우 (P2)
+            - Controller에서 Entity를 @RequestBody로 직접 받거나 응답으로 직접 반환하는 경우 (P1)
+            - Service에서 Entity를 Controller에 직접 반환하는 경우 (P2)
             
             [PR Context]
             Title: ${prTitle}
@@ -83,8 +92,23 @@ jobs:
               ]
             }`;
             
-            // API 호출
-            const result = await model.generateContent(prompt);
+            // API 호출 (503 일시적 과부하 대비 최대 3회 재시도)
+            async function generateWithRetry(model, prompt, retries = 3) {
+              for (let i = 0; i < retries; i++) {
+                try {
+                  return await model.generateContent(prompt);
+                } catch (e) {
+                  if (e.status === 503 && i < retries - 1) {
+                    const waitMs = (i + 1) * 10000;
+                    console.log(`Gemini 503, ${waitMs / 1000}s 후 재시도... (${i + 1}/${retries})`);
+                    await new Promise(r => setTimeout(r, waitMs));
+                  } else {
+                    throw e;
+                  }
+                }
+              }
+            }
+            const result = await generateWithRetry(model, prompt);
             const responseText = await result.response.text();
             
             let reviewData;
@@ -96,10 +120,44 @@ jobs:
             }
             
             const { summary_report, inline_comments } = reviewData;
-            
+
+            // diff에 실제로 존재하는 라인만 추출 (GitHub API는 diff 외부 라인을 거부함)
+            function buildValidLineMap(diffText) {
+              const validLines = {};
+              let currentFile = null;
+              let newLineNum = 0;
+              for (const line of diffText.split('\n')) {
+                const fileMatch = line.match(/^\+\+\+ b\/(.+)$/);
+                if (fileMatch) {
+                  currentFile = fileMatch[1];
+                  if (!validLines[currentFile]) validLines[currentFile] = new Set();
+                  continue;
+                }
+                const hunkMatch = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+                if (hunkMatch) {
+                  newLineNum = parseInt(hunkMatch[1]);
+                  continue;
+                }
+                if (!currentFile) continue;
+                if (line.startsWith('+') && !line.startsWith('+++')) {
+                  // 추가된 라인: RIGHT side 기준 유효
+                  validLines[currentFile].add(newLineNum++);
+                } else if (line.startsWith('-') && !line.startsWith('---')) {
+                  // 삭제된 라인: 새 파일에 존재하지 않으므로 번호 증가 없음
+                } else if (line.startsWith(' ')) {
+                  // 컨텍스트 라인: 공백으로 시작, RIGHT side 기준 유효
+                  validLines[currentFile].add(newLineNum++);
+                }
+              }
+              return validLines;
+            }
+            const validLineMap = buildValidLineMap(diff_output);
+
             // 1. 전체 요약 리뷰 덮어쓰기 (댓글 도배 방지)
             if (summary_report) {
-              const bodyText = "## 🤖 Gemini AI 리뷰 요약\n\n" + summary_report;
+              // Gemini가 summary_report에 제목을 포함해 반환할 경우 중복 방지
+              const cleanReport = summary_report.replace(/^#+\s*.+\n+/, '').trim();
+              const bodyText = "## 🤖 Gemini AI 리뷰 요약\n\n" + cleanReport;
               
               // 기존에 봇이 작성한 요약 댓글이 있는지 검색
               const { data: comments } = await github.rest.issues.listComments({
@@ -131,21 +189,31 @@ jobs:
             
             // 2. 라인별 인라인 코멘트 달기 (옵션 5)
             if (inline_comments && inline_comments.length > 0) {
-              const formattedComments = inline_comments.map(c => ({
-                path: c.path,
-                line: Number(c.line),
-                body: c.text,
-                side: 'RIGHT'
-              }));
-            
-              // PR 머지를 강제로 막지 않기 위해 REQUEST_CHANGES 대신 COMMENT 형식으로 의도적 설정함
-              await github.rest.pulls.createReview({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number,
-                event: 'COMMENT',
-                comments: formattedComments
+              const filteredComments = inline_comments.filter(c => {
+                const validSet = validLineMap[c.path];
+                const isValid = validSet && validSet.has(Number(c.line));
+                if (!isValid) console.log(`Skip invalid line: ${c.path}:${c.line}`);
+                return isValid;
               });
+              if (filteredComments.length === 0) {
+                console.log("No valid inline comments after filtering.");
+              } else {
+                const formattedComments = filteredComments.map(c => ({
+                  path: c.path,
+                  line: Number(c.line),
+                  body: c.text,
+                  side: 'RIGHT'
+                }));
+
+                // PR 머지를 강제로 막지 않기 위해 REQUEST_CHANGES 대신 COMMENT 형식으로 의도적 설정함
+                await github.rest.pulls.createReview({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.payload.pull_request.number,
+                  event: 'COMMENT',
+                  comments: formattedComments
+                });
+              }
             }
             
             console.log("Advanced Review Process Completed.");

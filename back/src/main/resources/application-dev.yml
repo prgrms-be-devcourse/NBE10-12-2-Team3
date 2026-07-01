@@ -14,7 +14,14 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
 
 logging:
   level:
     org.hibernate.SQL: debug
+
+file:
+  path: back/src/main/resources/static/media/

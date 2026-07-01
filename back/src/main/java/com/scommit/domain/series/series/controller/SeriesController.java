@@ -1,0 +1,80 @@
+package com.scommit.domain.series.series.controller;
+
+import com.scommit.domain.series.series.dto.SeriesCreateRequest;
+import com.scommit.domain.series.series.dto.SeriesListResponse;
+import com.scommit.domain.series.series.dto.SeriesResponse;
+import com.scommit.domain.series.series.dto.SeriesUpdateRequest;
+import com.scommit.domain.series.series.entity.Series;
+import com.scommit.domain.series.series.service.SeriesService;
+import com.scommit.global.dto.PageResponse;
+import com.scommit.global.dto.RsData;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/series")
+@RequiredArgsConstructor
+@Tag(name = "SeriesController", description = "API 시리즈 컨트롤러")
+public class SeriesController {
+    private final SeriesService seriesService;
+
+    @GetMapping
+    @Operation(summary = "시리즈 전체 조회")
+    public RsData<PageResponse<SeriesListResponse>> getSeriesList(
+            @RequestParam(required = false) Long creatorId,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        Page<Series> seriesPage = seriesService.getSeriesList(creatorId, page);
+        Page<SeriesListResponse> responses = seriesPage.map(SeriesListResponse::new);
+
+        return new RsData<>("200-1", "시리즈를 전체 조회하였습니다.", new PageResponse<>(responses));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "시리즈 상세 조회")
+    public RsData<SeriesResponse> getSeries(
+            @PathVariable long id
+    ) {
+        Series series = seriesService.getSeries(id);
+
+        return new RsData<>("200-1", "시리즈를 상세 조회하였습니다.", new SeriesResponse(series));
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "새 시리즈 생성")
+    public RsData<SeriesResponse> createSeries(
+            @RequestBody @Valid SeriesCreateRequest request
+    ) {
+        Series series = seriesService.createSeries(request.title(), request.body(), request.userId());
+
+        return new RsData<>("201-1", "시리즈를 생성하였습니다.", new SeriesResponse(series));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "시리즈 수정")
+    public RsData<SeriesResponse> updateSeries(
+            @PathVariable long id,
+            @RequestBody @Valid SeriesUpdateRequest request
+    ) {
+        Series series = seriesService.updateSeries(id, request.title(), request.body());
+
+        return new RsData<>("200-1", "시리즈를 수정하였습니다.", new SeriesResponse(series));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "시리즈 삭제")
+    public RsData<Void> deleteSeries(
+            @PathVariable long id
+    ) {
+        seriesService.deleteSeries(id);
+
+        return new RsData<>("200-1", "시리즈가 삭제되었습니다.");
+    }
+}
+

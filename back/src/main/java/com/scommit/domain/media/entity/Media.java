@@ -1,6 +1,6 @@
 package com.scommit.domain.media.entity;
 
-import com.scommit.domain.post.entity.Post;
+import com.scommit.domain.post.post.entity.Post;
 import com.scommit.global.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
