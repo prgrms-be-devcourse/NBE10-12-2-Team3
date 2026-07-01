@@ -30,7 +30,6 @@ import java.time.LocalDateTime;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -217,7 +216,6 @@ public class UserControllerTest {
         private static final String VALID_PASSWORD = "password123";
         private static final String NICKNAME = "testuser";
         private static final String MOCK_ACCESS_TOKEN = "mocked.access.token";
-        private static final String NEW_REFRESH_TOKEN = "11111111-1111-1111-1111-111111111111";
         private static final String EXISTING_REFRESH_TOKEN = "22222222-2222-2222-2222-222222222222";
 
         private User mockUserWithRefreshToken(String refreshToken) {
@@ -231,9 +229,9 @@ public class UserControllerTest {
         }
 
         @Test
-        @DisplayName("성공 (200) - 최초 로그인: RefreshToken 신규 발급 값이 응답에 포함된다")
-        void login_Success_FirstLogin() throws Exception {
-            User mockUser = mockUserWithRefreshToken(NEW_REFRESH_TOKEN);
+        @DisplayName("성공 (200) - 로그인 시 유저의 refreshToken을 그대로 응답에 포함한다")
+        void login_Success() throws Exception {
+            User mockUser = mockUserWithRefreshToken(EXISTING_REFRESH_TOKEN);
             given(userService.login(VALID_EMAIL, VALID_PASSWORD)).willReturn(mockUser);
             given(jwtProvider.generateAccessToken(1L, VALID_EMAIL, NICKNAME, UserRole.USER))
                     .willReturn(MOCK_ACCESS_TOKEN);
@@ -246,34 +244,12 @@ public class UserControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.resultCode").value("200-1"))
                     .andExpect(jsonPath("$.data.accessToken").value(MOCK_ACCESS_TOKEN))
-                    .andExpect(jsonPath("$.data.refreshToken").value(NEW_REFRESH_TOKEN))
+                    .andExpect(jsonPath("$.data.refreshToken").value(EXISTING_REFRESH_TOKEN))
                     .andExpect(jsonPath("$.data.expiresIn").isNumber())
                     .andExpect(jsonPath("$.data.user.id").value(1))
                     .andExpect(jsonPath("$.data.user.email").value(VALID_EMAIL))
                     .andExpect(jsonPath("$.data.user.nickname").value(NICKNAME))
                     .andExpect(jsonPath("$.data.user.role").value("USER"));
-
-            verify(userService).issueRefreshTokenIfAbsent(mockUser);
-        }
-
-        @Test
-        @DisplayName("성공 (200) - 재로그인: 기존 RefreshToken 값이 그대로 응답에 포함된다")
-        void login_Success_ReLogin_KeepsExistingRefreshToken() throws Exception {
-            User mockUser = mockUserWithRefreshToken(EXISTING_REFRESH_TOKEN);
-            given(userService.login(VALID_EMAIL, VALID_PASSWORD)).willReturn(mockUser);
-            given(jwtProvider.generateAccessToken(1L, VALID_EMAIL, NICKNAME, UserRole.USER))
-                    .willReturn(MOCK_ACCESS_TOKEN);
-
-            LoginRequest request = new LoginRequest(VALID_EMAIL, VALID_PASSWORD);
-
-            mvc.perform(post(LOGIN_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.data.accessToken").value(MOCK_ACCESS_TOKEN))
-                    .andExpect(jsonPath("$.data.refreshToken").value(EXISTING_REFRESH_TOKEN));
-
-            verify(userService).issueRefreshTokenIfAbsent(mockUser);
         }
 
         @Test

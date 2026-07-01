@@ -35,6 +35,7 @@ public class UserService {
                 .nickname(nickname)
                 .role(UserRole.USER)
                 .build();
+        user.resetRefreshToken();
         return userRepository.save(user);
     }
 
@@ -43,11 +44,13 @@ public class UserService {
     }
 
     public User login(String email, String password) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Transactional
-    public void issueRefreshTokenIfAbsent(User user) {
-        throw new UnsupportedOperationException();
+        Optional<User> user = userRepository.findByEmail(email);
+        if (user.isEmpty()) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND); // TODO: ErrorCode 모은 후 401 INVALID_CREDENTIALS 등으로 수정
+        }
+        if (!passwordEncoder.matches(password, user.get().getPassword())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED); // TODO: ErrorCode 모은 후 401 INVALID_CREDENTIALS 등으로 수정
+        }
+        return user.get();
     }
 }

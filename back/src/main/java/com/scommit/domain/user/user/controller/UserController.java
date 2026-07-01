@@ -47,7 +47,6 @@ public class UserController {
             @Valid @RequestBody LoginRequest request
     ) {
         User user = userService.login(request.email(), request.password());
-        userService.issueRefreshTokenIfAbsent(user);
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail(), user.getNickname(), user.getRole());
         return new RsData<>(
                 "200-1",
