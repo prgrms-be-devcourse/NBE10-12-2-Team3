@@ -4,6 +4,7 @@ import com.scommit.domain.user.user.dto.LoginRequest;
 import com.scommit.domain.user.user.dto.LoginResponse;
 import com.scommit.domain.user.user.dto.SignupRequest;
 import com.scommit.domain.user.user.dto.SignupResponse;
+import com.scommit.domain.user.user.dto.UserDeleteRequest;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.service.UserService;
 import com.scommit.domain.user.usermedia.dto.UserMediaResponse;
@@ -78,6 +79,24 @@ public class UserController {
         return new RsData<>(
                 "200-1",
                 "로그아웃에 성공했습니다."
+        );
+    }
+
+    @DeleteMapping
+    @Operation(summary = "회원탈퇴", description = "회원탈퇴합니다.")
+    public RsData<Void> deleteAccount(
+            @Valid @RequestBody UserDeleteRequest request
+    ) {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        userService.deleteUser(actor.getId(), request.password());
+        securityHelper.deleteCookie("accessToken");
+        securityHelper.deleteCookie("refreshToken");
+        return new RsData<>(
+                "200-1",
+                "회원탈퇴에 성공했습니다."
         );
     }
     @PostMapping(value = "/{id}/medias", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
