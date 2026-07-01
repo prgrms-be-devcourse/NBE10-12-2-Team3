@@ -7,6 +7,7 @@ import com.scommit.domain.user.user.dto.SignupResponse;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.service.UserService;
 import com.scommit.global.dto.RsData;
+import com.scommit.global.security.SecurityHelper;
 import com.scommit.global.security.jwt.JwtProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     private final UserService userService;
     private final JwtProvider jwtProvider;
+    private final SecurityHelper securityHelper;
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
@@ -48,6 +50,10 @@ public class UserController {
     ) {
         User user = userService.login(request.email(), request.password());
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail(), user.getNickname(), user.getRole());
+
+        securityHelper.setCookie("accessToken", accessToken);
+        securityHelper.setCookie("refreshToken", user.getRefreshToken());
+
         return new RsData<>(
                 "200-1",
                 "로그인에 성공했습니다.",

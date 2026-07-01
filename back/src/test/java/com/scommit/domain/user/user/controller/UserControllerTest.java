@@ -9,6 +9,7 @@ import com.scommit.domain.user.user.service.UserService;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import com.scommit.global.security.SecurityConfig;
+import com.scommit.global.security.SecurityHelper;
 import com.scommit.global.security.jwt.JwtFilter;
 import com.scommit.global.security.jwt.JwtProvider;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +31,7 @@ import java.time.LocalDateTime;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -59,6 +61,9 @@ public class UserControllerTest {
 
     @MockitoBean
     private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private SecurityHelper securityHelper;
 
     @Nested
     @DisplayName("POST /api/users/signup 회원가입")
@@ -250,6 +255,9 @@ public class UserControllerTest {
                     .andExpect(jsonPath("$.data.user.email").value(VALID_EMAIL))
                     .andExpect(jsonPath("$.data.user.nickname").value(NICKNAME))
                     .andExpect(jsonPath("$.data.user.role").value("USER"));
+
+            verify(securityHelper).setCookie("accessToken", MOCK_ACCESS_TOKEN);
+            verify(securityHelper).setCookie("refreshToken", EXISTING_REFRESH_TOKEN);
         }
 
         @Test
