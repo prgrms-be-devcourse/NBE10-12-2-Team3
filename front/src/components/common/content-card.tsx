@@ -2,7 +2,9 @@ import React from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Crown, Heart, Eye, Bookmark } from "lucide-react";
+import { Heart, Eye, Bookmark } from "lucide-react";
+import { formatCompact } from "@/lib/format";
+import { AccessBadge } from "@/components/common/access-badge";
 
 interface ContentCardProps {
   id: string | number;
@@ -36,9 +38,9 @@ export function ContentCard({
   href,
   onClick,
 }: ContentCardProps) {
-  const formattedViews = new Intl.NumberFormat("ko-KR", { notation: "compact" }).format(viewCount);
-  const formattedLikes = new Intl.NumberFormat("ko-KR", { notation: "compact" }).format(likeCount);
-  const formattedBookmarks = new Intl.NumberFormat("ko-KR", { notation: "compact" }).format(bookmarkCount);
+  const formattedViews = formatCompact(viewCount);
+  const formattedLikes = formatCompact(likeCount);
+  const formattedBookmarks = formatCompact(bookmarkCount);
 
   const isPaid = accessLevel === "PAID";
 
@@ -76,18 +78,9 @@ export function ContentCard({
         {/* Hover Overlay */}
         <div className="absolute inset-0 z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-black/10 pointer-events-none" />
 
-        {/* Bottom Left: Premium Indicator (Netflix / YouTube vibe) */}
+        {/* Bottom Left: Premium Indicator */}
         <div className="absolute bottom-3 left-3 z-20">
-          {isPaid ? (
-             <div className="flex items-center gap-1.5 rounded-full bg-black/85 px-3 py-1.5 backdrop-blur-md border border-white/40 shadow-lg shadow-black/40">
-               <Crown className="h-3.5 w-3.5 text-amber-400" />
-               <span className="text-xs font-bold text-white">멤버십 전용</span>
-             </div>
-          ) : (
-            <div className="flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 backdrop-blur-md border border-black/20 shadow-lg shadow-black/20">
-               <span className="text-xs font-bold text-primary">전체 공개</span>
-             </div>
-          )}
+          <AccessBadge accessLevel={accessLevel} />
         </div>
       </div>
 
