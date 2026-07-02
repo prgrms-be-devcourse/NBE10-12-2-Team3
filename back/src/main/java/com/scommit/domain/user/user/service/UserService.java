@@ -53,4 +53,22 @@ public class UserService {
         }
         return user.get();
     }
+
+    @Transactional
+    public void logout(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        user.resetRefreshToken();
+    }
+
+    @Transactional
+    public void deleteUser(Long id, String password) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        user.resetRefreshToken();
+        user.softDelete();
+    }
 }

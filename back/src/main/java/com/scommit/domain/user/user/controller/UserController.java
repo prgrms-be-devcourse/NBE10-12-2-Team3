@@ -4,11 +4,14 @@ import com.scommit.domain.user.user.dto.LoginRequest;
 import com.scommit.domain.user.user.dto.LoginResponse;
 import com.scommit.domain.user.user.dto.SignupRequest;
 import com.scommit.domain.user.user.dto.SignupResponse;
+import com.scommit.domain.user.user.dto.UserDeleteRequest;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.service.UserService;
 import com.scommit.domain.user.usermedia.dto.UserMediaResponse;
 import com.scommit.domain.user.usermedia.service.UserMediaService;
 import com.scommit.global.dto.RsData;
+import com.scommit.global.exception.BusinessException;
+import com.scommit.global.exception.ErrorCode;
 import com.scommit.global.security.SecurityHelper;
 import com.scommit.global.security.jwt.JwtProvider;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -62,6 +66,39 @@ public class UserController {
         );
     }
 
+    @PostMapping("/logout")
+    @Operation(summary = "로그아웃", description = "로그아웃합니다.")
+    public RsData<Void> logout() {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        securityHelper.deleteCookie("accessToken");
+        securityHelper.deleteCookie("refreshToken");
+        userService.logout(actor.getId());
+        return new RsData<>(
+                "200-1",
+                "로그아웃에 성공했습니다."
+        );
+    }
+
+    @DeleteMapping
+    @Operation(summary = "회원탈퇴", description = "회원탈퇴합니다.")
+    public RsData<Void> deleteAccount(
+            @Valid @RequestBody UserDeleteRequest request
+    ) {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        userService.deleteUser(actor.getId(), request.password());
+        securityHelper.deleteCookie("accessToken");
+        securityHelper.deleteCookie("refreshToken");
+        return new RsData<>(
+                "200-1",
+                "회원탈퇴에 성공했습니다."
+        );
+    }
     @PostMapping(value = "/{id}/medias", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "프로필 이미지 생성")
