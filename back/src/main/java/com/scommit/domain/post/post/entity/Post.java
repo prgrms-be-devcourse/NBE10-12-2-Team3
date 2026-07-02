@@ -73,4 +73,8 @@ public class Post extends BaseEntity {
         this.accessLevel = accessLevel;
         this.series = series;
     }
+
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
 }
