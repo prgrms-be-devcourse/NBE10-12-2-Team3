@@ -41,13 +41,14 @@ public class LocalMediaService implements MediaService {
 
         String mediaUrl = category + "/" + addUUID(file.getOriginalFilename());
 
+        MediaType mediaType = getMediaType(file.getContentType());
+
         try {
             uploadFile(file, mediaUrl);
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
-        MediaType mediaType = getMediaType(file.getContentType());
         return saveMedia(mediaUrl, mediaType);
     }
 
