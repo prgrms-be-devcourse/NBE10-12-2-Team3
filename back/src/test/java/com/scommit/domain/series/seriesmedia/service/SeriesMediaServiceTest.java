@@ -154,16 +154,16 @@ class SeriesMediaServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 썸네일 없는 시리즈 조회 시 예외를 던진다")
-        void getMedia_NoMedia_Fail() {
+        @DisplayName("성공: 썸네일 없는 시리즈 조회 시 null을 반환한다")
+        void getMedia_NoMedia_Success() {
             Long seriesId = 1L;
             Series series = mock(Series.class);
 
             given(seriesRepository.findByIdAndDeletedAtIsNull(seriesId)).willReturn(Optional.of(series));
             given(seriesMediaRepository.findBySeries(series)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> seriesMediaService.getMedia(seriesId))
-                    .isInstanceOf(BusinessException.class);
+            SeriesMediaResponse result = seriesMediaService.getMedia(seriesId);
+            assertThat(result).isNull();
         }
     }
 

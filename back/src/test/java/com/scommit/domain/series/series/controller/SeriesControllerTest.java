@@ -10,6 +10,7 @@ import com.scommit.domain.series.seriesmedia.service.SeriesMediaService;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
+import com.scommit.global.security.jwt.JwtFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,6 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
-import com.scommit.global.security.jwt.JwtFilter;
 
 import java.util.List;
 
@@ -266,13 +266,13 @@ class SeriesControllerTest {
 
         @Test
         @WithMockUser
-        @DisplayName("시리즈/미디어 없음 → 404")
+        @DisplayName("미디어 없음 → 200 (data: null)")
         void getMedia_NotFound() throws Exception {
-            when(seriesMediaService.getMedia(999L))
-                    .thenThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+            when(seriesMediaService.getMedia(999L)).thenReturn(null);
 
             mockMvc.perform(get("/api/series/999/medias"))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data").doesNotExist());
         }
     }
 

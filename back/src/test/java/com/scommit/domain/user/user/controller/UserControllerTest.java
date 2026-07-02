@@ -1,6 +1,5 @@
 package com.scommit.domain.user.user.controller;
 
-import tools.jackson.databind.ObjectMapper;
 import com.scommit.domain.user.user.dto.LoginRequest;
 import com.scommit.domain.user.user.dto.SignupRequest;
 import com.scommit.domain.user.user.dto.UserDeleteRequest;
@@ -35,15 +34,10 @@ import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -461,13 +455,13 @@ public class UserControllerTest {
         }
 
         @Test
-        @DisplayName("미디어 없음 → 404")
+        @DisplayName("미디어 없음 → 200 (data: null)")
         void getMedia_MediaNotFound() throws Exception {
-            given(userMediaService.getMedia(1L))
-                    .willThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+            given(userMediaService.getMedia(1L)).willReturn(null);
 
             mvc.perform(get("/api/users/1/medias"))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data").doesNotExist());
         }
     }
 

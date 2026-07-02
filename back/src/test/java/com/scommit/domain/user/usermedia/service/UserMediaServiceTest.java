@@ -143,16 +143,16 @@ class UserMediaServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 프로필 이미지가 없는 유저 조회 시 예외를 던진다")
-        void getMedia_NoMedia_Fail() {
+        @DisplayName("성공: 프로필 이미지가 없는 유저 조회 시 null을 반환한다")
+        void getMedia_NoMedia_Success() {
             Long userId = 1L;
             User user = mock(User.class);
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userMediaRepository.findByUser(user)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> userMediaService.getMedia(userId))
-                    .isInstanceOf(BusinessException.class);
+            UserMediaResponse result = userMediaService.getMedia(userId);
+            assertThat(result).isNull();
         }
     }
 

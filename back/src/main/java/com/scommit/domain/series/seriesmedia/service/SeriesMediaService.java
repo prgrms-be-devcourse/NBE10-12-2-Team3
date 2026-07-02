@@ -49,8 +49,10 @@ public class SeriesMediaService {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(seriesId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
 
-        SeriesMedia seriesMedia = seriesMediaRepository.findBySeries(series)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        SeriesMedia seriesMedia = seriesMediaRepository.findBySeries(series).orElse(null);
+        if (seriesMedia == null) {
+            return null;
+        }
 
         return new SeriesMediaResponse(seriesMedia);
     }

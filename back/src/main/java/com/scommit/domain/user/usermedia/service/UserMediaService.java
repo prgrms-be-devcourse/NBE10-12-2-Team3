@@ -49,8 +49,10 @@ public class UserMediaService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        UserMedia userMedia = userMediaRepository.findByUser(user)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        UserMedia userMedia = userMediaRepository.findByUser(user).orElse(null);
+        if (userMedia == null) {
+            return null;
+        }
 
         return new UserMediaResponse(userMedia);
     }
