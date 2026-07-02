@@ -115,6 +115,33 @@ public class UserController {
         );
     }
 
+    @PatchMapping("/me")
+    @Operation(summary = "내 정보 수정", description = "로그인한 유저의 정보를 수정합니다.")
+    public RsData<UserUpdateResponse> updateProfile(
+            @Valid @RequestPart(value = "request") UserUpdateRequest request,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
+    ) {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        User updatedUser = userService.updateUser(actor.getId(), request.nickname(), request.introduction());
+        String profileImageUrl;
+        if (profileImage != null) {
+            profileImageUrl = userMediaService.uploadMedia(actor.getId(), profileImage).url();
+        } else {
+            UserMediaResponse media = userMediaService.getMedia(actor.getId());
+            profileImageUrl = media != null ? media.url() : null;
+        }
+
+        return new RsData<>(
+                "200-1",
+                "내 정보를 수정하였습니다.",
+                new UserUpdateResponse(updatedUser, profileImageUrl)
+        );
+    }
+
     @PostMapping(value = "/me/medias", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "프로필 이미지 생성")

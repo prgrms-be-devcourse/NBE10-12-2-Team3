@@ -27,6 +27,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -496,7 +497,6 @@ public class UserControllerTest {
 
         private static final String ME_URL = "/api/users/me";
         private static final String NEW_NICKNAME = "newnickname";
-        private static final String NEW_PROFILE_IMAGE = "https://example.com/new.png";
         private static final String NEW_INTRODUCTION = "수정된 소개글입니다.";
 
         private User mockActor() {
@@ -505,17 +505,30 @@ public class UserControllerTest {
             return mockUser;
         }
 
+        private MockMultipartFile requestPart(UserUpdateRequest request) throws Exception {
+            return new MockMultipartFile(
+                    "request", "", MediaType.APPLICATION_JSON_VALUE,
+                    objectMapper.writeValueAsBytes(request)
+            );
+        }
+
         @Test
-        @DisplayName("성공 (200) - 닉네임, 프로필 이미지, 소개글을 수정한다")
+        @DisplayName("성공 (200) - 닉네임, 소개글을 수정한다")
         void updateMe_Success() throws Exception {
             User actor = mockActor();
             given(securityHelper.getActor()).willReturn(actor);
 
-            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, NEW_PROFILE_IMAGE, NEW_INTRODUCTION);
+            User updatedUser = mock(User.class);
+            given(updatedUser.getId()).willReturn(1L);
+            given(updatedUser.getNickname()).willReturn(NEW_NICKNAME);
+            given(updatedUser.getIntroduction()).willReturn(NEW_INTRODUCTION);
+            given(userService.updateUser(1L, NEW_NICKNAME, NEW_INTRODUCTION)).willReturn(updatedUser);
 
-            mvc.perform(patch(ME_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, NEW_INTRODUCTION);
+
+            mvc.perform(multipart(HttpMethod.PATCH, ME_URL)
+                            .file(requestPart(request))
+                            .with(csrf()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.resultCode").value("200-1"))
                     .andExpect(jsonPath("$.data.profile.nickname").value(NEW_NICKNAME))
@@ -523,15 +536,39 @@ public class UserControllerTest {
         }
 
         @Test
+        @DisplayName("성공 (200) - 새 이미지를 첨부하지 않으면 기존 프로필 이미지 URL을 그대로 응답한다")
+        void updateMe_KeepsExistingProfileImageWhenNoneUploaded() throws Exception {
+            User actor = mockActor();
+            given(securityHelper.getActor()).willReturn(actor);
+
+            User updatedUser = mock(User.class);
+            given(updatedUser.getId()).willReturn(1L);
+            given(updatedUser.getNickname()).willReturn(NEW_NICKNAME);
+            given(updatedUser.getIntroduction()).willReturn(NEW_INTRODUCTION);
+            given(userService.updateUser(1L, NEW_NICKNAME, NEW_INTRODUCTION)).willReturn(updatedUser);
+            given(userMediaService.getMedia(1L)).willReturn(
+                    new UserMediaResponse(1L, 1L, "user/uuid.png", null)
+            );
+
+            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, NEW_INTRODUCTION);
+
+            mvc.perform(multipart(HttpMethod.PATCH, ME_URL)
+                            .file(requestPart(request))
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.profile.profileImageUrl").value("user/uuid.png"));
+        }
+
+        @Test
         @DisplayName("실패 - 인증되지 않은 사용자 → 401")
         void updateMe_Unauthorized() throws Exception {
             given(securityHelper.getActor()).willReturn(null);
 
-            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, NEW_PROFILE_IMAGE, NEW_INTRODUCTION);
+            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, NEW_INTRODUCTION);
 
-            mvc.perform(patch(ME_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+            mvc.perform(multipart(HttpMethod.PATCH, ME_URL)
+                            .file(requestPart(request))
+                            .with(csrf()))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.resultCode").value("401-1"));
         }
@@ -539,11 +576,11 @@ public class UserControllerTest {
         @Test
         @DisplayName("닉네임 2자 미만 → 400")
         void updateMe_NicknameTooShort() throws Exception {
-            UserUpdateRequest request = new UserUpdateRequest("a", NEW_PROFILE_IMAGE, NEW_INTRODUCTION);
+            UserUpdateRequest request = new UserUpdateRequest("a", NEW_INTRODUCTION);
 
-            mvc.perform(patch(ME_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+            mvc.perform(multipart(HttpMethod.PATCH, ME_URL)
+                            .file(requestPart(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.resultCode").value("400-1"));
         }
@@ -551,11 +588,23 @@ public class UserControllerTest {
         @Test
         @DisplayName("닉네임 20자 초과 → 400")
         void updateMe_NicknameTooLong() throws Exception {
-            UserUpdateRequest request = new UserUpdateRequest("a".repeat(21), NEW_PROFILE_IMAGE, NEW_INTRODUCTION);
+            UserUpdateRequest request = new UserUpdateRequest("a".repeat(21), NEW_INTRODUCTION);
 
-            mvc.perform(patch(ME_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+            mvc.perform(multipart(HttpMethod.PATCH, ME_URL)
+                            .file(requestPart(request))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-1"));
+        }
+
+        @Test
+        @DisplayName("닉네임이 공백으로만 이루어짐 → 400")
+        void updateMe_NicknameBlank() throws Exception {
+            UserUpdateRequest request = new UserUpdateRequest("  ", NEW_INTRODUCTION);
+
+            mvc.perform(multipart(HttpMethod.PATCH, ME_URL)
+                            .file(requestPart(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.resultCode").value("400-1"));
         }
@@ -563,11 +612,11 @@ public class UserControllerTest {
         @Test
         @DisplayName("소개글 100자 초과 → 400")
         void updateMe_IntroductionTooLong() throws Exception {
-            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, NEW_PROFILE_IMAGE, "a".repeat(101));
+            UserUpdateRequest request = new UserUpdateRequest(NEW_NICKNAME, "a".repeat(101));
 
-            mvc.perform(patch(ME_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+            mvc.perform(multipart(HttpMethod.PATCH, ME_URL)
+                            .file(requestPart(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.resultCode").value("400-1"));
         }

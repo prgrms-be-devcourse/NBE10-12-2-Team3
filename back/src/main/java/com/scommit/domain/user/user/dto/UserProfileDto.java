@@ -4,13 +4,13 @@ import com.scommit.domain.user.user.entity.User;
 
 public record UserProfileDto(
         String nickname,
-        String profileImage,
+        String profileImageUrl,
         String introduction
 ) {
-    public UserProfileDto(User user, String profileImage) {
+    public UserProfileDto(User user, String profileImageUrl) {
         this(
                 user.getNickname(),
-                profileImage,
+                profileImageUrl,
                 user.getIntroduction()
         );
     }

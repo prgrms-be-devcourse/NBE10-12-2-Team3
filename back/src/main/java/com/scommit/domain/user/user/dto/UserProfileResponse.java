@@ -6,10 +6,10 @@ public record UserProfileResponse(
         Long id,
         UserProfileDto profile
 ) {
-    public UserProfileResponse(User user, String profileImage) {
+    public UserProfileResponse(User user, String profileImageUrl) {
         this(
                 user.getId(),
-                new UserProfileDto(user, profileImage)
+                new UserProfileDto(user, profileImageUrl)
         );
     }
 }

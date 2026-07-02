@@ -11,11 +11,11 @@ public record UserMeResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public UserMeResponse(User user, String profileImage) {
+    public UserMeResponse(User user, String profileImageUrl) {
         this(
                 user.getId(),
                 user.getEmail(),
-                new UserProfileDto(user, profileImage),
+                new UserProfileDto(user, profileImageUrl),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );
