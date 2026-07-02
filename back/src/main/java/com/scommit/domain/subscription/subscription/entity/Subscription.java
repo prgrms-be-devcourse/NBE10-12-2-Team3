@@ -1,4 +1,4 @@
-package com.scommit.domain.subscription.entity;
+package com.scommit.domain.subscription.subscription.entity;
 
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.base.BaseEntity;
@@ -13,7 +13,15 @@ import java.time.LocalDate;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "subscriptions")
+@Table(
+    name = "subscriptions",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_subscription_user_creator",
+            columnNames = {"user_id", "creator_id"}
+        )
+    }
+)
 public class Subscription extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -41,5 +49,23 @@ public class Subscription extends BaseEntity {
         this.tier = tier;
         this.startedAt = startedAt;
         this.expiredAt = expiredAt;
+    }
+
+    public void restoreSubscription() {
+        this.tier = SubscriptionTier.FOLLOW;
+        this.startedAt = LocalDate.now();
+        this.expiredAt = null;
+        this.restore();
+    }
+
+    public void upgradeToMembership() {
+        this.tier = SubscriptionTier.MEMBERSHIP;
+        this.expiredAt = LocalDate.now().plusMonths(1);
+    }
+
+    // 해지시 데이터를 삭제하지 않고 팔로우 티어로 강등 처리
+    public void downgradeToFollow() {
+        this.tier = SubscriptionTier.FOLLOW;
+        this.expiredAt = null;
     }
 }
