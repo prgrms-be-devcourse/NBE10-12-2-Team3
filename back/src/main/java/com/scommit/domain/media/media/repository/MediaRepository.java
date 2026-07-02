@@ -1,6 +1,6 @@
-package com.scommit.domain.media.repository;
+package com.scommit.domain.media.media.repository;
 
-import com.scommit.domain.media.entity.Media;
+import com.scommit.domain.media.media.entity.Media;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,18 +1,16 @@
-package com.scommit.domain.media.dto;
+package com.scommit.domain.media.media.dto;
 
-import com.scommit.domain.media.entity.Media;
-import com.scommit.domain.media.entity.MediaType;
+import com.scommit.domain.media.media.entity.Media;
+import com.scommit.domain.media.media.entity.MediaType;
 
 public record MediaResponse(
   Long id,
-  Long postId,
   String url,
   MediaType type
 ){
   public MediaResponse(Media meida){
     this(
       meida.getId(),
-      meida.getPost().getId(),
       meida.getUrl(),
       meida.getType()
     );
