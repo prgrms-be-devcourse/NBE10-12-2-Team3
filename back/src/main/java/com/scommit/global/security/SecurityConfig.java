@@ -68,6 +68,8 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        // 개발
+                        .requestMatchers("/h2-console/**").permitAll()
                         // 정적 리소스
                         .requestMatchers(
                                 "/favicon.ico",
