@@ -71,4 +71,8 @@ public class UserService {
         user.resetRefreshToken();
         user.softDelete();
     }
+
+    public Optional<User> getUser(Long id) {
+        return userRepository.findByIdAndDeletedAtIsNull(id);
+    }
 }

@@ -31,7 +31,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 
@@ -464,6 +463,10 @@ public class UserControllerTest {
         void getMe_Success() throws Exception {
             User actor = mockActor();
             given(securityHelper.getActor()).willReturn(actor);
+            given(userService.getUser(1L)).willReturn(java.util.Optional.of(actor));
+            given(userMediaService.getMedia(1L)).willReturn(
+                    new UserMediaResponse(1L, 1L, null, null)
+            );
 
             mvc.perform(get(ME_URL))
                     .andExpect(status().isOk())
@@ -701,45 +704,45 @@ public class UserControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /api/users/{id}/medias 프로필 이미지 업로드")
+    @DisplayName("")
     class UploadMedia {
 
         @Test
         @DisplayName("성공 (201)")
         void uploadMedia_Success() throws Exception {
+            User actor = mock(User.class);
+            given(actor.getId()).willReturn(1L);
+            given(securityHelper.getActor()).willReturn(actor);
+
             UserMediaResponse response = new UserMediaResponse(1L, 1L, "user/uuid.png", com.scommit.domain.media.media.entity.MediaType.IMAGE);
             MockMultipartFile file = new MockMultipartFile("file", "profile.png", "image/png", "content".getBytes());
             given(userMediaService.uploadMedia(anyLong(), any())).willReturn(response);
 
-            mvc.perform(multipart("/api/users/1/medias")
+            mvc.perform(multipart("/api/users/me/medias")
                             .file(file)
                             .with(csrf()))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.data.url").value("user/uuid.png"));
         }
-
-        @Test
-        @DisplayName("유저 없음 → 404")
-        void uploadMedia_UserNotFound() throws Exception {
-            MockMultipartFile file = new MockMultipartFile("file", "profile.png", "image/png", "content".getBytes());
-            given(userMediaService.uploadMedia(anyLong(), any()))
-                    .willThrow(new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-            mvc.perform(multipart("/api/users/999/medias")
-                            .file(file)
-                            .with(csrf()))
-                    .andExpect(status().isNotFound());
-        }
     }
 
     @Nested
-    @DisplayName("DELETE /api/users/{id}/medias 프로필 이미지 삭제")
+    @DisplayName("DELETE /api/users/me/medias 프로필 이미지 삭제")
     class DeleteMedia {
+
+        private User mockActor() {
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(1L);
+            return mockUser;
+        }
 
         @Test
         @DisplayName("성공 (200)")
         void deleteMedia_Success() throws Exception {
-            mvc.perform(delete("/api/users/1/medias")
+            User actor = mockActor();
+            given(securityHelper.getActor()).willReturn(actor);
+
+            mvc.perform(delete("/api/users/me/medias")
                             .with(csrf()))
                     .andExpect(status().isOk());
         }
@@ -747,10 +750,12 @@ public class UserControllerTest {
         @Test
         @DisplayName("미디어 없음 → 404")
         void deleteMedia_MediaNotFound() throws Exception {
+            User actor = mockActor();
+            given(securityHelper.getActor()).willReturn(actor);
             doThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
                     .when(userMediaService).deleteMedia(anyLong());
 
-            mvc.perform(delete("/api/users/1/medias")
+            mvc.perform(delete("/api/users/me/medias")
                             .with(csrf()))
                     .andExpect(status().isNotFound());
         }
