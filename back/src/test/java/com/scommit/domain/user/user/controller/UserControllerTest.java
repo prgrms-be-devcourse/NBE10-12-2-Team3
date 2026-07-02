@@ -717,6 +717,63 @@ public class UserControllerTest {
     }
 
     @Nested
+    @DisplayName("GET /api/users/{id} 유저 페이지 조회")
+    class GetUserProfile {
+
+        private static final String NICKNAME = "testuser";
+        private static final String INTRODUCTION = "안녕하세요";
+
+        private User mockTargetUser() {
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(1L);
+            given(mockUser.getNickname()).willReturn(NICKNAME);
+            given(mockUser.getIntroduction()).willReturn(INTRODUCTION);
+            return mockUser;
+        }
+
+        @Test
+        @DisplayName("성공 (200) - 프로필 이미지가 있는 경우")
+        void getUserProfile_Success() throws Exception {
+            User targetUser = mockTargetUser();
+            given(userService.getUser(1L)).willReturn(java.util.Optional.of(targetUser));
+            given(userMediaService.getMedia(1L)).willReturn(
+                    new UserMediaResponse(1L, 1L, "user/uuid.png", com.scommit.domain.media.media.entity.MediaType.IMAGE)
+            );
+
+            mvc.perform(get("/api/users/1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    .andExpect(jsonPath("$.data.id").value(1))
+                    .andExpect(jsonPath("$.data.profile.nickname").value(NICKNAME))
+                    .andExpect(jsonPath("$.data.profile.introduction").value(INTRODUCTION))
+                    .andExpect(jsonPath("$.data.profile.profileImageUrl").value("user/uuid.png"));
+        }
+
+        @Test
+        @DisplayName("성공 (200) - 프로필 이미지가 없는 경우")
+        void getUserProfile_NoMedia() throws Exception {
+            User targetUser = mockTargetUser();
+            given(userService.getUser(1L)).willReturn(java.util.Optional.of(targetUser));
+            given(userMediaService.getMedia(1L)).willReturn(null);
+
+            mvc.perform(get("/api/users/1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    .andExpect(jsonPath("$.data.profile.profileImageUrl").doesNotExist());
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 유저 → 404")
+        void getUserProfile_UserNotFound() throws Exception {
+            given(userService.getUser(999L)).willReturn(java.util.Optional.empty());
+
+            mvc.perform(get("/api/users/999"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.resultCode").value("404-2"));
+        }
+    }
+
+    @Nested
     @DisplayName("GET /api/users/{id}/medias 프로필 이미지 조회")
     class GetMedia {
 

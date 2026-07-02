@@ -165,6 +165,22 @@ public class UserController {
         );
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "유저 페이지 조회", description = "특정 유저의 페이지를 조회합니다.")
+    public RsData<UserProfileResponse> getUserProfile(
+            @PathVariable Long id
+    ) {
+        User user = userService.getUser(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        UserMediaResponse media = userMediaService.getMedia(id);
+        String profileImageUrl = media != null ? media.url() : null;
+        return new RsData<>(
+                "200-1",
+                "유저 정보를 조회하였습니다.",
+                new UserProfileResponse(user, profileImageUrl)
+        );
+    }
+
     @PostMapping(value = "/me/medias", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "프로필 이미지 생성")
