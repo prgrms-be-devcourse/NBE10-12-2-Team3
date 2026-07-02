@@ -649,6 +649,7 @@ public class UserControllerTest {
         void updatePassword_Success() throws Exception {
             User actor = mockActor();
             given(securityHelper.getActor()).willReturn(actor);
+            given(userService.getUser(1L)).willReturn(java.util.Optional.of(actor));
             given(jwtProvider.generateAccessToken(1L, EMAIL, NICKNAME, UserRole.USER))
                     .willReturn(MOCK_ACCESS_TOKEN);
 

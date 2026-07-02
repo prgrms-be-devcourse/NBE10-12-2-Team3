@@ -85,4 +85,16 @@ public class UserService {
         user.update(nickname, introduction);
         return user;
     }
+
+    @Transactional
+    public void updatePassword(Long id, String oldPassword, String newPassword) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED); // TODO: INVALID_PASSWORD 등으로 수정
+        }
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.updatePassword(encodedPassword);
+        user.resetRefreshToken();
+    }
 }

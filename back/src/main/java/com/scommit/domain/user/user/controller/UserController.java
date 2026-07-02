@@ -142,6 +142,29 @@ public class UserController {
         );
     }
 
+    @PutMapping("/me/password")
+    @Operation(summary = "비밀번호 변경", description = "로그인한 유저의 비밀번호를 변경합니다.")
+    public RsData<UserPasswordUpdateResponse> updatePassword(
+            @Valid @RequestBody UserPasswordUpdateRequest request
+    ) {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        userService.updatePassword(actor.getId(), request.currentPassword(), request.newPassword());
+
+        User user = userService.getUser(actor.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        String accessToken = jwtProvider.generateAccessToken(actor.getId(), actor.getEmail(), actor.getNickname(), user.getRole());
+        securityHelper.setCookie("accessToken", accessToken);
+        securityHelper.setCookie("refreshToken", user.getRefreshToken());
+        return new RsData<>(
+                "200-1",
+                "비밀번호를 변경하였습니다.",
+                new UserPasswordUpdateResponse(accessToken, user.getRefreshToken(), securityHelper.getCookieExpiresInSecond())
+        );
+    }
+
     @PostMapping(value = "/me/medias", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "프로필 이미지 생성")
