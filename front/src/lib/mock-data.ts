@@ -1,4 +1,18 @@
-export const MOCK_POSTS = [
+export interface MockPost {
+  id: number;
+  title: string;
+  description: string;
+  accessLevel: "FREE" | "PAID";
+  authorName: string;
+  createdAt: string;
+  viewCount: number;
+  likeCount: number;
+  bookmarkCount: number;
+  thumbnailUrl?: string;
+  membershipPrice?: number;
+}
+
+export const MOCK_POSTS: MockPost[] = [
   { id: 1, title: "React 19 새로운 ref 전달 방식 완벽 분석", description: "forwardRef가 사라진 React 19에서 ref를 속성처럼 넘길 때 주의해야 할 점과 활용법", accessLevel: "FREE" as const, authorName: "이서연", createdAt: "2026.06.14", viewCount: 8871, likeCount: 674, bookmarkCount: 91 },
   { id: 2, title: "Next.js App Router 다국어 SEO 최적화 구축기", description: "i18n 미들웨어와 메타데이터 API를 활용해 글로벌 검색 엔진에 완벽히 대응하기", accessLevel: "FREE" as const, authorName: "박준평", createdAt: "2026.06.11", viewCount: 9489, likeCount: 327, bookmarkCount: 244 },
   { id: 3, title: "TypeScript 제네릭 실무에서 바로 쓰는 고급 패턴", description: "extends, keyof, infer 키워드를 조합하여 안전하고 강력한 유틸리티 타입 정의법", accessLevel: "PAID" as const, authorName: "최지우", createdAt: "2026.06.16", viewCount: 232, likeCount: 855, bookmarkCount: 110, membershipPrice: 4900 },

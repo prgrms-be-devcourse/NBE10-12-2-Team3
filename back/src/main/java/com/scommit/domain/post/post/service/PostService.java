@@ -27,7 +27,7 @@ public class PostService {
 
     // 게시글 생성
     @Transactional
-    public PostResponse createPost(String title, String body, String thumbnail,
+    public PostResponse createPost(String title, String body,
                                    PublishStatus publishStatus, PostAccessLevel accessLevel, Long seriesId) {
         // TODO: Security 완료 후 로그인 유저로 교체
         Series series = seriesId != null
@@ -37,7 +37,6 @@ public class PostService {
         Post post = Post.builder()
                 .title(title)
                 .body(body)
-                .thumbnail(thumbnail)
                 .publishStatus(publishStatus)
                 .accessLevel(accessLevel)
                 .series(series)
@@ -66,7 +65,7 @@ public class PostService {
 
     // 게시글 수정
     @Transactional
-    public PostResponse updatePost(Long id, String title, String body, String thumbnail,
+    public PostResponse updatePost(Long id, String title, String body,
                                    PublishStatus publishStatus, PostAccessLevel accessLevel, Long seriesId) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
@@ -80,7 +79,7 @@ public class PostService {
                 ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
                 : null;
 
-        post.update(title, body, thumbnail, publishStatus, accessLevel, series);
+        post.update(title, body, publishStatus, accessLevel, series);
 
         return new PostResponse(post);
     }

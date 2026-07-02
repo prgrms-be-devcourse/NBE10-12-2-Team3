@@ -1,21 +1,29 @@
 package com.scommit.domain.series.series.controller;
 
-import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.media.media.entity.MediaType;
 import com.scommit.domain.series.series.dto.SeriesCreateRequest;
 import com.scommit.domain.series.series.dto.SeriesUpdateRequest;
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.service.SeriesService;
+import com.scommit.domain.series.seriesmedia.dto.SeriesMediaResponse;
+import com.scommit.domain.series.seriesmedia.service.SeriesMediaService;
+import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
+import com.scommit.global.security.jwt.JwtFilter;
 
 import java.util.List;
 
@@ -26,7 +34,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(SeriesController.class)
+@WebMvcTest(
+        controllers = SeriesController.class,
+        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtFilter.class)
+)
 class SeriesControllerTest {
 
     @Autowired
@@ -37,6 +48,9 @@ class SeriesControllerTest {
 
     @MockitoBean
     private SeriesService seriesService;
+
+    @MockitoBean
+    private SeriesMediaService seriesMediaService;
 
     @MockitoBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
@@ -231,5 +245,94 @@ class SeriesControllerTest {
                         .with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"));
+    }
+
+    @Nested
+    @DisplayName("GET /api/series/{id}/medias 시리즈 썸네일 조회")
+    class GetMedia {
+
+        @Test
+        @WithMockUser
+        @DisplayName("성공 (200)")
+        void getMedia_Success() throws Exception {
+            SeriesMediaResponse response = new SeriesMediaResponse(1L, 1L, "series/uuid.png", MediaType.IMAGE);
+            when(seriesMediaService.getMedia(1L)).thenReturn(response);
+
+            mockMvc.perform(get("/api/series/1/medias"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.url").value("series/uuid.png"))
+                    .andExpect(jsonPath("$.data.seriesId").value(1L));
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("시리즈/미디어 없음 → 404")
+        void getMedia_NotFound() throws Exception {
+            when(seriesMediaService.getMedia(999L))
+                    .thenThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+
+            mockMvc.perform(get("/api/series/999/medias"))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/series/{id}/medias 시리즈 썸네일 업로드")
+    class UploadMedia {
+
+        @Test
+        @WithMockUser
+        @DisplayName("성공 (201)")
+        void uploadMedia_Success() throws Exception {
+            SeriesMediaResponse response = new SeriesMediaResponse(1L, 1L, "series/uuid.png", MediaType.IMAGE);
+            MockMultipartFile file = new MockMultipartFile("file", "thumb.png", "image/png", "content".getBytes());
+            when(seriesMediaService.uploadMedia(anyLong(), any())).thenReturn(response);
+
+            mockMvc.perform(multipart("/api/series/1/medias")
+                            .file(file)
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.url").value("series/uuid.png"));
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("시리즈 없음 → 404")
+        void uploadMedia_SeriesNotFound() throws Exception {
+            MockMultipartFile file = new MockMultipartFile("file", "thumb.png", "image/png", "content".getBytes());
+            when(seriesMediaService.uploadMedia(anyLong(), any()))
+                    .thenThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+
+            mockMvc.perform(multipart("/api/series/999/medias")
+                            .file(file)
+                            .with(csrf()))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/series/{id}/medias 시리즈 썸네일 삭제")
+    class DeleteMedia {
+
+        @Test
+        @WithMockUser
+        @DisplayName("성공 (200)")
+        void deleteMedia_Success() throws Exception {
+            mockMvc.perform(delete("/api/series/1/medias")
+                            .with(csrf()))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("미디어 없음 → 404")
+        void deleteMedia_MediaNotFound() throws Exception {
+            doThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
+                    .when(seriesMediaService).deleteMedia(anyLong());
+
+            mockMvc.perform(delete("/api/series/1/medias")
+                            .with(csrf()))
+                    .andExpect(status().isNotFound());
+        }
     }
 }

@@ -10,7 +10,6 @@ public record PostCreateRequest(
         @Nullable Long seriesId,
         String title,
         String body,
-        String thumbnail,
         PublishStatus publishStatus,
         PostAccessLevel accessLevel
 ) {}
