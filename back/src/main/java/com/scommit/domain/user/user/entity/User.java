@@ -7,8 +7,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -46,4 +52,35 @@ public class User extends BaseEntity {
         this.role = role;
     }
 
+    public User(Long id, String email, String nickname) {
+        setId(id);
+        this.email = email;
+        this.nickname = nickname;
+    }
+
+    public User(Long id, String email, String nickname, UserRole role) {
+        this(id, email, nickname);
+        this.role = role;
+    }
+
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return getAuthoritiesAsStringList()
+                .stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
+    }
+
+    private List<String> getAuthoritiesAsStringList() {
+        List<String> authorities = new ArrayList<>();
+
+        if (role.equals(UserRole.ADMIN)) {
+            authorities.add("ROLE_ADMIN");
+        }
+
+        return authorities;
+    }
+
+    public void resetRefreshToken() {
+        this.refreshToken = UUID.randomUUID().toString();
+    }
 }

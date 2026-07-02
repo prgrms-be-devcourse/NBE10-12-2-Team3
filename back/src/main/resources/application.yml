@@ -3,3 +3,9 @@ spring:
     active: dev
   application:
     name: back
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+  token:
+    access-token-expiration: 30m
+  cookie:
+    max-age: 30m

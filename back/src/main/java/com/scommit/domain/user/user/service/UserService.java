@@ -10,6 +10,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -33,6 +35,22 @@ public class UserService {
                 .nickname(nickname)
                 .role(UserRole.USER)
                 .build();
+        user.resetRefreshToken();
         return userRepository.save(user);
+    }
+
+    public Optional<User> getUserByRefreshToken(String refreshToken) {
+        return userRepository.findByRefreshTokenAndDeletedAtIsNull(refreshToken);
+    }
+
+    public User login(String email, String password) {
+        Optional<User> user = userRepository.findByEmailAndDeletedAtIsNull(email);
+        if (user.isEmpty()) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND); // TODO: ErrorCode 모은 후 401 INVALID_CREDENTIALS 등으로 수정
+        }
+        if (!passwordEncoder.matches(password, user.get().getPassword())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED); // TODO: ErrorCode 모은 후 401 INVALID_CREDENTIALS 등으로 수정
+        }
+        return user.get();
     }
 }
