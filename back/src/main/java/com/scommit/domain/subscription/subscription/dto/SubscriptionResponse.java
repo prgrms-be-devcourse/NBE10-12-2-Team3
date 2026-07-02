@@ -1,7 +1,7 @@
-package com.scommit.domain.subscription.subscription.controller.dto;
+package com.scommit.domain.subscription.subscription.dto;
 
 import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
-import com.scommit.domain.subscription.subscription.service.dto.SubscriptionInfo;
+
 import lombok.Builder;
 import lombok.Getter;
 
