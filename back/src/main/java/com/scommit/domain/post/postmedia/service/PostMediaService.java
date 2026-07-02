@@ -77,8 +77,10 @@ public class PostMediaService {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
 
-        PostMedia postMedia = postMediaRepository.findByPostAndType(post, PostMediaType.THUMBNAIL)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        PostMedia postMedia = postMediaRepository.findByPostAndType(post, PostMediaType.THUMBNAIL).orElse(null);
+        if (postMedia == null) {
+            return null;
+        }
 
         return new PostMediaResponse(postMedia);
     }

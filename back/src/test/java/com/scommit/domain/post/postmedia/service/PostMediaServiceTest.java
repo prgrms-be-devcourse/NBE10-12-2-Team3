@@ -260,8 +260,8 @@ class PostMediaServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 썸네일 없는 포스트 조회 시 예외를 던진다")
-        void getThumbnail_NoThumbnail_Fail() {
+        @DisplayName("성공: 썸네일 없는 포스트 조회 시 null을 반환한다")
+        void getThumbnail_NoThumbnail_Success() {
             Long postId = 1L;
             Post post = mock(Post.class);
 
@@ -269,8 +269,8 @@ class PostMediaServiceTest {
             given(post.getDeletedAt()).willReturn(null);
             given(postMediaRepository.findByPostAndType(post, PostMediaType.THUMBNAIL)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> postMediaService.getThumbnail(postId))
-                    .isInstanceOf(BusinessException.class);
+            PostMediaResponse result = postMediaService.getThumbnail(postId);
+            assertThat(result).isNull();
         }
 
         @Test
