@@ -193,4 +193,278 @@
                         .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
             }
         }
+
+        @Nested
+        @DisplayName("내 정보 수정")
+        class UpdateUser {
+
+            private static final Long USER_ID = 1L;
+            private static final String NICKNAME = "testuser";
+            private static final String NEW_NICKNAME = "newnickname";
+            private static final String NEW_INTRODUCTION = "수정된 소개글입니다.";
+
+            private User buildUser() {
+                return User.builder()
+                        .email("test@example.com")
+                        .password("encodedPassword")
+                        .nickname(NICKNAME)
+                        .role(UserRole.USER)
+                        .build();
+            }
+
+            @Test
+            @DisplayName("성공: 닉네임과 소개글을 수정한다.")
+            void updateUser_Success() {
+                // Given
+                User user = buildUser();
+                given(userRepository.findByIdAndDeletedAtIsNull(USER_ID)).willReturn(Optional.of(user));
+                given(userRepository.existsByNickname(NEW_NICKNAME)).willReturn(false);
+
+                // When
+                User result = userService.updateUser(USER_ID, NEW_NICKNAME, NEW_INTRODUCTION);
+
+                // Then
+                assertThat(result.getNickname()).isEqualTo(NEW_NICKNAME);
+                assertThat(result.getIntroduction()).isEqualTo(NEW_INTRODUCTION);
+            }
+
+            @Test
+            @DisplayName("성공: 기존과 동일한 닉네임을 다시 보내도 중복 예외 없이 수정된다.")
+            void updateUser_SameNicknameAsCurrent() {
+                // Given
+                User user = buildUser();
+                given(userRepository.findByIdAndDeletedAtIsNull(USER_ID)).willReturn(Optional.of(user));
+
+                // When
+                User result = userService.updateUser(USER_ID, NICKNAME, NEW_INTRODUCTION);
+
+                // Then
+                assertThat(result.getNickname()).isEqualTo(NICKNAME);
+                assertThat(result.getIntroduction()).isEqualTo(NEW_INTRODUCTION);
+                verify(userRepository, never()).existsByNickname(any());
+            }
+
+            @Test
+            @DisplayName("성공: 닉네임 없이 소개글만 수정한다.")
+            void updateUser_NicknameNull() {
+                // Given
+                User user = buildUser();
+                given(userRepository.findByIdAndDeletedAtIsNull(USER_ID)).willReturn(Optional.of(user));
+
+                // When
+                User result = userService.updateUser(USER_ID, null, NEW_INTRODUCTION);
+
+                // Then
+                assertThat(result.getNickname()).isEqualTo(NICKNAME);
+                assertThat(result.getIntroduction()).isEqualTo(NEW_INTRODUCTION);
+                verify(userRepository, never()).existsByNickname(any());
+            }
+
+            @Test
+            @DisplayName("실패: 닉네임이 중복되면 예외를 던지고 수정하지 않는다.")
+            void updateUser_DuplicateNickname() {
+                // Given
+                User user = buildUser();
+                given(userRepository.findByIdAndDeletedAtIsNull(USER_ID)).willReturn(Optional.of(user));
+                given(userRepository.existsByNickname(NEW_NICKNAME)).willReturn(true);
+
+                // When & Then
+                assertThatThrownBy(() -> userService.updateUser(USER_ID, NEW_NICKNAME, NEW_INTRODUCTION))
+                        .isInstanceOf(BusinessException.class)
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DUPLICATE_EMAIL);
+
+                assertThat(user.getNickname()).isEqualTo(NICKNAME);
+            }
+
+            @Test
+            @DisplayName("실패: 존재하지 않는 유저면 USER_NOT_FOUND 예외를 던진다.")
+            void updateUser_UserNotFound() {
+                // Given
+                given(userRepository.findByIdAndDeletedAtIsNull(USER_ID)).willReturn(Optional.empty());
+
+                // When & Then
+                assertThatThrownBy(() -> userService.updateUser(USER_ID, NEW_NICKNAME, NEW_INTRODUCTION))
+                        .isInstanceOf(BusinessException.class)
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+
+                verify(userRepository, never()).existsByNickname(anyString());
+            }
+        }
+
+        @Nested
+        @DisplayName("비밀번호 변경")
+        class UpdatePassword {
+
+            private static final Long USER_ID = 1L;
+            private static final String CURRENT_PASSWORD = "password123";
+            private static final String WRONG_PASSWORD = "wrongPassword";
+            private static final String NEW_PASSWORD = "newPassword456";
+            private static final String ENCODED_CURRENT_PASSWORD = "encodedCurrentPassword";
+            private static final String ENCODED_NEW_PASSWORD = "encodedNewPassword";
+
+            private User buildUser() {
+                return User.builder()
+                        .email("test@example.com")
+                        .password(ENCODED_CURRENT_PASSWORD)
+                        .nickname("testuser")
+                        .role(UserRole.USER)
+                        .build();
+            }
+
+            @Test
+            @DisplayName("성공: 비밀번호를 변경하고 refreshToken을 재발급한다.")
+            void updatePassword_Success() {
+                // Given
+                User user = buildUser();
+                given(userRepository.findByIdAndDeletedAtIsNull(USER_ID)).willReturn(Optional.of(user));
+                given(passwordEncoder.matches(CURRENT_PASSWORD, ENCODED_CURRENT_PASSWORD)).willReturn(true);
+                given(passwordEncoder.encode(NEW_PASSWORD)).willReturn(ENCODED_NEW_PASSWORD);
+
+                // When
+                userService.updatePassword(USER_ID, CURRENT_PASSWORD, NEW_PASSWORD);
+
+                // Then
+                assertThat(user.getPassword()).isEqualTo(ENCODED_NEW_PASSWORD);
+                assertThat(user.getRefreshToken()).isNotNull();
+            }
+
+            @Test
+            @DisplayName("실패: 현재 비밀번호가 일치하지 않으면 UNAUTHORIZED 예외를 던지고 변경하지 않는다.")
+            void updatePassword_WrongCurrentPassword() {
+                // Given
+                User user = buildUser();
+                given(userRepository.findByIdAndDeletedAtIsNull(USER_ID)).willReturn(Optional.of(user));
+                given(passwordEncoder.matches(WRONG_PASSWORD, ENCODED_CURRENT_PASSWORD)).willReturn(false);
+
+                // When & Then
+                assertThatThrownBy(() -> userService.updatePassword(USER_ID, WRONG_PASSWORD, NEW_PASSWORD))
+                        .isInstanceOf(BusinessException.class)
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+
+                assertThat(user.getPassword()).isEqualTo(ENCODED_CURRENT_PASSWORD);
+                verify(passwordEncoder, never()).encode(anyString());
+            }
+
+            @Test
+            @DisplayName("실패: 존재하지 않는 유저면 USER_NOT_FOUND 예외를 던진다.")
+            void updatePassword_UserNotFound() {
+                // Given
+                given(userRepository.findByIdAndDeletedAtIsNull(USER_ID)).willReturn(Optional.empty());
+
+                // When & Then
+                assertThatThrownBy(() -> userService.updatePassword(USER_ID, CURRENT_PASSWORD, NEW_PASSWORD))
+                        .isInstanceOf(BusinessException.class)
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+            }
+        }
+
+        @Nested
+        @DisplayName("회원탈퇴")
+        class DeleteUser {
+
+            private static final Long USER_ID = 1L;
+            private static final String PASSWORD = "password123";
+            private static final String WRONG_PASSWORD = "wrongPassword";
+            private static final String ENCODED_PASSWORD = "encodedPassword";
+
+            private User buildUser() {
+                return User.builder()
+                        .email("test@example.com")
+                        .password(ENCODED_PASSWORD)
+                        .nickname("testuser")
+                        .role(UserRole.USER)
+                        .build();
+            }
+
+            @Test
+            @DisplayName("성공: 비밀번호가 일치하면 soft delete하고 refreshToken을 재발급한다.")
+            void deleteUser_Success() {
+                // Given
+                User user = buildUser();
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+                given(passwordEncoder.matches(PASSWORD, ENCODED_PASSWORD)).willReturn(true);
+
+                // When
+                userService.deleteUser(USER_ID, PASSWORD);
+
+                // Then
+                assertThat(user.getDeletedAt()).isNotNull();
+                assertThat(user.getRefreshToken()).isNotNull();
+            }
+
+            @Test
+            @DisplayName("실패: 비밀번호가 일치하지 않으면 UNAUTHORIZED 예외를 던지고 탈퇴하지 않는다.")
+            void deleteUser_WrongPassword() {
+                // Given
+                User user = buildUser();
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+                given(passwordEncoder.matches(WRONG_PASSWORD, ENCODED_PASSWORD)).willReturn(false);
+
+                // When & Then
+                assertThatThrownBy(() -> userService.deleteUser(USER_ID, WRONG_PASSWORD))
+                        .isInstanceOf(BusinessException.class)
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+
+                assertThat(user.getDeletedAt()).isNull();
+            }
+
+            @Test
+            @DisplayName("실패: 존재하지 않는 유저면 USER_NOT_FOUND 예외를 던진다.")
+            void deleteUser_UserNotFound() {
+                // Given
+                given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
+
+                // When & Then
+                assertThatThrownBy(() -> userService.deleteUser(USER_ID, PASSWORD))
+                        .isInstanceOf(BusinessException.class)
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+            }
+        }
+
+        @Nested
+        @DisplayName("로그아웃")
+        class Logout {
+
+            private static final Long USER_ID = 1L;
+
+            private User buildUser() {
+                User user = User.builder()
+                        .email("test@example.com")
+                        .password("encodedPassword")
+                        .nickname("testuser")
+                        .role(UserRole.USER)
+                        .build();
+                user.resetRefreshToken();
+                return user;
+            }
+
+            @Test
+            @DisplayName("성공: refreshToken을 재발급한다.")
+            void logout_Success() {
+                // Given
+                User user = buildUser();
+                String oldRefreshToken = user.getRefreshToken();
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+
+                // When
+                userService.logout(USER_ID);
+
+                // Then
+                assertThat(user.getRefreshToken())
+                        .isNotNull()
+                        .isNotEqualTo(oldRefreshToken);
+            }
+
+            @Test
+            @DisplayName("실패: 존재하지 않는 유저면 USER_NOT_FOUND 예외를 던진다.")
+            void logout_UserNotFound() {
+                // Given
+                given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
+
+                // When & Then
+                assertThatThrownBy(() -> userService.logout(USER_ID))
+                        .isInstanceOf(BusinessException.class)
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+            }
+        }
     }
