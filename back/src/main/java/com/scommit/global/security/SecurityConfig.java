@@ -1,6 +1,5 @@
 package com.scommit.global.security;
 
-import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.global.dto.RsData;
 import com.scommit.global.security.jwt.JwtFilter;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,7 @@ import java.util.List;
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final JwtFilter JwtFilter;
+    private final JwtFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) {
@@ -67,7 +66,7 @@ public class SecurityConfig {
                                         }
                                 )
                 )
-                .addFilterBefore(JwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         // 정적 리소스
                         .requestMatchers(
