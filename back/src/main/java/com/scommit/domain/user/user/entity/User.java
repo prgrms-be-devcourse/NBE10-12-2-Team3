@@ -1,11 +1,7 @@
 package com.scommit.domain.user.user.entity;
 
 import com.scommit.global.base.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,9 +30,6 @@ public class User extends BaseEntity {
     @Column(unique = true, nullable = false)
     private String nickname;
 
-    @Column(name = "profile_image", columnDefinition = "TEXT")
-    private String profileImage;
-
     private String introduction;
 
     @Enumerated(EnumType.STRING)
@@ -47,15 +40,14 @@ public class User extends BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "refresh_token", unique = true) 
+    @Column(name = "refresh_token", unique = true)
     private String refreshToken;
-     
-    @Builder 
-    public User(String email, String password, String nickname, String profileImage, String introduction, UserRole role) {
+
+    @Builder
+    public User(String email, String password, String nickname, String introduction, UserRole role) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
-        this.profileImage = profileImage;
         this.introduction = introduction;
         this.role = role;
     }

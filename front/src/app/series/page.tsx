@@ -1,4 +1,5 @@
 import {SeriesViewContainer} from "./series-view-container";
+import { MOCK_SERIES } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 
@@ -31,18 +32,13 @@ export default async function SeriesPage({
   */
 
   // ==== UI 테스트용 임시 더미 데이터 (백엔드 연동 전) ====
-  // 이 부분은 백엔드 API 연동 시 삭제하시면 됩니다.
-  const mockSeriesList = Array.from({ length: 10 }).map((_, i) => ({
-    id: i + (page - 1) * 10,
-    title: `실무 밀착형 아키텍처 설계 패턴 ${i + 1 + (page - 1) * 10}편`,
-    body: "실제 프로덕션 환경에서 마주하는 다양한 병목 현상을 해결하기 위한 데이터베이스 튜닝과 아키텍처 설계 노하우를 깊이 있게 파헤칩니다.",
-    postCount: (i * 3) % 20 + 1, // Deterministic mock data instead of Math.random
-    authorName: "시니어개발자",
-    lastUpdatedAt: "2026-06-29",
-    thumbnailUrl: "", // 빈 문자열로 두면 SeriesCard에서 범용 <img>의 fallback 작동
+  const PAGE_SIZE = 10;
+  const start = (page - 1) * PAGE_SIZE;
+  const mockSeriesList = MOCK_SERIES.slice(start, start + PAGE_SIZE).map((s) => ({
+    ...s,
+    thumbnailUrl: "",
   }));
-
-  const mockTotalPages = 15; // 전체 15페이지로 가정
+  const mockTotalPages = Math.ceil(MOCK_SERIES.length / PAGE_SIZE);
   // =======================================================
 
   return (

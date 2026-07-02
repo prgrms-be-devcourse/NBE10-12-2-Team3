@@ -14,7 +14,6 @@ public record PostListResponse(
         Long userId,
         Long seriesId,
         String title,
-        String thumbnail,
         PublishStatus publishStatus,
         PostAccessLevel accessLevel,
         Long viewCount,
@@ -26,7 +25,6 @@ public record PostListResponse(
                 post.getUser() != null ? post.getUser().getId() : null, // TODO: 유저 연동 완료 후 null 체크 제거
                 post.getSeries() != null ? post.getSeries().getId() : null,
                 post.getTitle(),
-                post.getThumbnail(),
                 post.getPublishStatus(),
                 post.getAccessLevel(),
                 post.getViewCount(),

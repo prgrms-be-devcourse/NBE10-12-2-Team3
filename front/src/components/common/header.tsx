@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, KeyboardEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, Bell, Menu, CreditCard, Settings, LogOut, X, History, Clock, ChevronDown, User } from "lucide-react";
+import { Search, Bell, Menu, CreditCard, Settings, LogOut, X, History, Clock, ChevronDown, User, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { useAuth } from "@/providers/auth-provider";
@@ -140,7 +140,7 @@ export function Header() {
           {/* ERD 기반 GNB */}
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">🌟 창작자</Link>
-            <Link href="/" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">✍️ 게시글</Link>
+            <Link href="/posts" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">✍️ 게시글</Link>
             <Link href="/series" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">📚 시리즈</Link>
           </nav>
         </div>
@@ -221,10 +221,18 @@ export function Header() {
             </form>
             
             {isLoggedIn && (
-              <button className="p-1.5 hover:bg-neutral-100 rounded-full transition-colors relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-              </button>
+              <>
+                <Link href="/posts/new">
+                  <Button variant="filled" className="hidden sm:flex items-center gap-1.5 text-sm font-bold px-4 py-2">
+                    <Pencil className="h-4 w-4" />
+                    글쓰기
+                  </Button>
+                </Link>
+                <button className="p-1.5 hover:bg-neutral-100 rounded-full transition-colors relative">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute top-1 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+                </button>
+              </>
             )}
           </div>
 

@@ -1,6 +1,5 @@
-package com.scommit.domain.media.entity;
+package com.scommit.domain.media.media.entity;
 
-import com.scommit.domain.post.post.entity.Post;
 import com.scommit.global.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -14,10 +13,6 @@ import lombok.NoArgsConstructor;
 @Table(name = "media")
 public class Media extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
-
     @Column(columnDefinition = "TEXT")
     private String url;
 
@@ -26,8 +21,7 @@ public class Media extends BaseEntity {
     private MediaType type;
 
     @Builder
-    public Media(Post post, String url, MediaType type) {
-        this.post = post;
+    public Media(String url, MediaType type) {
         this.url = url;
         this.type = type;
     }

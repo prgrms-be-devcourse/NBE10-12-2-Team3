@@ -1,5 +1,6 @@
 package com.scommit.domain.post.post.entity;
 
+import com.scommit.domain.post.postmedia.entity.PostMedia;
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.base.BaseEntity;
@@ -12,6 +13,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -34,9 +37,6 @@ public class Post extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String body;
 
-    @Column(columnDefinition = "TEXT")
-    private String thumbnail;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "publish_status", nullable = false)
     private PublishStatus publishStatus;
@@ -45,29 +45,30 @@ public class Post extends BaseEntity {
     @Column(name = "access_level", nullable = false)
     private PostAccessLevel accessLevel;
 
-    @Column(name = "view_count", nullable = false)   
+    @Column(name = "view_count", nullable = false)
     private Long viewCount = 0L;
+
+    @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    private List<PostMedia> medias = new ArrayList<>();
     
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @Builder
-    public Post(User user, Series series, String title, String body, String thumbnail, PublishStatus publishStatus, PostAccessLevel accessLevel){
+    public Post(User user, Series series, String title, String body, PublishStatus publishStatus, PostAccessLevel accessLevel) {
       this.user = user; 
       this.series = series ;
       this.title = title;
       this.body = body;
-      this.thumbnail = thumbnail;
       this.publishStatus = publishStatus;
       this.accessLevel = accessLevel;
       this.viewCount = 0L;
     }
 
-    public void update(String title, String body, String thumbnail, PublishStatus publishStatus, PostAccessLevel accessLevel, Series series){
+    public void update(String title, String body, PublishStatus publishStatus, PostAccessLevel accessLevel, Series series) {
         this.title = title;
         this.body = body;
-        this.thumbnail = thumbnail;
         this.publishStatus = publishStatus;
         this.accessLevel = accessLevel;
         this.series = series;
