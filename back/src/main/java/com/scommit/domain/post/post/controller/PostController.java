@@ -12,6 +12,11 @@ import com.scommit.global.dto.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -28,11 +33,12 @@ public class PostController {
     private final PostService postService;
     private final PostMediaService postMediaService;
 
-    // GET /api/posts/me 내가 쓴 게시글 조회
+    // GET /api/posts/me 내가 쓴 게시글 조회 - 페이지 번호 방식
     @Operation(summary = "내 게시글 조회", description = "로그인한 유저가 작성한 게시글 목록을 조회합니다.")
     @GetMapping("/me")
-    public RsData<List<PostListResponse>> getMyPosts() {
-        List<PostListResponse> response = postService.getMyPosts();
+    public RsData<Page<PostListResponse>> getMyPosts(
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<PostListResponse> response = postService.getMyPosts(pageable);
         return new RsData<>("200-1", "내가 쓴 게시글 목록입니다.", response);
     }
 
@@ -48,12 +54,13 @@ public class PostController {
         return new RsData<>("201-1", "게시글이 생성되었습니다.", response);
     }
 
-    // GET /api/posts 게시글 전체 조회 / 특정 유저 게시글 조회
+    // GET /api/posts 홈페이지 전체 조회 - 무한 스크롤
     @Operation(summary = "게시글 전체 조회", description = "전체 게시글 목록을 조회합니다. creatorId 입력 시 특정 유저의 게시글만 조회합니다.")
     @GetMapping
-    public RsData<List<PostListResponse>> getPosts(
-            @RequestParam(required = false) Long creatorId) {
-        List<PostListResponse> response = postService.getPosts(creatorId);
+    public RsData<Slice<PostListResponse>> getPosts(
+            @RequestParam(required = false) Long creatorId,
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        Slice<PostListResponse> response = postService.getPosts(creatorId, pageable);
         return new RsData<>("200-1", "게시글 목록입니다.", response);
     }
 
