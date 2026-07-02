@@ -16,8 +16,7 @@ public record SubscriptionInfo(
         return new SubscriptionInfo(
                 subscription.getCreator().getId(),
                 subscription.getCreator().getNickname(),
-                // TODO: UserMedia 분리로 인해 추후 연동 필요
-                "",
+                subscription.getCreator().getProfileImage(),
                 subscription.getTier(),
                 subscription.getStartedAt(),
                 subscription.getExpiredAt()

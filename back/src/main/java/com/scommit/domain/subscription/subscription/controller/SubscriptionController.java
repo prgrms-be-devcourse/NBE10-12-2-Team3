@@ -4,9 +4,7 @@ import com.scommit.domain.subscription.subscription.controller.dto.SubscriptionR
 import com.scommit.domain.subscription.subscription.service.SubscriptionService;
 import com.scommit.domain.subscription.subscription.service.dto.SubscriptionInfo;
 import com.scommit.global.dto.RsData;
-import com.scommit.global.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,9 +22,10 @@ public class SubscriptionController {
     @PostMapping("/follow/{creatorId}")
     public RsData<Void> follow(
             @PathVariable("creatorId") Long creatorId,
-            @AuthenticationPrincipal SecurityUser user
+            // TODO: JWT 도입 시 변경 예정
+            @RequestParam("tempUserId") Long tempUserId
     ) {
-        subscriptionService.follow(user.getId(), creatorId);
+        subscriptionService.follow(tempUserId, creatorId);
         return new RsData<>("200-1", "팔로우 성공");
     }
 
@@ -36,9 +35,10 @@ public class SubscriptionController {
     @DeleteMapping("/follow/{creatorId}")
     public RsData<Void> unfollow(
             @PathVariable("creatorId") Long creatorId,
-            @AuthenticationPrincipal SecurityUser user
+            // TODO: JWT 도입 시 시큐리티 컨텍스트(@AuthenticationPrincipal)로 대체 (구독을 누르는 주체)
+            @RequestParam("tempUserId") Long tempUserId
     ) {
-        subscriptionService.unfollow(user.getId(), creatorId);
+        subscriptionService.unfollow(tempUserId, creatorId);
         return new RsData<>("200-1", "언팔로우 성공");
     }
 
@@ -48,9 +48,10 @@ public class SubscriptionController {
     @PostMapping("/membership/{creatorId}")
     public RsData<Void> joinMembership(
             @PathVariable("creatorId") Long creatorId,
-            @AuthenticationPrincipal SecurityUser user
+            // TODO: JWT 도입 시 시큐리티 컨텍스트(@AuthenticationPrincipal)로 대체 (구독을 누르는 주체)
+            @RequestParam("tempUserId") Long tempUserId
     ) {
-        subscriptionService.joinMembership(user.getId(), creatorId);
+        subscriptionService.joinMembership(tempUserId, creatorId);
         return new RsData<>("200-1", "멤버십 가입 성공");
     }
 
@@ -60,9 +61,10 @@ public class SubscriptionController {
     @DeleteMapping("/membership/{creatorId}")
     public RsData<Void> cancelMembership(
             @PathVariable("creatorId") Long creatorId,
-            @AuthenticationPrincipal SecurityUser user
+            // TODO: JWT 도입 시 시큐리티 컨텍스트(@AuthenticationPrincipal)로 대체 (구독을 누르는 주체)
+            @RequestParam("tempUserId") Long tempUserId
     ) {
-        subscriptionService.cancelMembership(user.getId(), creatorId);
+        subscriptionService.cancelMembership(tempUserId, creatorId);
         return new RsData<>("200-1", "멤버십 해지 성공");
     }
 
@@ -71,9 +73,10 @@ public class SubscriptionController {
      */
     @GetMapping
     public RsData<List<SubscriptionResponse>> getMySubscriptions(
-            @AuthenticationPrincipal SecurityUser user
+            // TODO: JWT 도입 시 시큐리티 컨텍스트(@AuthenticationPrincipal)로 대체 (구독을 누르는 주체)
+            @RequestParam("tempUserId") Long tempUserId
     ) {
-        List<SubscriptionInfo> infos = subscriptionService.getMySubscriptions(user.getId());
+        List<SubscriptionInfo> infos = subscriptionService.getMySubscriptions(tempUserId);
         
         List<SubscriptionResponse> responses = infos.stream()
                 .map(SubscriptionResponse::from)
