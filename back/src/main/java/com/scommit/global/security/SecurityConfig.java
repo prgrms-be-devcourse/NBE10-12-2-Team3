@@ -94,11 +94,14 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/users/{id:\\d+}",
+                                "/api/users/{id:\\d+}/medias",
                                 "/api/series",
                                 "/api/series/{id:\\d+}",
+                                "/api/series/{id:\\d+}/medias",
                                 "/api/posts",
                                 "/api/posts/{id:\\d+}",
-                                "/api/posts/{id:\\d+}/comments"
+                                "/api/posts/{id:\\d+}/comments",
+                                "/api/posts/{id:\\d+}/medias/thumbnail"
                         ).permitAll()
                         // 일반 인증 필요 경로
                         .requestMatchers("/api/**").authenticated()
