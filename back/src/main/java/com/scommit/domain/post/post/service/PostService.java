@@ -61,6 +61,9 @@ public class PostService {
         if (post.getDeletedAt() != null) {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
+
+        post.increaseViewCount();
+
         return new PostResponse(post);
     }
 
