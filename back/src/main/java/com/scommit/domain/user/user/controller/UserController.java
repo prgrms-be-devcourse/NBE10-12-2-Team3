@@ -57,7 +57,7 @@ public class UserController {
         return new RsData<>(
                 "200-1",
                 "로그인에 성공했습니다.",
-                new LoginResponse(accessToken, user.getRefreshToken(), 0, user)
+                new LoginResponse(accessToken, user.getRefreshToken(), securityHelper.getCookieExpiresInSecond(), user)
         );
     }
 

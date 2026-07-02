@@ -61,6 +61,10 @@ public class SecurityHelper { // 14183의 Rq 복붙
                 .orElse(defaultValue);
     }
 
+    public int getCookieExpiresInSecond() {
+        return (int) cookieMaxAge.toSeconds();
+    }
+
     public void setCookie(String name, String value) {
         if (value == null) value = "";
 
