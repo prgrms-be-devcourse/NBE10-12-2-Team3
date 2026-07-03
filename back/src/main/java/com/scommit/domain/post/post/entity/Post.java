@@ -74,6 +74,10 @@ public class Post extends BaseEntity {
         this.series = series;
     }
 
+    public void updateSeries(Series series) {
+        this.series = series;
+    }
+
     public void increaseViewCount() {
         this.viewCount++;
     }

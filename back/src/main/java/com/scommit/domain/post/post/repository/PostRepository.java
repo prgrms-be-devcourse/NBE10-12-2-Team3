@@ -19,4 +19,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 홈페이지 전체 조회 - 무한 스크롤
     Slice<Post> findAllByDeletedAtIsNull(Pageable pageable);
+
+    // 시리즈의 게시글 조회
+    List<Post> findBySeriesIdAndDeletedAtIsNull(Long seriesId);
 }
