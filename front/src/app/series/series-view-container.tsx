@@ -33,10 +33,14 @@ export function SeriesViewContainer({initialSeries, initialHasNext}: SeriesViewC
     const [hasNext, setHasNext] = useState(initialHasNext);
     const [nextPage, setNextPage] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
-    const [layout, setLayout] = useState<"list" | "grid">(
-        () => (typeof window !== "undefined" ? (localStorage.getItem("search_layout") as "list" | "grid") : null) ?? "grid"
-    );
+    const [layout, setLayout] = useState<"list" | "grid">("grid");
     const sentinelRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const savedLayout = localStorage.getItem("search_layout") as "list" | "grid";
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (savedLayout) setLayout(savedLayout);
+    }, []);
 
   const handleLayoutChange = (newLayout: "list" | "grid") => {
     setLayout(newLayout);
@@ -147,9 +151,10 @@ export function SeriesViewContainer({initialSeries, initialHasNext}: SeriesViewC
           )}>
               {seriesList.map((series) => {
                   const isOwner = !!user && user.id === series.userId;
+                  const handleDelete = () => setSeriesList(prev => prev.filter(s => s.id !== series.id));
               return layout === "list"
-                  ? <SeriesListCard key={series.id} {...series} isOwner={isOwner}/>
-                  : <SeriesCard key={series.id} {...series} isOwner={isOwner}/>;
+                  ? <SeriesListCard key={series.id} {...series} isOwner={isOwner} onDelete={handleDelete}/>
+                  : <SeriesCard key={series.id} {...series} isOwner={isOwner} onDelete={handleDelete}/>;
             })}
           </div>
 

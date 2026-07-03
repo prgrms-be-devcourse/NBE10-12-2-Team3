@@ -1,4 +1,5 @@
 import React from "react";
+import {notFound} from "next/navigation";
 import {BookOpen, Calendar, ChevronRight, UserPlus} from "lucide-react";
 import {SeriesDetailPostList} from "./series-detail-post-list";
 import {SeriesHeroActions} from "./series-hero-actions";
@@ -17,7 +18,7 @@ export default async function SeriesDetailPage({
     const [series, posts] = await Promise.all([
         getSeries(id),
         getSeriesPosts(id),
-    ]);
+    ]).catch(() => notFound());
 
     let thumbnailUrl = "";
     try {

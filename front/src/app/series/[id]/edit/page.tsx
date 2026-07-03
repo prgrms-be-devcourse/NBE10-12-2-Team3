@@ -1,3 +1,4 @@
+import {notFound} from "next/navigation";
 import {SeriesEditorClient} from "./series-editor-client";
 import {getSeries, getSeriesMedia} from "@/lib/series-api";
 import {MEDIA_BASE} from "@/lib/api";
@@ -11,7 +12,7 @@ export default async function SeriesEditPage({
 }) {
     const {id} = await params;
 
-    const series = await getSeries(id);
+    const series = await getSeries(id).catch(() => notFound());
 
     let thumbnailUrl = "";
     try {

@@ -6,6 +6,7 @@ import {useRouter} from "next/navigation";
 import {Calendar, ChevronRight, MoreVertical, Pencil, Trash2} from "lucide-react";
 import {cn} from "@/lib/utils";
 import {deleteSeries} from "@/lib/series-api";
+import {ConfirmDialog} from "@/components/ui/confirm-dialog";
 
 interface SeriesListCardProps {
   id: number | string;
@@ -19,23 +20,26 @@ interface SeriesListCardProps {
   href?: string;
   isOwner?: boolean;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  onDelete?: () => void;
 }
 
-export function SeriesListCard({ 
-  id, 
-  title, 
-  body, 
-  postCount = 0, 
-  authorName, 
-  lastUpdatedAt, 
-  thumbnailUrl, 
-  className, 
-  href, 
+export function SeriesListCard({
+                                 id,
+                                 title,
+                                 body,
+                                 postCount = 0,
+                                 authorName,
+                                 lastUpdatedAt,
+                                 thumbnailUrl,
+                                 className,
+                                 href,
   isOwner = false,
-  onClick 
+                                 onClick,
+                                 onDelete,
 }: SeriesListCardProps) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Kebab 메뉴 클릭 시 Link 이동 방지
   const handleMenuClick = (e: React.MouseEvent) => {
@@ -51,22 +55,35 @@ export function SeriesListCard({
     router.push(`/series/${id}/edit`);
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowMenu(false);
+    setShowConfirm(true);
+  };
 
-    if (window.confirm("이 시리즈를 정말 삭제하시겠습니까?")) {
-        try {
-            await deleteSeries(id);
-            router.refresh();
-        } catch {
-            alert("삭제에 실패했습니다.");
-        }
+  const handleConfirmDelete = async () => {
+    setShowConfirm(false);
+    try {
+      await deleteSeries(id);
+      if (onDelete) onDelete();
+      else router.refresh();
+    } catch {
+      alert("삭제에 실패했습니다.");
     }
   };
 
   return (
+      <>
+        <ConfirmDialog
+            open={showConfirm}
+            title="시리즈를 삭제할까요?"
+            description="삭제된 시리즈는 복구할 수 없습니다."
+            confirmLabel="삭제"
+            destructive
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setShowConfirm(false)}
+        />
     <Link
       href={href || `/series/${id}`}
       onClick={onClick}
@@ -170,5 +187,6 @@ export function SeriesListCard({
         </div>
       </div>
     </Link>
+      </>
   );
 }

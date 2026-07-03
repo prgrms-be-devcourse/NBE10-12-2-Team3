@@ -4,6 +4,7 @@ import React, {useEffect, useRef, useState} from "react";
 import {useRouter} from "next/navigation";
 import {FileText, Image as ImageIcon, LayoutList, Loader2, Lock, Minus, Plus, Search, Trash2, X} from "lucide-react";
 import {Button} from "@/components/ui/button";
+import {ConfirmDialog} from "@/components/ui/confirm-dialog";
 import type {PostListItem} from "@/lib/series-api";
 import {
     addPostToSeries,
@@ -43,6 +44,7 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
     const [myPosts, setMyPosts] = useState<PostListItem[]>([]);
     const [postsLoading, setPostsLoading] = useState(!isNew);
     const [togglingPostId, setTogglingPostId] = useState<number | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const seriesId = isNew ? null : Number(initialData.id);
 
     useEffect(() => {
@@ -131,12 +133,14 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
   };
 
   const handleDelete = async () => {
-      if (!window.confirm("이 시리즈를 정말 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.")) return;
+      setIsSaving(true);
       try {
           await deleteSeries(initialData.id);
           router.push("/series");
       } catch {
           alert("삭제에 실패했습니다.");
+      } finally {
+          setIsSaving(false);
       }
   };
 
@@ -152,6 +156,16 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
     const lockedVisible = showAllAddable ? postsLocked : postsLocked.slice(0, Math.max(0, ADDABLE_LIMIT - addableVisible.length));
 
   return (
+      <>
+          <ConfirmDialog
+              open={showDeleteConfirm}
+              title="시리즈를 삭제할까요?"
+              description="삭제된 시리즈는 복구할 수 없습니다."
+              confirmLabel="삭제"
+              destructive
+              onConfirm={handleDelete}
+              onCancel={() => setShowDeleteConfirm(false)}
+          />
     <div className="min-h-screen bg-neutral-50 py-6 sm:py-12 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden flex flex-col relative">
 
@@ -283,7 +297,7 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
                                       <div className="rounded-xl border border-neutral-200 overflow-hidden">
                                           {filteredInSeries.map((post, i) => (
                                               <div key={post.id}
-                                                   className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-neutral-100 last:border-b-0">
+                                                   className="flex items-center gap-3 px-4 py-3 bg-white border-b border-neutral-100 last:border-b-0">
                                                   <span
                                                       className="text-[11px] font-black text-neutral-300 w-4 text-center shrink-0">{i + 1}</span>
                                                   <span
@@ -291,20 +305,20 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
                                                   <button
                                                       onClick={() => handleTogglePost(post)}
                                                       disabled={togglingPostId === post.id}
-                                                      className="shrink-0 h-6 w-6 rounded-full flex items-center justify-center hover:bg-red-100 text-neutral-300 hover:text-red-500 transition-colors disabled:opacity-40"
-                                                      title="제거"
+                                                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white text-xs font-bold transition-colors disabled:opacity-40"
                                                   >
                                                       {togglingPostId === post.id
                                                           ? <Loader2 className="h-3 w-3 animate-spin"/>
                                                           : <Minus className="h-3 w-3"/>}
+                                                      제거
                                                   </button>
                                               </div>
                                           ))}
-                      </div>
+                                      </div>
                                   </div>
                               )}
 
-                              {/* ── 추가 가능 — 그리드 ── */}
+                              {/* ── 추가 가능 — 리스트 ── */}
                               <div>
                                   {/* 검색 */}
                                   <div className="relative mb-2">
@@ -323,65 +337,57 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
                                           <button
                                               onClick={() => setSearchQuery("")}
                                               className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-300 hover:text-neutral-500"
-                        >
+                                          >
                                               <X className="h-3 w-3"/>
                                           </button>
-                      )}
-                    </div>
+                                      )}
+                                  </div>
 
-                                  {/* 그리드 영역 (고정 높이 + 내부 스크롤) */}
+                                  {/* 리스트 영역 */}
                                   {(addableVisible.length > 0 || lockedVisible.length > 0) ? (
                                       <div
-                                          className="max-h-60 overflow-y-auto rounded-xl border border-neutral-200 p-2">
-                                          <div className="grid grid-cols-3 gap-2">
-                                              {/* 추가 가능 */}
-                                              {addableVisible.map((post) => (
+                                          className="max-h-64 overflow-y-auto rounded-xl border border-neutral-200 overflow-hidden">
+                                          {/* 추가 가능 */}
+                                          {addableVisible.map((post) => (
+                                              <div key={post.id}
+                                                   className="flex items-center gap-3 px-4 py-3 bg-white border-b border-neutral-100 last:border-b-0">
+                                                  <span
+                                                      className="text-sm font-medium text-neutral-800 flex-1 truncate">{post.title}</span>
                                                   <button
-                                                      key={post.id}
                                                       onClick={() => handleTogglePost(post)}
                                                       disabled={togglingPostId === post.id}
-                                                      className="relative flex flex-col gap-1 p-2.5 rounded-lg border border-neutral-200 bg-white hover:border-primary hover:shadow-sm text-left transition-all disabled:opacity-50 group/card"
+                                                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white text-xs font-bold transition-colors disabled:opacity-40"
                                                   >
-                              <span className="text-[11px] font-semibold text-neutral-700 line-clamp-2 leading-tight">
-                                {post.title}
-                              </span>
-                                                      <span className="text-[10px] text-neutral-400">
-                                {post.createdAt ? post.createdAt.split("T")[0] : ""}
-                              </span>
-                                                      <span
-                                                          className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-neutral-100 group-hover/card:bg-primary flex items-center justify-center transition-colors">
-                                {togglingPostId === post.id
-                                    ? <Loader2 className="h-3 w-3 animate-spin text-neutral-400"/>
-                                    : <Plus
-                                        className="h-3 w-3 text-neutral-400 group-hover/card:text-white transition-colors"/>}
-                              </span>
+                                                      {togglingPostId === post.id
+                                                          ? <Loader2 className="h-3 w-3 animate-spin"/>
+                                                          : <Plus className="h-3 w-3"/>}
+                                                      추가
                                                   </button>
-                                              ))}
+                                              </div>
+                                          ))}
 
-                                              {/* 다른 시리즈 — 잠금 */}
-                                              {lockedVisible.map((post) => (
-                                                  <div
-                                                      key={post.id}
-                                                      className="relative flex flex-col gap-1 p-2.5 rounded-lg border border-neutral-100 bg-neutral-50 opacity-50 cursor-not-allowed"
-                                                      title="이미 다른 시리즈에 포함된 포스트입니다"
-                                                  >
-                              <span className="text-[11px] font-medium text-neutral-400 line-clamp-2 leading-tight">
-                                {post.title}
-                              </span>
-                                                      <span className="text-[10px] text-neutral-300">다른 시리즈</span>
-                                                      <span
-                                                          className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-neutral-200 flex items-center justify-center">
-                                <Lock className="h-3 w-3 text-neutral-400"/>
-                              </span>
-                                                  </div>
-                                              ))}
-                                          </div>
+                                          {/* 다른 시리즈 — 잠금 */}
+                                          {lockedVisible.map((post) => (
+                                              <div
+                                                  key={post.id}
+                                                  className="flex items-center gap-3 px-4 py-3 bg-neutral-50 border-b border-neutral-100 last:border-b-0 opacity-50 cursor-not-allowed"
+                                                  title="이미 다른 시리즈에 포함된 포스트입니다"
+                                              >
+                                                  <span
+                                                      className="text-sm font-medium text-neutral-400 flex-1 truncate">{post.title}</span>
+                                                  <span
+                                                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-200 text-neutral-400 text-xs font-bold">
+                                                      <Lock className="h-3 w-3"/>
+                                                      다른 시리즈
+                                                  </span>
+                                              </div>
+                                          ))}
 
                                           {/* 더 보기 */}
                                           {!showAllAddable && (postsAddable.length + postsLocked.length > ADDABLE_LIMIT) && (
                                               <button
                                                   onClick={() => setShowAllAddable(true)}
-                                                  className="w-full mt-2 py-2 text-xs font-bold text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-50 transition-colors"
+                                                  className="w-full py-2.5 text-xs font-bold text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50 transition-colors"
                                               >
                                                   {postsAddable.length + postsLocked.length - ADDABLE_LIMIT}개 더 보기
                                               </button>
@@ -421,7 +427,7 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
             {!isNew ? (
                 <Button
                     variant="outlined"
-                    onClick={handleDelete}
+                    onClick={() => setShowDeleteConfirm(true)}
                     className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 font-bold h-10 sm:h-11 px-4 sm:px-6"
                 >
                     시리즈 삭제
@@ -449,5 +455,6 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
         </div>
       </div>
     </div>
+      </>
   );
 }
