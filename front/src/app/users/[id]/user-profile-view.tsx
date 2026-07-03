@@ -10,15 +10,15 @@ import { ContentCard } from "@/components/common/content-card";
 import { SeriesListRow } from "@/components/common/series-list-row";
 import { ConfirmModal } from "@/components/common/confirm-modal";
 import { useAuth } from "@/providers/auth-provider";
+import { apiPost, apiDelete } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { MockSeries } from "@/lib/mock-data";
-import type { UserProfileResponse, PostListResponse } from "./page";
+import type { UserProfileResponse, PostListResponse, SeriesListResponse } from "./page";
 
 // page.tsx의 UserProfileResponse를 그대로 재사용해서, API 응답 형태가 바뀌면
 // 컴파일 타임에 바로 잡히도록 합니다. 이 파일에서 별도 Profile 타입을 정의하지 않습니다.
 type Profile = UserProfileResponse;
 type PostItem = PostListResponse;
-type SeriesItem = MockSeries;
+type SeriesItem = SeriesListResponse;
 
 interface UserProfileViewProps {
   profile: Profile;
@@ -42,21 +42,17 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
   const router = useRouter();
   const { isLoggedIn, user } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
-  // TODO: 로그인한 사용자의 초기 isFollowing 상태는 프로필 응답(UserProfileResponse)에 없습니다.
+  // TODO: 로그인한 사용자의 초기 isFollowing/isMember 상태는 프로필 응답(UserProfileResponse)에 없습니다.
   // GET /api/subscriptions(내 구독 목록, tier: FOLLOW|MEMBERSHIP)에서 creatorId가 일치하는 항목이
   // 있는지로 판단 가능하나, 페이지네이션된 목록을 직접 뒤져야 해서 비효율적입니다.
   // 더 나은 방법(예: 프로필 응답에 isFollowing 필드 추가)을 백엔드에 요청하는 것을 고려하세요.
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isMember, setIsMember] = useState(false);
+  const [isFollowSubmitting, setIsFollowSubmitting] = useState(false);
+  const [isMembershipSubmitting, setIsMembershipSubmitting] = useState(false);
 
   // useAuth().user.id(number)와 프로필 id를 비교해 본인 프로필 여부를 판단합니다.
   const isOwnProfile = isLoggedIn && user?.id === profile.id;
-
-  // TODO: users/me 페이지 완성되면 아래 리다이렉트를 활성화하세요.
-  // useEffect(() => {
-  //   if (isOwnProfile) {
-  //     router.push("/users/me");
-  //   }
-  // }, [isOwnProfile, router]);
 
   const isFirstRender = useRef(true);
   useEffect(() => {
@@ -67,25 +63,42 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page]);
 
-  const handleFollow = () => {
-    // TODO: 팔로우 API 연동. 응답은 RsData<Void>이며 실제 연동 전까지는 로컬 상태로만 토글합니다.
-    // 팔로우:   POST   /api/subscriptions/follow/{creatorId}
-    // 언팔로우: DELETE /api/subscriptions/follow/{creatorId}
-    // await fetch(`http://localhost:8080/api/subscriptions/follow/${profile.id}`, {
-    //   method: isFollowing ? "DELETE" : "POST",
-    //   credentials: "include",
-    // });
-    setIsFollowing((prev) => !prev);
+  // 응답은 RsData<Void>. 인증은 이 프로젝트의 기존 클라이언트 패턴(apiPost/apiDelete → credentials:'include'
+  // 쿠키 기반)을 그대로 따릅니다. 실패 시 최소한의 alert로 알리고 버튼 상태는 성공했을 때만 갱신합니다.
+  const handleFollow = async () => {
+    if (isFollowSubmitting) return;
+    setIsFollowSubmitting(true);
+    try {
+      if (isFollowing) {
+        await apiDelete(`/api/subscriptions/follow/${profile.id}`);
+      } else {
+        await apiPost(`/api/subscriptions/follow/${profile.id}`);
+      }
+      setIsFollowing((prev) => !prev);
+    } catch {
+      alert(isFollowing ? "언팔로우에 실패했습니다." : "팔로우에 실패했습니다.");
+    } finally {
+      setIsFollowSubmitting(false);
+    }
   };
 
-  const handleMembership = () => {
-    // TODO: 멤버십 구독 API 연동. 응답은 RsData<Void>입니다.
-    // 가입: POST   /api/subscriptions/membership/{creatorId} (가입 시 팔로우 자동 처리됨)
-    // 해지: DELETE /api/subscriptions/membership/{creatorId} (해지 시 팔로우 상태로 돌아감)
-    // await fetch(`http://localhost:8080/api/subscriptions/membership/${profile.id}`, {
-    //   method: "POST", // 이미 멤버십이면 "DELETE"
-    //   credentials: "include",
-    // });
+  // 가입: POST /api/subscriptions/membership/{creatorId} (가입 시 팔로우 자동 처리됨)
+  // 해지: DELETE /api/subscriptions/membership/{creatorId} (해지 시 팔로우 상태로 돌아감)
+  const handleMembership = async () => {
+    if (isMembershipSubmitting) return;
+    setIsMembershipSubmitting(true);
+    try {
+      if (isMember) {
+        await apiDelete(`/api/subscriptions/membership/${profile.id}`);
+      } else {
+        await apiPost(`/api/subscriptions/membership/${profile.id}`);
+      }
+      setIsMember((prev) => !prev);
+    } catch {
+      alert(isMember ? "멤버십 해지에 실패했습니다." : "멤버십 가입에 실패했습니다.");
+    } finally {
+      setIsMembershipSubmitting(false);
+    }
   };
 
   const handleFollowClick = () => {
@@ -224,7 +237,7 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
 
           {!isOwnProfile && (
             <div className="flex items-end gap-2 pb-2">
-              <Button size="sm" variant="outlined" className="rounded-full px-6" onClick={handleFollowClick}>
+              <Button size="sm" variant="outlined" className="rounded-full px-6" onClick={handleFollowClick} disabled={isFollowSubmitting}>
                 {isFollowing ? "팔로잉" : "팔로우"}
               </Button>
               {profile.offersMembership && (
@@ -233,8 +246,9 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
                   variant="filled"
                   className="rounded-full px-6 bg-membership text-white hover:bg-membership/90 active:bg-membership/90"
                   onClick={handleMembershipClick}
+                  disabled={isMembershipSubmitting}
                 >
-                  멤버십
+                  {isMember ? "멤버십 해지" : "멤버십"}
                 </Button>
               )}
             </div>
@@ -287,7 +301,7 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
                     title={post.title}
                     accessLevel={post.accessLevel}
                     authorName={profile.nickname}
-                    createdAt={post.createdAt}
+                    createdAt={post.createdAt.split("T")[0]}
                     viewCount={post.viewCount}
                   />
                 ))}
@@ -305,9 +319,9 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
                   id={s.id}
                   title={s.title}
                   description={s.body}
-                  // TODO: MockSeries에 공개/멤버십 필드가 추가되면 교체
+                  // TODO: [백엔드 확인 필요] SeriesListResponse에 공개/멤버십 필드가 추가되면 교체
                   accessLevel="PUBLIC"
-                  updatedAt={s.lastUpdatedAt}
+                  updatedAt={s.updatedAt.split("T")[0]}
                   postCount={s.postCount}
                   thumbnailUrl={s.thumbnailUrl}
                   isOwner={isOwnProfile}
