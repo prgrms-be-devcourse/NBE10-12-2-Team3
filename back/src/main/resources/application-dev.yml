@@ -26,3 +26,9 @@ logging:
 
 file:
   path: back/src/main/resources/static/media/
+
+cors:
+  allowed-origins: http://localhost:3000
+
+cookie:
+  domain: localhost

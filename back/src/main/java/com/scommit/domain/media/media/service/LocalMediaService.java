@@ -7,6 +7,7 @@ import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.UUID;
 
 @Service
+@Profile("!prod")
 @RequiredArgsConstructor
 public class LocalMediaService implements MediaService {
     private final MediaRepository mediaRepository;

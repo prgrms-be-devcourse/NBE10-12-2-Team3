@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
     const loginWithCredentials = async (email: string, password: string) => {
-        const res = await fetch("http://localhost:8080/api/users/login", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/users/login`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             credentials: "include",
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-      fetch("http://localhost:8080/api/users/logout", {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/users/logout`, {
           method: "POST",
           credentials: "include",
       }).finally(() => {

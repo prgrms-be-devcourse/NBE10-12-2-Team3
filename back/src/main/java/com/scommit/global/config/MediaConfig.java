@@ -1,13 +1,15 @@
 package com.scommit.global.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.file.Paths;
 
 @Configuration
+@Profile("!prod")
 public class MediaConfig implements WebMvcConfigurer {
 
     @Value("${file.path}")

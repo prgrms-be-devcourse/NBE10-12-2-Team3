@@ -4,7 +4,7 @@ import {BookOpen, Calendar, ChevronRight, UserPlus} from "lucide-react";
 import {SeriesDetailPostList} from "./series-detail-post-list";
 import {SeriesHeroActions} from "./series-hero-actions";
 import {getSeries, getSeriesMedia, getSeriesPosts} from "@/lib/series-api";
-import {MEDIA_BASE} from "@/lib/api";
+import {resolveMediaUrl} from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export default async function SeriesDetailPage({
     let thumbnailUrl = "";
     try {
         const media = await getSeriesMedia(id);
-        thumbnailUrl = `${MEDIA_BASE}/${media.url}`;
+        thumbnailUrl = resolveMediaUrl(media.url);
     } catch {
         // 썸네일 없음
     }
