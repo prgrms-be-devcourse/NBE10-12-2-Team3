@@ -83,4 +83,17 @@ public class User extends BaseEntity {
     public void resetRefreshToken() {
         this.refreshToken = UUID.randomUUID().toString();
     }
+
+    public void update(String nickname, String introduction) {
+        if (nickname != null && !nickname.isBlank()) {
+            this.nickname = nickname;
+        }
+        if (introduction != null) {
+            this.introduction = introduction;
+        }
+    }
+
+    public void updatePassword(String password) {
+        this.password = password;
+    }
 }

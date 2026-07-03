@@ -71,4 +71,30 @@ public class UserService {
         user.resetRefreshToken();
         user.softDelete();
     }
+
+    public Optional<User> getUser(Long id) {
+        return userRepository.findByIdAndDeletedAtIsNull(id);
+    }
+
+    @Transactional
+    public User updateUser(Long id, String nickname, String introduction) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (user.getNickname().equals(nickname)) {nickname = null;}
+        if (nickname != null && userRepository.existsByNickname(nickname)) {throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);} // TODO: ErrorCode 모은 후 DUPLICATE_NICKNAME 등으로 수정
+        user.update(nickname, introduction);
+        return user;
+    }
+
+    @Transactional
+    public void updatePassword(Long id, String oldPassword, String newPassword) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED); // TODO: INVALID_PASSWORD 등으로 수정
+        }
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.updatePassword(encodedPassword);
+        user.resetRefreshToken();
+    }
 }

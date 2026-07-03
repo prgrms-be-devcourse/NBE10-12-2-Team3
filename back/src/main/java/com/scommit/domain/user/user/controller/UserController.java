@@ -1,10 +1,6 @@
 package com.scommit.domain.user.user.controller;
 
-import com.scommit.domain.user.user.dto.LoginRequest;
-import com.scommit.domain.user.user.dto.LoginResponse;
-import com.scommit.domain.user.user.dto.SignupRequest;
-import com.scommit.domain.user.user.dto.SignupResponse;
-import com.scommit.domain.user.user.dto.UserDeleteRequest;
+import com.scommit.domain.user.user.dto.*;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.service.UserService;
 import com.scommit.domain.user.usermedia.dto.UserMediaResponse;
@@ -21,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -99,13 +94,104 @@ public class UserController {
                 "회원탈퇴에 성공했습니다."
         );
     }
-    @PostMapping(value = "/{id}/medias", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+
+    @GetMapping("/me")
+    @Operation(summary = "내 정보 조회", description = "로그인한 유저의 정보를 조회합니다.")
+    public RsData<UserMeResponse> getMyInfo() {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        User user = userService.getUser(actor.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        UserMediaResponse media = userMediaService.getMedia(actor.getId());
+        String profileImageUrl = media != null ? media.url() : null;
+
+        return new RsData<>(
+                "200-1",
+                "내 정보를 조회하였습니다.",
+                new UserMeResponse(user, profileImageUrl)
+        );
+    }
+
+    @PatchMapping("/me")
+    @Operation(summary = "내 정보 수정", description = "로그인한 유저의 정보를 수정합니다.")
+    public RsData<UserUpdateResponse> updateProfile(
+            @Valid @RequestPart(value = "request") UserUpdateRequest request,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
+    ) {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        User updatedUser = userService.updateUser(actor.getId(), request.nickname(), request.introduction());
+        String profileImageUrl;
+        if (profileImage != null) {
+            profileImageUrl = userMediaService.uploadMedia(actor.getId(), profileImage).url();
+        } else {
+            UserMediaResponse media = userMediaService.getMedia(actor.getId());
+            profileImageUrl = media != null ? media.url() : null;
+        }
+
+        return new RsData<>(
+                "200-1",
+                "내 정보를 수정하였습니다.",
+                new UserUpdateResponse(updatedUser, profileImageUrl)
+        );
+    }
+
+    @PutMapping("/me/password")
+    @Operation(summary = "비밀번호 변경", description = "로그인한 유저의 비밀번호를 변경합니다.")
+    public RsData<UserPasswordUpdateResponse> updatePassword(
+            @Valid @RequestBody UserPasswordUpdateRequest request
+    ) {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        userService.updatePassword(actor.getId(), request.currentPassword(), request.newPassword());
+
+        User user = userService.getUser(actor.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        String accessToken = jwtProvider.generateAccessToken(actor.getId(), actor.getEmail(), actor.getNickname(), user.getRole());
+        securityHelper.setCookie("accessToken", accessToken);
+        securityHelper.setCookie("refreshToken", user.getRefreshToken());
+        return new RsData<>(
+                "200-1",
+                "비밀번호를 변경하였습니다.",
+                new UserPasswordUpdateResponse(accessToken, user.getRefreshToken(), securityHelper.getCookieExpiresInSecond())
+        );
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "유저 페이지 조회", description = "특정 유저의 페이지를 조회합니다.")
+    public RsData<UserProfileResponse> getUserProfile(
+            @PathVariable Long id
+    ) {
+        User user = userService.getUser(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        UserMediaResponse media = userMediaService.getMedia(id);
+        String profileImageUrl = media != null ? media.url() : null;
+        return new RsData<>(
+                "200-1",
+                "유저 정보를 조회하였습니다.",
+                new UserProfileResponse(user, profileImageUrl)
+        );
+    }
+
+    @PostMapping(value = "/me/medias", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "프로필 이미지 생성")
     public RsData<UserMediaResponse> uploadMedia(
-            @PathVariable Long id,
             @RequestPart MultipartFile file
     ) {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        Long id = actor.getId();
         UserMediaResponse response = userMediaService.uploadMedia(id, file);
         return new RsData<>("201-1", "프로필 이미지를 생성하였습니다.", response);
     }
@@ -119,13 +205,15 @@ public class UserController {
         return new RsData<>("200-1", "프로필 이미지를 조회하였습니다.", response);
     }
 
-    @DeleteMapping("/{id}/medias")
+    @DeleteMapping("/me/medias")
     @Operation(summary = "프로필 이미지 삭제")
-    public RsData<Void> deleteMedia(
-            @PathVariable Long id
-    ) {
+    public RsData<Void> deleteMedia() {
+        User actor = securityHelper.getActor();
+        if (actor == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        Long id = actor.getId();
         userMediaService.deleteMedia(id);
         return new RsData<>("200-1", "프로필 이미지가 삭제되었습니다.");
     }
-
 }
