@@ -138,4 +138,9 @@ public class SubscriptionService {
         Page<Subscription> subscriptionsPage = subscriptionRepository.findMySubscriptions(userId, pageable);
         return subscriptionsPage.map(SubscriptionInfo::from);
     }
+
+    @Transactional(readOnly = true)
+    public long getFollowerCount(Long creatorId) {
+        return subscriptionRepository.countByCreatorIdAndDeletedAtIsNull(creatorId);
+    }
 }

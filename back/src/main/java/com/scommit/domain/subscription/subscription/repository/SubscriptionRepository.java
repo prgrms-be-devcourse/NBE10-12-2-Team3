@@ -20,4 +20,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     @Query(value = "SELECT s FROM Subscription s JOIN FETCH s.creator WHERE s.user.id = :userId AND s.deletedAt IS NULL",
            countQuery = "SELECT count(s) FROM Subscription s WHERE s.user.id = :userId AND s.deletedAt IS NULL")
     Page<Subscription> findMySubscriptions(@Param("userId") Long userId, Pageable pageable);
+
+    // 4. 내 팔로워 수 통계 조회용
+    long countByCreatorIdAndDeletedAtIsNull(Long creatorId);
 }

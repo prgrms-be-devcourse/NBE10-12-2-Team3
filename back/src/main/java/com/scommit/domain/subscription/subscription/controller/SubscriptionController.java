@@ -92,4 +92,16 @@ public class SubscriptionController {
 
         return new RsData<>("200-1", "내 구독 목록 조회 성공", new PageResponse<>(responsePage));
     }
+
+    /**
+     * API 6: 내 팔로워 수 통계 조회
+     */
+    @Operation(summary = "내 팔로워 수 조회", description = "나를 팔로우(멤버십 포함)하고 있는 유저의 총 숫자를 조회합니다.")
+    @GetMapping("/followers/count")
+    public RsData<Long> getMyFollowerCount(
+            @AuthenticationPrincipal SecurityUser user
+    ) {
+        long followerCount = subscriptionService.getFollowerCount(user.getId());
+        return new RsData<>("200-1", "팔로워 수 조회 성공", followerCount);
+    }
 }
