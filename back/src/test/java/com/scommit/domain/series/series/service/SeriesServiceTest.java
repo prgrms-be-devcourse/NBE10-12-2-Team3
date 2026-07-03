@@ -17,9 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -28,6 +26,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,6 +63,10 @@ class SeriesServiceTest {
         return series;
     }
 
+    private SeriesListResponse buildListResponse(Long id, String title) {
+        return new SeriesListResponse(id, mockUser.getId(), mockUser.getNickname(), title, "내용", 3L, null, null, null);
+    }
+
     @Nested
     @DisplayName("시리즈 생성 테스트")
     class CreateSeries {
@@ -71,16 +74,13 @@ class SeriesServiceTest {
         @Test
         @DisplayName("성공: 올바른 요청인 경우 시리즈를 정상 저장한다.")
         void create_Success() {
-            // Given
             Series series = buildSeries(100L, "시리즈 제목", "시리즈 설명");
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
             when(seriesRepository.save(any(Series.class))).thenReturn(series);
 
-            // When
             SeriesResponse result = seriesService.createSeries("시리즈 제목", "시리즈 설명", 1L);
 
-            // Then
             assertThat(result).isNotNull();
             assertThat(result.id()).isEqualTo(100L);
             assertThat(result.title()).isEqualTo("시리즈 제목");
@@ -91,10 +91,8 @@ class SeriesServiceTest {
         @Test
         @DisplayName("실패: 유저가 존재하지 않으면 USER_NOT_FOUND 예외를 던진다.")
         void create_UserNotFound() {
-            // Given
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-            // When & Then
             assertThatThrownBy(() -> seriesService.createSeries("시리즈 제목", "시리즈 설명", 999L))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
@@ -104,42 +102,92 @@ class SeriesServiceTest {
     }
 
     @Nested
-    @DisplayName("시리즈 전체 조회 테스트")
+    @DisplayName("시리즈 전체 조회 테스트 (무한 스크롤)")
     class FindAllSeries {
 
         @Test
-        @DisplayName("성공: creatorId가 null이면 삭제되지 않은 전체 시리즈를 조회한다.")
-        void findAll_WithoutCreatorId() {
-            // Given
-            List<Series> list = List.of(buildSeries(1L, "제목1", "내용1"));
-            Page<Series> page = new PageImpl<>(list);
-            when(seriesRepository.findAllByDeletedAtIsNull(any(Pageable.class))).thenReturn(page);
+        @DisplayName("성공: 삭제되지 않은 전체 시리즈를 postCount 포함 Slice로 반환한다.")
+        void findAll_Slice() {
+            List<SeriesListResponse> list = List.of(buildListResponse(1L, "제목1"));
+            Slice<SeriesListResponse> slice = new SliceImpl<>(list);
+            when(seriesRepository.findAllWithPostCount(any(Pageable.class))).thenReturn(slice);
 
-            // When
-            Page<SeriesListResponse> result = seriesService.getSeriesList(null, 0);
+            Pageable pageable = PageRequest.of(0, 10, Sort.by("id").descending());
+            Slice<SeriesListResponse> result = seriesService.getSeriesSlice(pageable);
 
-            // Then
             assertThat(result.getContent()).hasSize(1);
             assertThat(result.getContent().getFirst().title()).isEqualTo("제목1");
-            verify(seriesRepository, times(1)).findAllByDeletedAtIsNull(any(Pageable.class));
-            verify(seriesRepository, never()).findByUserIdAndDeletedAtIsNull(anyLong(), any(Pageable.class));
+            verify(seriesRepository, times(1)).findAllWithPostCount(any(Pageable.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("유저별 시리즈 조회 테스트")
+    class FindSeriesByUser {
+
+        @Test
+        @DisplayName("성공: creatorId로 해당 유저의 시리즈를 postCount 포함 Page로 반환한다.")
+        void findByCreatorId() {
+            Page<SeriesListResponse> page = new PageImpl<>(List.of(buildListResponse(1L, "제목1")));
+            when(seriesRepository.findByUserIdWithPostCount(eq(1L), any(Pageable.class))).thenReturn(page);
+
+            Pageable pageable = PageRequest.of(0, 10, Sort.by("id").descending());
+            Page<SeriesListResponse> result = seriesService.getSeriesList(1L, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().getFirst().postCount()).isEqualTo(3L);
+            verify(seriesRepository, times(1)).findByUserIdWithPostCount(eq(1L), any(Pageable.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("시리즈 제목 검색 테스트")
+    class SearchSeries {
+
+        @Test
+        @DisplayName("성공: 키워드가 포함된 제목의 시리즈를 postCount 포함 Page로 반환한다.")
+        void search_Success() {
+            Page<SeriesListResponse> page = new PageImpl<>(List.of(buildListResponse(1L, "Spring 입문")));
+            when(seriesRepository.findByTitleContainingWithPostCount(eq("Spring"), any(Pageable.class))).thenReturn(page);
+
+            Pageable pageable = PageRequest.of(0, 10, Sort.by("id").descending());
+            Page<SeriesListResponse> result = seriesService.searchSeries("Spring", pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().getFirst().title()).isEqualTo("Spring 입문");
+            verify(seriesRepository, times(1)).findByTitleContainingWithPostCount(eq("Spring"), any(Pageable.class));
         }
 
         @Test
-        @DisplayName("성공: creatorId가 제공되면 해당 유저가 작성한 삭제되지 않은 시리즈를 조회한다.")
-        void findAll_WithCreatorId() {
-            // Given
-            List<Series> list = List.of(buildSeries(1L, "제목1", "내용1"));
-            Page<Series> page = new PageImpl<>(list);
-            when(seriesRepository.findByUserIdAndDeletedAtIsNull(eq(1L), any(Pageable.class))).thenReturn(page);
+        @DisplayName("성공: 키워드에 매칭되는 시리즈가 없으면 빈 Page를 반환한다.")
+        void search_Empty() {
+            when(seriesRepository.findByTitleContainingWithPostCount(eq("없는키워드"), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of()));
 
-            // When
-            Page<SeriesListResponse> result = seriesService.getSeriesList(1L, 0);
+            Pageable pageable = PageRequest.of(0, 10, Sort.by("id").descending());
+            Page<SeriesListResponse> result = seriesService.searchSeries("없는키워드", pageable);
 
-            // Then
-            assertThat(result.getContent()).hasSize(1);
-            verify(seriesRepository, times(1)).findByUserIdAndDeletedAtIsNull(eq(1L), any(Pageable.class));
-            verify(seriesRepository, never()).findAllByDeletedAtIsNull(any(Pageable.class));
+            assertThat(result.getContent()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("실패: 키워드가 빈 문자열이면 INVALID_INPUT_VALUE 예외를 던진다.")
+        void search_BlankKeyword() {
+            assertThatThrownBy(() -> seriesService.searchSeries("", PageRequest.of(0, 10)))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT_VALUE);
+
+            verify(seriesRepository, never()).findByTitleContainingWithPostCount(any(), any());
+        }
+
+        @Test
+        @DisplayName("실패: 키워드가 공백만 있으면 INVALID_INPUT_VALUE 예외를 던진다.")
+        void search_WhitespaceKeyword() {
+            assertThatThrownBy(() -> seriesService.searchSeries("   ", PageRequest.of(0, 10)))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT_VALUE);
+
+            verify(seriesRepository, never()).findByTitleContainingWithPostCount(any(), any());
         }
     }
 
@@ -150,14 +198,11 @@ class SeriesServiceTest {
         @Test
         @DisplayName("성공: 삭제되지 않은 시리즈인 경우 데이터를 올바르게 반환한다.")
         void findById_Success() {
-            // Given
             Series series = buildSeries(1L, "제목1", "내용1");
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
 
-            // When
             SeriesResponse result = seriesService.getSeries(1L);
 
-            // Then
             assertThat(result).isNotNull();
             assertThat(result.id()).isEqualTo(1L);
             assertThat(result.title()).isEqualTo("제목1");
@@ -166,10 +211,8 @@ class SeriesServiceTest {
         @Test
         @DisplayName("실패: 존재하지 않는 시리즈 ID인 경우 RESOURCE_NOT_FOUND 예외를 던진다.")
         void findById_NotFound() {
-            // Given
             when(seriesRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
-            // When & Then
             assertThatThrownBy(() -> seriesService.getSeries(999L))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
@@ -178,10 +221,8 @@ class SeriesServiceTest {
         @Test
         @DisplayName("실패: 삭제된 시리즈인 경우 RESOURCE_NOT_FOUND 예외를 던진다.")
         void findById_SoftDeleted() {
-            // Given — 삭제된 시리즈는 findByIdAndDeletedAtIsNull이 빈 Optional을 반환
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.empty());
 
-            // When & Then
             assertThatThrownBy(() -> seriesService.getSeries(1L))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
@@ -195,14 +236,11 @@ class SeriesServiceTest {
         @Test
         @DisplayName("성공: 활성 상태의 시리즈인 경우 제목과 본문을 업데이트한다.")
         void update_Success() {
-            // Given
             Series series = buildSeries(1L, "기존 제목", "기존 설명");
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
 
-            // When
-            SeriesResponse result = seriesService.updateSeries(1L, "수정된 제목", "수정된 설명");
+            SeriesResponse result = seriesService.updateSeries(1L, "수정된 제목", "수정된 설명", 1L, UserRole.USER);
 
-            // Then
             assertThat(result.title()).isEqualTo("수정된 제목");
             assertThat(result.body()).isEqualTo("수정된 설명");
         }
@@ -210,13 +248,33 @@ class SeriesServiceTest {
         @Test
         @DisplayName("실패: 이미 삭제된 시리즈를 수정하려고 시도하면 RESOURCE_NOT_FOUND 예외를 던진다.")
         void update_SoftDeleted() {
-            // Given
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.empty());
 
-            // When & Then
-            assertThatThrownBy(() -> seriesService.updateSeries(1L, "수정된 제목", "수정된 설명"))
+            assertThatThrownBy(() -> seriesService.updateSeries(1L, "수정된 제목", "수정된 설명", 1L, UserRole.USER))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패: 다른 유저의 시리즈를 수정하려 하면 ACCESS_DENIED 예외를 던진다.")
+        void update_Forbidden() {
+            Series series = buildSeries(1L, "기존 제목", "기존 설명");
+            when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
+
+            assertThatThrownBy(() -> seriesService.updateSeries(1L, "수정된 제목", "수정된 설명", 99L, UserRole.USER))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_DENIED);
+        }
+
+        @Test
+        @DisplayName("성공: 어드민은 타인 시리즈도 수정할 수 있다.")
+        void update_AdminCanUpdateOthers() {
+            Series series = buildSeries(1L, "기존 제목", "기존 설명");
+            when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
+
+            SeriesResponse result = seriesService.updateSeries(1L, "수정된 제목", "수정된 설명", 99L, UserRole.ADMIN);
+
+            assertThat(result.title()).isEqualTo("수정된 제목");
         }
     }
 
@@ -227,27 +285,44 @@ class SeriesServiceTest {
         @Test
         @DisplayName("성공: 활성 상태의 시리즈인 경우 deletedAt 필드를 세팅해 삭제 처리한다.")
         void delete_Success() {
-            // Given
             Series series = buildSeries(1L, "시리즈 제목", "시리즈 설명");
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
 
-            // When
-            seriesService.deleteSeries(1L);
+            seriesService.deleteSeries(1L, 1L, UserRole.USER);
 
-            // Then
             assertThat(series.getDeletedAt()).isNotNull();
         }
 
         @Test
         @DisplayName("실패: 이미 삭제된 시리즈를 삭제하려고 시도하면 RESOURCE_NOT_FOUND 예외를 던진다.")
         void delete_AlreadyDeleted() {
-            // Given
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.empty());
 
-            // When & Then
-            assertThatThrownBy(() -> seriesService.deleteSeries(1L))
+            assertThatThrownBy(() -> seriesService.deleteSeries(1L, 1L, UserRole.USER))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패: 다른 유저의 시리즈를 삭제하려 하면 ACCESS_DENIED 예외를 던진다.")
+        void delete_Forbidden() {
+            Series series = buildSeries(1L, "시리즈 제목", "시리즈 설명");
+            when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
+
+            assertThatThrownBy(() -> seriesService.deleteSeries(1L, 99L, UserRole.USER))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_DENIED);
+        }
+
+        @Test
+        @DisplayName("성공: 어드민은 타인 시리즈도 삭제할 수 있다.")
+        void delete_AdminCanDeleteOthers() {
+            Series series = buildSeries(1L, "시리즈 제목", "시리즈 설명");
+            when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
+
+            seriesService.deleteSeries(1L, 99L, UserRole.ADMIN);
+
+            assertThat(series.getDeletedAt()).isNotNull();
         }
     }
 }
