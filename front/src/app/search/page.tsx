@@ -1,7 +1,8 @@
 import React from "react";
-import { Search } from "lucide-react";
-import { MOCK_POSTS, MOCK_CREATORS, MOCK_SERIES } from "@/lib/mock-data";
-import { SearchResultsView } from "./search-results-view";
+import {Search} from "lucide-react";
+import {MOCK_CREATORS, MOCK_POSTS} from "@/lib/mock-data";
+import {SearchResultsView} from "./search-results-view";
+import {searchSeries} from "@/lib/series-api";
 
 export default async function SearchPage({
   searchParams,
@@ -9,25 +10,51 @@ export default async function SearchPage({
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const resolvedParams = await searchParams;
-  
-  // URL에서 넘어온 검색어를 안전하게 디코딩 (특수문자 방어)
+
   const rawQuery = resolvedParams.q || "";
   const query = decodeURIComponent(rawQuery).trim();
 
-  // 1. 게시글 모의 데이터 필터링
-  const posts = query 
-    ? MOCK_POSTS.filter(p => p.title.includes(query) || p.description.includes(query))
+    // 게시글 모의 데이터 필터링 (Post 도메인 연동 전)
+    const posts = query
+        ? MOCK_POSTS.filter(
+            (p) => p.title.includes(query) || p.description.includes(query)
+        )
     : [];
 
-  // 2. 창작자 모의 데이터 필터링
+    // 창작자 모의 데이터 필터링 (User 도메인 연동 전)
   const creators = query
-    ? MOCK_CREATORS.filter(c => c.nickname.includes(query))
+      ? MOCK_CREATORS.filter((c) => c.nickname.includes(query))
     : [];
 
-  // 3. 시리즈 모의 데이터 필터링
-  const series = query
-    ? MOCK_SERIES.filter(s => s.title.includes(query) || s.body.includes(query))
-    : [];
+    // 시리즈 실제 API 검색
+    let series: Array<{
+        id: number;
+        userId: number;
+        title: string;
+        body: string;
+        postCount: number;
+        authorName: string;
+        lastUpdatedAt: string;
+        thumbnailUrl?: string;
+    }> = [];
+
+    if (query) {
+        try {
+            const data = await searchSeries(query, 0);
+            series = data.content.map((s) => ({
+                id: s.id,
+                userId: s.userId,
+                title: s.title,
+                body: s.body ?? "",
+                postCount: s.postCount ?? 0,
+                authorName: s.nickname,
+                lastUpdatedAt: s.updatedAt ? s.updatedAt.split("T")[0] : "",
+                thumbnailUrl: s.thumbnailUrl ?? undefined,
+            }));
+        } catch {
+            series = [];
+        }
+    }
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-20 pt-20">
@@ -54,12 +81,11 @@ export default async function SearchPage({
           </p>
         </div>
 
-        {/* 3단 뷰 렌더러 컴포넌트 호출 */}
-        <SearchResultsView 
-          query={query} 
-          posts={posts} 
-          creators={creators} 
-          series={series} 
+          <SearchResultsView
+              query={query}
+              posts={posts}
+              creators={creators}
+              series={series}
         />
       </div>
     </div>

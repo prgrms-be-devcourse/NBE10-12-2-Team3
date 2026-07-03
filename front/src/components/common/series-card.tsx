@@ -5,6 +5,7 @@ import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {Calendar, MoreVertical, Pencil, Trash2} from "lucide-react";
 import {cn} from "@/lib/utils";
+import {deleteSeries} from "@/lib/series-api";
 
 interface SeriesCardProps {
   id: number | string;
@@ -54,11 +55,14 @@ export function SeriesCard({
     e.preventDefault();
     e.stopPropagation();
     setShowMenu(false);
-    
+
     if (window.confirm("이 시리즈를 정말 삭제하시겠습니까?")) {
-      // TODO: 실제 API 연동 (DELETE /api/series/{id})
-      // 백엔드 연동 전이므로 임시 알럿
-      alert("삭제 API가 호출되었습니다. (백엔드 연동 대기중)");
+        try {
+            await deleteSeries(id);
+            router.refresh();
+        } catch {
+            alert("삭제에 실패했습니다.");
+        }
     }
   };
 
