@@ -3,7 +3,7 @@ package com.scommit.domain.subscription.subscription.service;
 import com.scommit.domain.subscription.subscription.entity.Subscription;
 import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
 import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
-import com.scommit.domain.subscription.subscription.service.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
@@ -21,6 +21,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -163,6 +168,21 @@ class SubscriptionServiceTest {
         }
 
         @Test
+        @DisplayName("성공: 팔로우하지 않은 상태에서 멤버십 가입 시 자동 팔로우 처리된다")
+        void joinMembershipAutoFollowSuccess() {
+            // given
+            given(userRepository.findById(1L)).willReturn(Optional.of(subscriber));
+            given(userRepository.findById(2L)).willReturn(Optional.of(creator));
+            given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.empty());
+
+            // when
+            subscriptionService.joinMembership(1L, 2L);
+
+            // then
+            verify(subscriptionRepository).save(any(Subscription.class));
+        }
+
+        @Test
         @DisplayName("성공: 멤버십 해지 시 Tier가 FOLLOW로 떨어지고 만료일이 지워진다")
         void cancelMembershipSuccess() {
             // given
@@ -185,15 +205,17 @@ class SubscriptionServiceTest {
         @DisplayName("성공: 내 구독 목록을 조회하여 DTO로 반환한다")
         void getMySubscriptionsSuccess() {
             // given
-            given(subscriptionRepository.findMySubscriptions(1L)).willReturn(List.of(followSubscription));
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Subscription> page = new PageImpl<>(List.of(followSubscription));
+            given(subscriptionRepository.findMySubscriptions(1L, pageable)).willReturn(page);
 
             // when
-            List<SubscriptionInfo> infos = subscriptionService.getMySubscriptions(1L);
+            Page<SubscriptionInfo> infos = subscriptionService.getMySubscriptions(1L, pageable);
 
             // then
-            assertThat(infos).hasSize(1);
-            assertThat(infos.get(0).creatorId()).isEqualTo(2L);
-            assertThat(infos.get(0).tier()).isEqualTo(SubscriptionTier.FOLLOW);
+            assertThat(infos.getContent()).hasSize(1);
+            assertThat(infos.getContent().get(0).creatorId()).isEqualTo(2L);
+            assertThat(infos.getContent().get(0).tier()).isEqualTo(SubscriptionTier.FOLLOW);
         }
     }
 }

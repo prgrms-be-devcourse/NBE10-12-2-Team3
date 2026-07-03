@@ -1,4 +1,4 @@
-package com.scommit.domain.subscription.subscription.service.dto;
+package com.scommit.domain.subscription.subscription.dto;
 
 import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
 import com.scommit.domain.subscription.subscription.entity.Subscription;
