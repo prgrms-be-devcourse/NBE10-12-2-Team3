@@ -76,7 +76,8 @@ public class SecurityConfig {
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
-                                "/static/**"
+                                "/static/**",
+                                "/media/**"
                         ).permitAll()
                         // 문서
                         .requestMatchers(
@@ -96,8 +97,11 @@ public class SecurityConfig {
                                 "/api/users/{id:\\d+}",
                                 "/api/users/{id:\\d+}/medias",
                                 "/api/series",
+                                "/api/series/search",
                                 "/api/series/{id:\\d+}",
+                                "/api/series/{id:\\d+}/posts",
                                 "/api/series/{id:\\d+}/medias",
+                                "/api/series/users/{userId:\\d+}",
                                 "/api/posts",
                                 "/api/posts/{id:\\d+}",
                                 "/api/posts/{id:\\d+}/comments",
