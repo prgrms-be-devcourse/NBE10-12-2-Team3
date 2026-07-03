@@ -11,20 +11,24 @@ import { SeriesListRow } from "@/components/common/series-list-row";
 import { ConfirmModal } from "@/components/common/confirm-modal";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
-import type { MockPost, MockSeries } from "@/lib/mock-data";
-import type { UserProfileResponse } from "./page";
+import type { MockSeries } from "@/lib/mock-data";
+import type { UserProfileResponse, PostListResponse } from "./page";
 
 // page.tsx의 UserProfileResponse를 그대로 재사용해서, API 응답 형태가 바뀌면
 // 컴파일 타임에 바로 잡히도록 합니다. 이 파일에서 별도 Profile 타입을 정의하지 않습니다.
 type Profile = UserProfileResponse;
-type PostItem = MockPost;
+type PostItem = PostListResponse;
 type SeriesItem = MockSeries;
 
 interface UserProfileViewProps {
   profile: Profile;
   tab: "content" | "series";
+  // 시리즈 탭 전용: 번호식 페이지네이션 기준 페이지
   page: number;
+  // 시리즈 탭 전용: 번호식 페이지네이션 총 페이지 수
   totalPages: number;
+  // 콘텐츠 탭 전용: Slice 응답의 last 필드. true면 다음 페이지가 없음
+  isLastPostsPage: boolean;
   posts: PostItem[];
   series: SeriesItem[];
 }
@@ -34,10 +38,14 @@ const TABS: TabItem[] = [
   { id: "series", label: "시리즈" },
 ];
 
-export function UserProfileView({ profile, tab, page, totalPages, posts, series }: UserProfileViewProps) {
+export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPage, posts, series }: UserProfileViewProps) {
   const router = useRouter();
   const { isLoggedIn, user } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  // TODO: 로그인한 사용자의 초기 isFollowing 상태는 프로필 응답(UserProfileResponse)에 없습니다.
+  // GET /api/subscriptions(내 구독 목록, tier: FOLLOW|MEMBERSHIP)에서 creatorId가 일치하는 항목이
+  // 있는지로 판단 가능하나, 페이지네이션된 목록을 직접 뒤져야 해서 비효율적입니다.
+  // 더 나은 방법(예: 프로필 응답에 isFollowing 필드 추가)을 백엔드에 요청하는 것을 고려하세요.
   const [isFollowing, setIsFollowing] = useState(false);
 
   // useAuth().user.id(number)와 프로필 id를 비교해 본인 프로필 여부를 판단합니다.
@@ -60,12 +68,24 @@ export function UserProfileView({ profile, tab, page, totalPages, posts, series 
   }, [page]);
 
   const handleFollow = () => {
-    // TODO: 팔로우 API 연동 (엔드포인트 미정). 연동 전까지는 로컬 상태로만 토글합니다.
+    // TODO: 팔로우 API 연동. 응답은 RsData<Void>이며 실제 연동 전까지는 로컬 상태로만 토글합니다.
+    // 팔로우:   POST   /api/subscriptions/follow/{creatorId}
+    // 언팔로우: DELETE /api/subscriptions/follow/{creatorId}
+    // await fetch(`http://localhost:8080/api/subscriptions/follow/${profile.id}`, {
+    //   method: isFollowing ? "DELETE" : "POST",
+    //   credentials: "include",
+    // });
     setIsFollowing((prev) => !prev);
   };
 
   const handleMembership = () => {
-    // TODO: 멤버십 구독 API 연동 (엔드포인트 미정)
+    // TODO: 멤버십 구독 API 연동. 응답은 RsData<Void>입니다.
+    // 가입: POST   /api/subscriptions/membership/{creatorId} (가입 시 팔로우 자동 처리됨)
+    // 해지: DELETE /api/subscriptions/membership/{creatorId} (해지 시 팔로우 상태로 돌아감)
+    // await fetch(`http://localhost:8080/api/subscriptions/membership/${profile.id}`, {
+    //   method: "POST", // 이미 멤버십이면 "DELETE"
+    //   credentials: "include",
+    // });
   };
 
   const handleFollowClick = () => {
@@ -102,7 +122,8 @@ export function UserProfileView({ profile, tab, page, totalPages, posts, series 
     { label: "구독 중", value: profile.subscribingCount.toLocaleString("ko-KR") },
   ];
 
-  const renderPagination = () => {
+  // 시리즈 탭: Page 응답(totalPages/isLast 보유) 기반 번호식 페이지네이션
+  const renderSeriesPagination = () => {
     if (totalPages <= 1) return null;
 
     return (
@@ -142,6 +163,37 @@ export function UserProfileView({ profile, tab, page, totalPages, posts, series 
             aria-label="다음 페이지"
             className={cn("h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all", page >= totalPages ? "border-transparent bg-neutral-50 text-neutral-300" : "border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800")}
             disabled={page >= totalPages}
+            onClick={() => handlePageChange(page + 1)}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // 콘텐츠 탭: Slice 응답이라 totalPages/totalElements가 없음 → "이전/다음" 버튼만 노출.
+  // "다음"은 last === true일 때 비활성화하고, "이전"은 프론트가 직접 추적하는 page 번호로 판단합니다.
+  const renderContentPagination = () => {
+    if (page <= 1 && isLastPostsPage) return null;
+
+    return (
+      <div className="mt-12 flex justify-center">
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="outlined"
+            aria-label="이전 페이지"
+            className={cn("h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all", page <= 1 ? "border-transparent bg-neutral-50 text-neutral-300" : "border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800")}
+            disabled={page <= 1}
+            onClick={() => handlePageChange(page - 1)}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="outlined"
+            aria-label="다음 페이지"
+            className={cn("h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all", isLastPostsPage ? "border-transparent bg-neutral-50 text-neutral-300" : "border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800")}
+            disabled={isLastPostsPage}
             onClick={() => handlePageChange(page + 1)}
           >
             <ChevronRight className="h-5 w-5" />
@@ -223,20 +275,20 @@ export function UserProfileView({ profile, tab, page, totalPages, posts, series 
                 <p className="text-neutral-500">아직 작성한 콘텐츠가 없습니다.</p>
               </div>
             ) : (
+              // TODO: 썸네일 API 미제공 — PostListResponse에 thumbnailUrl 필드가 없어 ContentCard가 기본 썸네일로 대체합니다.
+              // TODO: 게시글 설명은 PostListResponse에 없어 ContentCard에 전달하지 않습니다
+              // (description은 optional이라 비워두면 빈 값으로 렌더링됩니다).
+              // authorName은 이 페이지의 게시글이 모두 profile(조회 중인 유저)의 글이므로 profile.nickname을 그대로 사용합니다.
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {posts.map((post) => (
                   <ContentCard
                     key={post.id}
                     id={post.id}
                     title={post.title}
-                    description={post.description}
                     accessLevel={post.accessLevel}
-                    thumbnailUrl={post.thumbnailUrl}
-                    authorName={post.authorName}
+                    authorName={profile.nickname}
                     createdAt={post.createdAt}
                     viewCount={post.viewCount}
-                    likeCount={post.likeCount}
-                    bookmarkCount={post.bookmarkCount}
                   />
                 ))}
               </div>
@@ -264,7 +316,7 @@ export function UserProfileView({ profile, tab, page, totalPages, posts, series 
             </div>
           )}
 
-          {renderPagination()}
+          {tab === "content" ? renderContentPagination() : renderSeriesPagination()}
         </div>
       </div>
 

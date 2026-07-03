@@ -9,7 +9,7 @@ import { AccessBadge } from "@/components/common/access-badge";
 interface ContentCardProps {
   id: string | number;
   title: string;
-  description: string;
+  description?: string;
   accessLevel: "FREE" | "PAID";
   thumbnailUrl?: string;
   authorName: string;

@@ -1,3 +1,8 @@
+// TODO: [백엔드 연동] GET /api/posts (creatorId 유무와 무관하게 재사용) 응답은 PostListResponse로
+// { id, userId, seriesId, title, publishStatus, accessLevel, viewCount, createdAt }만 내려주고
+// description/thumbnailUrl/likeCount/bookmarkCount/membershipPrice는 없습니다.
+// 이 필드들은 홈/검색 등 다른 mock 전용 화면에서 계속 쓰이므로 여기서는 남겨두되,
+// users/[id] 프로필 페이지(콘텐츠 탭)는 이 필드들을 사용하지 않습니다.
 export interface MockPost {
   id: number;
   title: string;
@@ -116,8 +121,10 @@ export const MOCK_POSTS: MockPost[] = [
   { id: 100, title: "CSS Container Queries로 배우는 점진적 프레임워크 전환의 교훈", description: "CSS Container Queries 환경에서 겪을 수 있는 핵심 이슈와 실무 관점에서의 점진적 프레임워크 전환의 교훈를 상세하게 다룹니다.", accessLevel: "FREE" as const, authorName: "임꺽정", authorId: 111, createdAt: "2026.06.06", viewCount: 6006, likeCount: 113, bookmarkCount: 249 }
 ];
 
-// TODO: [백엔드 연동] GET /api/v1/users/{id} 응답으로 대체. profileImageUrl, subscribingCount, offersMembership은
-// 타유저 프로필 조회 API 명세가 확정되면 실제 필드명에 맞춰 교체해야 합니다.
+// TODO: [백엔드 연동] GET /api/users/{id} 응답(UserProfileResponse)으로 대체.
+// nickname/introduction/profileImageUrl은 profile 객체 형태로 이미 확정되어 그대로 매핑 가능하지만,
+// subscriberCount/subscribingCount/offersMembership은 이 응답에 없습니다.
+// 통계 전용 엔드포인트가 Swagger에 아직 없음 — 백엔드 확인 후 추가 예정.
 export interface MockCreator {
   id: number;
   nickname: string;
