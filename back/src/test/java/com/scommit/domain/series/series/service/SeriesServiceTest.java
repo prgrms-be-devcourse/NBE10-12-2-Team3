@@ -1,5 +1,6 @@
 package com.scommit.domain.series.series.service;
 
+import com.scommit.domain.post.post.repository.PostRepository;
 import com.scommit.domain.series.series.dto.SeriesListResponse;
 import com.scommit.domain.series.series.dto.SeriesResponse;
 import com.scommit.domain.series.series.entity.Series;
@@ -37,6 +38,9 @@ class SeriesServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PostRepository postRepository;
 
     @InjectMocks
     private SeriesService seriesService;
@@ -283,14 +287,16 @@ class SeriesServiceTest {
     class DeleteSeries {
 
         @Test
-        @DisplayName("성공: 활성 상태의 시리즈인 경우 deletedAt 필드를 세팅해 삭제 처리한다.")
+        @DisplayName("성공: 활성 상태의 시리즈인 경우 deletedAt 필드를 세팅해 삭제 처리하고, 포스트의 시리즈 참조를 제거한다.")
         void delete_Success() {
             Series series = buildSeries(1L, "시리즈 제목", "시리즈 설명");
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(series));
+            when(postRepository.findBySeriesIdAndDeletedAtIsNull(1L)).thenReturn(List.of());
 
             seriesService.deleteSeries(1L, 1L, UserRole.USER);
 
             assertThat(series.getDeletedAt()).isNotNull();
+            verify(postRepository, times(1)).findBySeriesIdAndDeletedAtIsNull(1L);
         }
 
         @Test

@@ -1,5 +1,6 @@
 package com.scommit.domain.series.series.service;
 
+import com.scommit.domain.post.post.repository.PostRepository;
 import com.scommit.domain.series.series.dto.SeriesListResponse;
 import com.scommit.domain.series.series.dto.SeriesResponse;
 import com.scommit.domain.series.series.entity.Series;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SeriesService {
     private final SeriesRepository seriesRepository;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
 
     @Transactional
     public SeriesResponse createSeries(String title, String body, Long userId) {
@@ -84,6 +86,9 @@ public class SeriesService {
         if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
+
+        postRepository.findBySeriesIdAndDeletedAtIsNull(id)
+                .forEach(post -> post.updateSeries(null));
 
         series.softDelete();
     }

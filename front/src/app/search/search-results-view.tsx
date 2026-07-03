@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, {useEffect, useState} from "react";
 import Link from "next/link";
-import { SearchX, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ContentCard } from "@/components/common/content-card";
-import { ContentListCard } from "@/components/common/content-list-card";
-import { ContentCardSkeleton } from "@/components/common/content-card-skeleton";
-import { SeriesCard } from "@/components/common/series-card";
-import { SeriesListCard } from "@/components/common/series-list-card";
-import { SeriesCardSkeleton } from "@/components/common/series-card-skeleton";
-import { CreatorCard } from "@/components/common/creator-card";
-import { CreatorCardSkeleton } from "@/components/common/creator-card-skeleton";
-import { cn } from "@/lib/utils";
+import {ChevronLeft, ChevronRight, LayoutGrid, List as ListIcon, SearchX} from "lucide-react";
+import {useSearchParams} from "next/navigation";
+import {useAuth} from "@/providers/auth-provider";
+import {Button} from "@/components/ui/button";
+import {ContentCard} from "@/components/common/content-card";
+import {ContentListCard} from "@/components/common/content-list-card";
+import {ContentCardSkeleton} from "@/components/common/content-card-skeleton";
+import {SeriesCard} from "@/components/common/series-card";
+import {SeriesListCard} from "@/components/common/series-list-card";
+import {SeriesCardSkeleton} from "@/components/common/series-card-skeleton";
+import {CreatorCard} from "@/components/common/creator-card";
+import {CreatorCardSkeleton} from "@/components/common/creator-card-skeleton";
+import {cn} from "@/lib/utils";
 
 interface Creator {
   id: number;
@@ -24,6 +25,7 @@ interface Creator {
 
 interface Series {
   id: number;
+    userId: number;
   uniqueKey?: string;
   title: string;
   body?: string;
@@ -59,6 +61,7 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
   const [layout, setLayout] = useState<"list" | "grid">("list");
   const [isMounted, setIsMounted] = useState(false);
   const searchParams = useSearchParams();
+    const {user} = useAuth();
   const activeTab = searchParams?.get("tab") || "all";
   const pageParam = searchParams?.get("page") || "1";
   const currentPage = parseInt(pageParam, 10) || 1;
@@ -325,8 +328,11 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
           )}>
             {(activeTab === "all" ? series.slice(0, 5) : series.slice(startIndex, endIndex)).map((s) => (
               layout === "list"
-                ? <SeriesListCard key={s.uniqueKey || s.id} {...s} body={s.body || ""} lastUpdatedAt={s.lastUpdatedAt || ""} />
-                : <SeriesCard key={s.uniqueKey || s.id} {...s} body={s.body || ""} lastUpdatedAt={s.lastUpdatedAt || ""} />
+                  ? <SeriesListCard key={s.uniqueKey || s.id} {...s} body={s.body || ""}
+                                    lastUpdatedAt={s.lastUpdatedAt || ""} isOwner={!!user && user.id === s.userId}/>
+                  :
+                  <SeriesCard key={s.uniqueKey || s.id} {...s} body={s.body || ""} lastUpdatedAt={s.lastUpdatedAt || ""}
+                              isOwner={!!user && user.id === s.userId}/>
             ))}
           </div>
           
