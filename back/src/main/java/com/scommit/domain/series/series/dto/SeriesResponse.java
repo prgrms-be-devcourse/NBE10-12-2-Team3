@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public record SeriesResponse(
         Long id,
         Long userId,
+        String nickname,
         String title,
         String body,
         LocalDateTime createdAt,
@@ -16,6 +17,7 @@ public record SeriesResponse(
         this(
                 series.getId(),
                 series.getUser().getId(),
+                series.getUser().getNickname(),
                 series.getTitle(),
                 series.getBody(),
                 series.getCreatedAt(),

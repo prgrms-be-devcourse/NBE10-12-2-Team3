@@ -5,14 +5,14 @@ import com.scommit.domain.series.series.dto.SeriesResponse;
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.repository.SeriesRepository;
 import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,21 +36,24 @@ public class SeriesService {
         return new SeriesResponse(seriesRepository.save(series));
     }
 
-    // TODO: 어드민은 소프트 딜리트 데이터도 열람가능하는 로직
     @Transactional(readOnly = true)
-    public Page<SeriesListResponse> getSeriesList(Long creatorId, int page) {
-        Pageable pageable = PageRequest.of(page, 10, Sort.by("id").descending());
-
-        if (creatorId != null) {
-            return seriesRepository.findByUserIdAndDeletedAtIsNull(creatorId, pageable)
-                    .map(SeriesListResponse::new);
-        }
-
-        return seriesRepository.findAllByDeletedAtIsNull(pageable)
-                .map(SeriesListResponse::new);
+    public Slice<SeriesListResponse> getSeriesSlice(Pageable pageable) {
+        return seriesRepository.findAllWithPostCount(pageable);
     }
 
-    // TODO: 어드민은 소프트 딜리트 데이터도 열람가능하는 로직
+    @Transactional(readOnly = true)
+    public Page<SeriesListResponse> searchSeries(String keyword, Pageable pageable) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        return seriesRepository.findByTitleContainingWithPostCount(keyword, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SeriesListResponse> getSeriesList(Long creatorId, Pageable pageable) {
+        return seriesRepository.findByUserIdWithPostCount(creatorId, pageable);
+    }
+
     @Transactional(readOnly = true)
     public SeriesResponse getSeries(long id) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(id)
@@ -59,25 +62,29 @@ public class SeriesService {
         return new SeriesResponse(series);
     }
 
-    // TODO: 작성자나 어드민만 되도록 하는 로직
     @Transactional
-    public SeriesResponse updateSeries(long id, String title, String body) {
+    public SeriesResponse updateSeries(long id, String title, String body, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+
+        if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
 
         series.update(title, body);
 
         return new SeriesResponse(series);
     }
 
-    // TODO: 나중에 작성자 본인이나 어드민만 글 삭제할 수 있게 체크
     @Transactional
-    public void deleteSeries(long id) {
+    public void deleteSeries(long id, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+
+        if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
 
         series.softDelete();
     }
 }
-
-

@@ -7,6 +7,7 @@ import com.scommit.domain.series.series.repository.SeriesRepository;
 import com.scommit.domain.series.seriesmedia.dto.SeriesMediaResponse;
 import com.scommit.domain.series.seriesmedia.entity.SeriesMedia;
 import com.scommit.domain.series.seriesmedia.repository.SeriesMediaRepository;
+import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +24,13 @@ public class SeriesMediaService {
     private final SeriesRepository seriesRepository;
 
     @Transactional
-    public SeriesMediaResponse uploadMedia(Long seriesId, MultipartFile file) {
+    public SeriesMediaResponse uploadMedia(Long seriesId, MultipartFile file, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(seriesId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+
+        if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
 
         SeriesMedia seriesMedia = seriesMediaRepository.findBySeries(series).orElse(null);
         if (seriesMedia != null) {
@@ -58,9 +63,13 @@ public class SeriesMediaService {
     }
 
     @Transactional
-    public void deleteMedia(Long seriesId) {
+    public void deleteMedia(Long seriesId, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(seriesId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+
+        if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
 
         SeriesMedia seriesMedia = seriesMediaRepository.findBySeries(series)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
