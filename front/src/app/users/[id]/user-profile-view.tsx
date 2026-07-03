@@ -1,21 +1,22 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tab, type TabItem } from "@/components/ui/tab";
 import { ContentCard } from "@/components/common/content-card";
-import { SeriesCard } from "@/components/common/series-card";
+import { SeriesListRow } from "@/components/common/series-list-row";
 import { ConfirmModal } from "@/components/common/confirm-modal";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
-import type { MockCreator, MockPost, MockSeries } from "@/lib/mock-data";
+import type { MockPost, MockSeries } from "@/lib/mock-data";
+import type { UserProfileResponse } from "./page";
 
-// mock-data.ts의 MockCreator/MockPost/MockSeries를 재사용해서, 필드가 어긋나면
-// 컴파일 타임에 바로 잡히도록 합니다. contentCount는 서버에서 파생되는 값이라 별도로 덧붙입니다.
-type Profile = MockCreator & { contentCount: number };
+// page.tsx의 UserProfileResponse를 그대로 재사용해서, API 응답 형태가 바뀌면
+// 컴파일 타임에 바로 잡히도록 합니다. 이 파일에서 별도 Profile 타입을 정의하지 않습니다.
+type Profile = UserProfileResponse;
 type PostItem = MockPost;
 type SeriesItem = MockSeries;
 
@@ -82,6 +83,10 @@ export function UserProfileView({ profile, tab, page, totalPages, posts, series 
     }
     handleMembership();
   };
+
+  // ConfirmModal의 useEffect가 onCancel을 deps로 사용하므로, 매 렌더마다 새 함수를
+  // 넘기지 않도록 참조를 고정합니다.
+  const closeLoginModal = useCallback(() => setShowLoginModal(false), []);
 
   const handleTabChange = (newTab: string) => {
     router.push(`/users/${profile.id}?tab=${newTab}&page=1`);
@@ -241,17 +246,19 @@ export function UserProfileView({ profile, tab, page, totalPages, posts, series 
               <p className="text-neutral-500">아직 작성한 시리즈가 없습니다.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="flex flex-col gap-6">
               {series.map((s) => (
-                <SeriesCard
+                <SeriesListRow
                   key={s.id}
                   id={s.id}
                   title={s.title}
-                  body={s.body}
+                  description={s.body}
+                  // TODO: MockSeries에 공개/멤버십 필드가 추가되면 교체
+                  accessLevel="PUBLIC"
+                  updatedAt={s.lastUpdatedAt}
                   postCount={s.postCount}
-                  authorName={s.authorName}
-                  lastUpdatedAt={s.lastUpdatedAt}
                   thumbnailUrl={s.thumbnailUrl}
+                  isOwner={isOwnProfile}
                 />
               ))}
             </div>
@@ -266,11 +273,11 @@ export function UserProfileView({ profile, tab, page, totalPages, posts, series 
           title="로그인이 필요합니다"
           description="팔로우 및 멤버십 기능은 로그인 후 이용할 수 있어요."
           onConfirm={() => {
-            setShowLoginModal(false);
+            closeLoginModal();
             // TODO: /login 페이지 완성되면 아래 리다이렉트를 활성화하세요.
             // router.push("/login");
           }}
-          onCancel={() => setShowLoginModal(false)}
+          onCancel={closeLoginModal}
         />
       )}
     </>
