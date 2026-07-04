@@ -1,18 +1,37 @@
 "use client";
 
-import React, { useState } from "react";
-import { useAuth } from "@/providers/auth-provider";
-import { Settings, User, Shield, LogOut, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import React, {useState} from "react";
+import {useAuth} from "@/providers/auth-provider";
+import {ChevronDown, LogIn, LogOut, Settings, Shield, User} from "lucide-react";
+import {cn} from "@/lib/utils";
 
 export function DevTools() {
-  const { isLoggedIn, user, login, logout } = useAuth();
+    const {isLoggedIn, user, login, loginWithCredentials, logout} = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
-  // 프로덕션 환경에서는 완전히 렌더링되지 않음 (Tree-shaking)
   if (process.env.NODE_ENV !== "development") {
     return null;
   }
+
+    const handleRealLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+        setLoading(true);
+        try {
+            await loginWithCredentials(email, password);
+            setEmail("");
+            setPassword("");
+            setIsOpen(false);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "로그인 실패");
+        } finally {
+            setLoading(false);
+        }
+    };
 
   return (
     <div className="fixed bottom-4 right-4 z-[999] flex flex-col items-end gap-2 font-sans">
@@ -26,14 +45,46 @@ export function DevTools() {
             <div className="mt-1 flex items-center gap-2">
               <div className={cn("h-2 w-2 rounded-full", isLoggedIn ? "bg-emerald-500" : "bg-neutral-300")} />
               <span className="text-sm font-medium text-neutral-dark">
-                {isLoggedIn ? `Logged in as ${user?.nickname}` : "Guest Mode"}
+                {isLoggedIn ? `${user?.nickname} (${user?.role})` : "Guest Mode"}
               </span>
             </div>
           </div>
-          
+
           <div className="flex flex-col p-1.5">
             {!isLoggedIn ? (
               <>
+                  {/* 실제 백엔드 로그인 */}
+                  <form onSubmit={handleRealLogin} className="px-2 py-2 space-y-2 border-b border-neutral-100 mb-1">
+                      <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">실제 로그인 (JWT)</p>
+                      <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="이메일"
+                          required
+                          className="w-full rounded-md border border-neutral-200 px-2.5 py-1.5 text-xs outline-none focus:border-neutral-900"
+                      />
+                      <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="비밀번호"
+                          required
+                          className="w-full rounded-md border border-neutral-200 px-2.5 py-1.5 text-xs outline-none focus:border-neutral-900"
+                      />
+                      {error && <p className="text-[11px] text-red-500">{error}</p>}
+                      <button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full flex items-center justify-center gap-1.5 rounded-md bg-neutral-900 text-white text-xs font-bold py-1.5 hover:bg-neutral-700 disabled:opacity-50 transition-colors"
+                      >
+                          <LogIn className="h-3.5 w-3.5"/>
+                          {loading ? "로그인 중..." : "로그인"}
+                      </button>
+                  </form>
+
+                  {/* Mock 로그인 */}
+                  <p className="px-3 pb-1 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Mock 로그인</p>
                 <button
                   onClick={() => login("USER")}
                   className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"

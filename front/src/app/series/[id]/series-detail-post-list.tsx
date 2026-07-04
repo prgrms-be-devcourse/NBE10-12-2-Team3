@@ -33,10 +33,11 @@ export function SeriesDetailPostList({ posts, totalPosts, currentPage, totalPage
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => setIsMounted(true), 0);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsMounted(true);
     const savedLayout = localStorage.getItem("series_detail_layout") as "grid" | "list";
     if (savedLayout === "grid" || savedLayout === "list") {
-      setTimeout(() => setLayout(savedLayout), 0);
+        setLayout(savedLayout);
     }
   }, []);
 

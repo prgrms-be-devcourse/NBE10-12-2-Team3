@@ -8,7 +8,9 @@ import com.scommit.domain.post.post.service.PostService;
 import com.scommit.domain.post.postmedia.dto.PostMediaResponse;
 import com.scommit.domain.post.postmedia.entity.PostMediaType;
 import com.scommit.domain.post.postmedia.service.PostMediaService;
+import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.dto.RsData;
+import com.scommit.global.security.SecurityHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -32,13 +34,15 @@ public class PostController {
 
     private final PostService postService;
     private final PostMediaService postMediaService;
+    private final SecurityHelper securityHelper;
 
     // GET /api/posts/me 내가 쓴 게시글 조회 - 페이지 번호 방식
     @Operation(summary = "내 게시글 조회", description = "로그인한 유저가 작성한 게시글 목록을 조회합니다.")
     @GetMapping("/me")
     public RsData<Page<PostListResponse>> getMyPosts(
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<PostListResponse> response = postService.getMyPosts(pageable);
+        User actor = securityHelper.getActor();
+        Page<PostListResponse> response = postService.getMyPosts(actor, pageable);
         return new RsData<>("200-1", "내가 쓴 게시글 목록입니다.", response);
     }
 

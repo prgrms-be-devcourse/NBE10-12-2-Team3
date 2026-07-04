@@ -59,19 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (userType: "USER" | "ADMIN" = "USER") => {
     setIsLoggedIn(true);
     if (userType === "ADMIN") {
-      setUser({
-        id: 0,
-        email: "admin@scommit.com",
-        nickname: "어드민",
-        role: "ADMIN",
-      });
+        setUser({id: 0, email: "admin@scommit.com", nickname: "어드민", role: "ADMIN"});
     } else {
-      setUser({
-        id: 1,
-        email: "dev@scommit.com",
-        nickname: "김도현",
-        role: "USER",
-      });
+        setUser({id: 1, email: "dev@scommit.com", nickname: "김도현", role: "USER"});
     }
   };
 

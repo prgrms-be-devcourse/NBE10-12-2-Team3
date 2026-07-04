@@ -8,6 +8,7 @@ import com.scommit.domain.post.post.entity.PublishStatus;
 import com.scommit.domain.post.post.repository.PostRepository;
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.repository.SeriesRepository;
+import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -105,9 +108,56 @@ public class PostService {
     }
 
     // 내가 쓴 게시글 조회 - 페이지 번호 방식
-    public Page<PostListResponse> getMyPosts(Pageable pageable) {
-        // TODO: Security 완료 후 로그인 유저로 교체
-        return postRepository.findByUserAndDeletedAtIsNull(null, pageable)
+    public Page<PostListResponse> getMyPosts(User actor, Pageable pageable) {
+        return postRepository.findByUserAndDeletedAtIsNull(actor, pageable)
                 .map(PostListResponse::new);
+    }
+
+    // 시리즈에 포스트 추가
+    @Transactional
+    public void addPostToSeries(Long postId, Long seriesId, User actor) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+        if (post.getDeletedAt() != null) {
+            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
+        }
+        if (!post.getUser().getId().equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        Series series = seriesRepository.findByIdAndDeletedAtIsNull(seriesId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        if (!series.getUser().getId().equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        post.updateSeries(series);
+    }
+
+    // 시리즈에서 포스트 제거
+    @Transactional
+    public void removePostFromSeries(Long postId, Long seriesId, User actor) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+        if (post.getDeletedAt() != null) {
+            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
+        }
+
+        Series series = post.getSeries();
+        if (series == null || !series.getId().equals(seriesId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+        if (!series.getUser().getId().equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        post.updateSeries(null);
+    }
+
+    // 시리즈 내 게시글 조회
+    public List<PostListResponse> getPostsBySeriesId(Long seriesId) {
+        return postRepository.findBySeriesIdAndDeletedAtIsNull(seriesId).stream()
+                .map(PostListResponse::new)
+                .toList();
     }
 }

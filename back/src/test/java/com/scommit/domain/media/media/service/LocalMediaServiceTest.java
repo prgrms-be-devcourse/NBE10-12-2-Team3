@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,7 +19,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,16 +31,17 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class LocalMediaServiceTest {
 
-    private final String testMediaPath = "back/build/tmp/test-media/";
+    @TempDir
+    Path tempDir;
+
     @Mock
     private MediaRepository mediaRepository;
     @InjectMocks
     private LocalMediaService localMediaService;
 
     @BeforeEach
-    void setUp() throws IOException {
-        ReflectionTestUtils.setField(localMediaService, "mediaPath", testMediaPath);
-        Files.createDirectories(Paths.get(testMediaPath));
+    void setUp() {
+        ReflectionTestUtils.setField(localMediaService, "mediaPath", tempDir.toString() + "/");
     }
 
     @Nested
@@ -134,7 +135,7 @@ class LocalMediaServiceTest {
         void deleteMedia_Success() throws IOException {
             Long mediaId = 1L;
             String fileName = "post/delete-test.png";
-            Path filePath = Paths.get(testMediaPath + fileName);
+            Path filePath = tempDir.resolve(fileName);
             Files.createDirectories(filePath.getParent());
             Files.write(filePath, "dummy".getBytes());
             assertThat(Files.exists(filePath)).isTrue();

@@ -1,28 +1,31 @@
 package com.scommit.domain.series.series.service;
 
+import com.scommit.domain.post.post.repository.PostRepository;
+import com.scommit.domain.series.series.dto.SeriesListResponse;
+import com.scommit.domain.series.series.dto.SeriesResponse;
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.repository.SeriesRepository;
 import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class SeriesService {
     private final SeriesRepository seriesRepository;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
 
     @Transactional
-    public Series createSeries(String title, String body, Long userId) {
+    public SeriesResponse createSeries(String title, String body, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
@@ -32,47 +35,61 @@ public class SeriesService {
                 .body(body)
                 .build();
 
-        return seriesRepository.save(series);
+        return new SeriesResponse(seriesRepository.save(series));
     }
 
-    // TODO: 어드민은 소프트 딜리트 데이터도 열람가능하는 로직
-    public Page<Series> getSeriesList(Long creatorId, int page) {
-        Pageable pageable = PageRequest.of(page, 10, Sort.by("id").descending());
+    @Transactional(readOnly = true)
+    public Slice<SeriesListResponse> getSeriesSlice(Pageable pageable) {
+        return seriesRepository.findAllWithPostCount(pageable);
+    }
 
-        if (creatorId != null) {
-            return seriesRepository.findByUserIdAndDeletedAtIsNull(creatorId, pageable);
+    @Transactional(readOnly = true)
+    public Page<SeriesListResponse> searchSeries(String keyword, Pageable pageable) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
-
-        return seriesRepository.findAllByDeletedAtIsNull(pageable);
+        return seriesRepository.findByTitleContainingWithPostCount(keyword, pageable);
     }
 
-    // TODO: 어드민은 소프트 딜리트 데이터도 열람가능하는 로직
-    public Series getSeries(long id) {
+    @Transactional(readOnly = true)
+    public Page<SeriesListResponse> getSeriesList(Long creatorId, Pageable pageable) {
+        return seriesRepository.findByUserIdWithPostCount(creatorId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public SeriesResponse getSeries(long id) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
 
-        return series;
+        return new SeriesResponse(series);
     }
 
-    // TODO: 작성자나 어드민만 되도록 하는 로직
     @Transactional
-    public Series updateSeries(long id, String title, String body) {
+    public SeriesResponse updateSeries(long id, String title, String body, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+
+        if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
 
         series.update(title, body);
 
-        return series;
+        return new SeriesResponse(series);
     }
 
-    // TODO: 나중에 작성자 본인이나 어드민만 글 삭제할 수 있게 체크
     @Transactional
-    public void deleteSeries(long id) {
+    public void deleteSeries(long id, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+
+        if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        postRepository.findBySeriesIdAndDeletedAtIsNull(id)
+                .forEach(post -> post.updateSeries(null));
 
         series.softDelete();
     }
 }
-
-
