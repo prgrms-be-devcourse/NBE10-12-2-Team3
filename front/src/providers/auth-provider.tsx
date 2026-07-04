@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 export interface User {
   id: number;
@@ -25,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
-  // 현재 로그인한 유저 정보를 백엔드에서 다시 불러옵니다.
+  // 1. 현재 로그인한 유저 정보를 백엔드에서 다시 불러옵니다. (Current 장점)
   const refreshUser = async () => {
     try {
       const res = await fetch("/api/users/me");
@@ -49,20 +55,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 기존 mock login (UI 개발용)
+  // 2. 기존 mock login (UI 개발용)
   const login = (userType: "USER" | "ADMIN" = "USER") => {
     setIsLoggedIn(true);
     if (userType === "ADMIN") {
-      setUser({ id: 0, email: "admin@scommit.com", nickname: "어드민", role: "ADMIN" });
+      setUser({
+        id: 0,
+        email: "admin@scommit.com",
+        nickname: "어드민",
+        role: "ADMIN",
+      });
     } else {
-      setUser({ id: 1, email: "dev@scommit.com", nickname: "김도현", role: "USER" });
+      setUser({
+        id: 1,
+        email: "dev@scommit.com",
+        nickname: "김도현",
+        role: "USER",
+      });
     }
   };
 
-  // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
+  // 3. 실제 백엔드 로그인 — 프록시 연동 추가 (Incoming 장점 + Current 프록시 혼합)
   const loginWithCredentials = async (email: string, password: string) => {
     try {
-      // 프록시(/api/*)를 태워서 CORS 문제를 방지합니다.
       const res = await fetch("/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -74,7 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(json?.msg || json?.message || "로그인에 실패했습니다.");
       }
 
-      // 로그인 성공 시 쿠키가 세팅되므로, refreshUser를 호출하여 최신 유저 정보를 가져옵니다.
       await refreshUser();
     } catch (e: any) {
       console.error("Login failed:", e);
@@ -82,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // 4. 로그아웃 비동기 처리
   const logout = async () => {
     try {
       await fetch("/api/users/logout", { method: "POST" });
@@ -92,13 +107,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  // 앱 로드 시 한 번 내 정보 불러오기 시도
   useEffect(() => {
     refreshUser();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, loginWithCredentials, logout, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        isLoggedIn,
+        user,
+        login,
+        loginWithCredentials,
+        logout,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
