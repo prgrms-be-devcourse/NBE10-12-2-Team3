@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-// TODO: [백엔드 연동] 실제 백엔드 연동 시 User 인터페이스는 공통 타입 파일로 분리하고 필드를 확장해야 합니다.
 export interface User {
   id: number;
   email: string;
@@ -14,7 +13,8 @@ export interface User {
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
-  login: (userType?: "USER" | "ADMIN") => Promise<void>;
+  login: (userType?: "USER" | "ADMIN") => void;
+  loginWithCredentials: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -49,10 +49,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async () => {
-    // TODO: 실제 백엔드 연동 전까지 빈 함수로 남겨둡니다. 
-    // 실제 로그인 구현 시 여기에 로직 추가
-    console.log("Login method placeholder");
+  // 기존 mock login (UI 개발용)
+  const login = (userType: "USER" | "ADMIN" = "USER") => {
+    setIsLoggedIn(true);
+    if (userType === "ADMIN") {
+      setUser({ id: 0, email: "admin@scommit.com", nickname: "어드민", role: "ADMIN" });
+    } else {
+      setUser({ id: 1, email: "dev@scommit.com", nickname: "김도현", role: "USER" });
+    }
+  };
+
+  // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
+  const loginWithCredentials = async (email: string, password: string) => {
+    try {
+      // 프록시(/api/*)를 태워서 CORS 문제를 방지합니다.
+      const res = await fetch("/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.msg || json?.message || "로그인에 실패했습니다.");
+      }
+
+      // 로그인 성공 시 쿠키가 세팅되므로, refreshUser를 호출하여 최신 유저 정보를 가져옵니다.
+      await refreshUser();
+    } catch (e: any) {
+      console.error("Login failed:", e);
+      throw e;
+    }
   };
 
   const logout = async () => {
@@ -71,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, login, loginWithCredentials, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
