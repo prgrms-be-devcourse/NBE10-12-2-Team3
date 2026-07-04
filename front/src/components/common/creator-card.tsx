@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FollowButton, FollowTier } from "./follow-button";
 
 interface CreatorCardProps {
   id: number | string;
@@ -11,9 +12,10 @@ interface CreatorCardProps {
   introduction?: string;
   className?: string;
   href?: string;
+  initialTier?: FollowTier;
 }
 
-export function CreatorCard({ id, nickname, subscriberCount, introduction, className, href }: CreatorCardProps) {
+export function CreatorCard({ id, nickname, subscriberCount, introduction, className, href, initialTier = "NONE" }: CreatorCardProps) {
   const formattedSubscribers = new Intl.NumberFormat("ko-KR", { notation: "compact" }).format(subscriberCount);
 
   return (
@@ -40,11 +42,9 @@ export function CreatorCard({ id, nickname, subscriberCount, introduction, class
         </p>
       </div>
       
-      {/* Card Footer: Follow Button */}
-      <div className="px-5 pb-5 mt-auto relative z-10 flex justify-center">
-        <button className="px-10 py-2 rounded-full bg-white border border-neutral-200 text-primary text-[13px] font-bold hover:bg-primary/5 hover:border-primary/30 active:scale-[0.98] transition-all shadow-sm flex items-center justify-center cursor-pointer">
-          팔로우
-        </button>
+      {/* Follow / Membership Button */}
+      <div className="flex-none pb-5 px-5 relative z-10">
+        <FollowButton creatorId={id} initialTier={initialTier} className="w-full" />
       </div>
     </div>
   );

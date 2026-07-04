@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 // TODO: [백엔드 연동] 실제 백엔드 연동 시 User 인터페이스는 공통 타입 파일로 분리하고 필드를 확장해야 합니다.
 export interface User {
@@ -14,8 +14,9 @@ export interface User {
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
-  login: (userType?: "USER" | "ADMIN") => void;
-  logout: () => void;
+  login: (userType?: "USER" | "ADMIN") => Promise<void>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,33 +25,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
-  // TODO: [백엔드 연동] 추후 /api/users/login API 호출 및 토큰 관리 로직으로 교체해야 합니다.
-  const login = (userType: "USER" | "ADMIN" = "USER") => {
-    setIsLoggedIn(true);
-    if (userType === "ADMIN") {
-      setUser({
-        id: 0,
-        email: "admin@scommit.com",
-        nickname: "어드민",
-        role: "ADMIN",
-      });
-    } else {
-      setUser({
-        id: 1,
-        email: "dev@scommit.com",
-        nickname: "김도현",
-        role: "USER",
-      });
+  // 현재 로그인한 유저 정보를 백엔드에서 다시 불러옵니다.
+  const refreshUser = async () => {
+    try {
+      const res = await fetch("/api/users/me");
+      if (res.ok) {
+        const data = await res.json();
+        const userData = data.data.user;
+        setUser({
+          id: userData.id,
+          email: userData.email,
+          nickname: userData.nickname,
+          role: userData.role,
+          avatarUrl: data.data.profileImageUrl,
+        });
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    } catch (e) {
+      console.error("User refresh failed", e);
     }
   };
 
-  const logout = () => {
+  const login = async () => {
+    // TODO: 실제 백엔드 연동 전까지 빈 함수로 남겨둡니다. 
+    // 실제 로그인 구현 시 여기에 로직 추가
+    console.log("Login method placeholder");
+  };
+
+  const logout = async () => {
+    try {
+      await fetch("/api/users/logout", { method: "POST" });
+    } catch (e) {
+      console.error(e);
+    }
     setIsLoggedIn(false);
     setUser(null);
   };
 
+  // 앱 로드 시 한 번 내 정보 불러오기 시도
+  useEffect(() => {
+    refreshUser();
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
