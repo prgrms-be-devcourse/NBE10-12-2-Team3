@@ -1,12 +1,12 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { MOCK_CREATORS, MOCK_POSTS } from "@/lib/mock-data";
+import { apiFetch, ApiError } from "@/lib/api";
 import { UserProfileView } from "./user-profile-view";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 10;
-const BASE_URL = "http://localhost:8080";
 
 // Swagger 확정 스펙: GET /api/users/{id} → RsData<UserProfileApiResponse>
 export interface UserProfileApiResponse {
@@ -105,16 +105,16 @@ export default async function UserProfilePage({
   const accessToken = cookieStore.get("accessToken")?.value;
   const authHeaders: HeadersInit = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
-  const profileRes = await fetch(`${BASE_URL}/api/users/${id}`, {
-    cache: "no-store",
-    headers: authHeaders,
-  });
-
-  if (profileRes.status === 404) {
-    notFound();
-  }
-
-  if (!profileRes.ok) {
+  let apiProfile: UserProfileApiResponse;
+  try {
+    apiProfile = await apiFetch<UserProfileApiResponse>(`/api/users/${id}`, {
+      cache: "no-store",
+      headers: authHeaders,
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      notFound();
+    }
     // TODO: [백엔드 확인 필요] 401/403 등 상태별 세분화된 에러 처리는 아직 없음 — 최소한의 에러 메시지만 노출합니다.
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
@@ -122,8 +122,6 @@ export default async function UserProfilePage({
       </div>
     );
   }
-
-  const { data: apiProfile }: { data: UserProfileApiResponse } = await profileRes.json();
 
   // TODO: [백엔드 확인 필요] 콘텐츠 수 / 구독자 수 / 구독 중 수 / 멤버십 제공 여부는
   // UserProfileApiResponse에 없습니다. 통계 전용 엔드포인트가 Swagger에 아직 없음 — 백엔드 확인 후 실데이터로 교체 예정.
@@ -152,13 +150,14 @@ export default async function UserProfilePage({
   let page = requestedPage;
 
   if (tab === "content") {
-    // page/size는 개별 쿼리 파라미터로 전달합니다 (Pageable을 nested 객체로 보내지 않음)
-    const postsRes = await fetch(
-      `${BASE_URL}/api/posts?creatorId=${id}&page=${requestedPage - 1}&size=${PAGE_SIZE}`,
-      { cache: "no-store", headers: authHeaders }
-    );
-
-    if (!postsRes.ok) {
+    let data: SlicePostListResponse;
+    try {
+      // page/size는 개별 쿼리 파라미터로 전달합니다 (Pageable을 nested 객체로 보내지 않음)
+      data = await apiFetch<SlicePostListResponse>(
+        `/api/posts?creatorId=${id}&page=${requestedPage - 1}&size=${PAGE_SIZE}`,
+        { cache: "no-store", headers: authHeaders }
+      );
+    } catch {
       // TODO: [백엔드 확인 필요] 401/403 등 상태별 세분화된 에러 처리는 아직 없음 — 최소한의 에러 메시지만 노출합니다.
       return (
         <div className="min-h-screen flex items-center justify-center bg-neutral-50">
@@ -167,16 +166,16 @@ export default async function UserProfilePage({
       );
     }
 
-    const { data }: { data: SlicePostListResponse } = await postsRes.json();
     pagedPosts = data.content;
     isLastPostsPage = data.last;
   } else {
-    const seriesRes = await fetch(
-      `${BASE_URL}/api/series/users/${id}?page=${requestedPage - 1}&size=${PAGE_SIZE}`,
-      { cache: "no-store", headers: authHeaders }
-    );
-
-    if (!seriesRes.ok) {
+    let data: PageResponseSeriesListResponse;
+    try {
+      data = await apiFetch<PageResponseSeriesListResponse>(
+        `/api/series/users/${id}?page=${requestedPage - 1}&size=${PAGE_SIZE}`,
+        { cache: "no-store", headers: authHeaders }
+      );
+    } catch {
       // TODO: [백엔드 확인 필요] 401/403 등 상태별 세분화된 에러 처리는 아직 없음 — 최소한의 에러 메시지만 노출합니다.
       return (
         <div className="min-h-screen flex items-center justify-center bg-neutral-50">
@@ -185,7 +184,6 @@ export default async function UserProfilePage({
       );
     }
 
-    const { data }: { data: PageResponseSeriesListResponse } = await seriesRes.json();
     pagedSeries = data.content;
     totalPages = data.totalPages;
     page = Math.min(Math.max(requestedPage, 1), totalPages);
