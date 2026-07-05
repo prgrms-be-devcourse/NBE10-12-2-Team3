@@ -1,9 +1,10 @@
 package com.scommit.domain.subscription.subscription.service;
 
+import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
 import com.scommit.domain.subscription.subscription.entity.Subscription;
 import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
 import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
-import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
@@ -16,16 +17,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,6 +41,9 @@ class SubscriptionServiceTest {
 
     @Mock
     private SubscriptionRepository subscriptionRepository;
+
+    @Mock
+    private SseEmitterRepository sseEmitterRepository;
 
     @InjectMocks
     private SubscriptionService subscriptionService;
