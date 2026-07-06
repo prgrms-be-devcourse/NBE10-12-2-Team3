@@ -19,12 +19,8 @@ public class LikeService {
 
     @Transactional
     public void createLike(Long postId, User actor) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         if (!postLikeRepository.existsByPostIdAndUserId(postId, actor.getId())) {
             postLikeRepository.save(new Like(post, actor));
@@ -34,12 +30,8 @@ public class LikeService {
 
     @Transactional
     public void deleteLike(Long postId, User actor) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         Like like = postLikeRepository.findByPostIdAndUserId(postId, actor.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));

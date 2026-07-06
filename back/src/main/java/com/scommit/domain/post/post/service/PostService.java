@@ -83,11 +83,8 @@ public class PostService {
     // 게시글 상세 조회
     @Transactional
     public PostResponse getPost(Long id, User actor) {
-        Post post = postRepository.findById(id)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         boolean isOwner = actor != null && post.getUser().getId().equals(actor.getId());
 
@@ -116,12 +113,8 @@ public class PostService {
     @Transactional
     public PostResponse updatePost(User actor, Long id, String title, String body,
                                    PublishStatus publishStatus, PostAccessLevel accessLevel, Long seriesId) {
-        Post post = postRepository.findById(id)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         if (!post.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
@@ -144,12 +137,8 @@ public class PostService {
     // 게시글 삭제
     @Transactional
     public void deletePost(User actor, Long id) {
-        Post post = postRepository.findById(id)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         if (!post.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
@@ -175,11 +164,8 @@ public class PostService {
     // 시리즈에 포스트 추가
     @Transactional
     public void addPostToSeries(Long postId, Long seriesId, User actor) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
         if (!post.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
@@ -196,11 +182,8 @@ public class PostService {
     // 시리즈에서 포스트 제거
     @Transactional
     public void removePostFromSeries(Long postId, Long seriesId, User actor) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         Series series = post.getSeries();
         if (series == null || !series.getId().equals(seriesId)) {
