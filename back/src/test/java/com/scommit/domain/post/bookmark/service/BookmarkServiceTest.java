@@ -2,6 +2,7 @@ package com.scommit.domain.post.bookmark.service;
 
 import com.scommit.domain.post.bookmark.entity.Bookmark;
 import com.scommit.domain.post.bookmark.repository.BookmarkRepository;
+import com.scommit.domain.post.like.repository.LikeRepository;
 import com.scommit.domain.post.post.dto.PostListResponse;
 import com.scommit.domain.post.post.entity.Post;
 import com.scommit.domain.post.post.entity.PostAccessLevel;
@@ -45,6 +46,9 @@ class BookmarkServiceTest {
     @Mock
     private PostRepository postRepository;
 
+    @Mock
+    private LikeRepository likeRepository;
+
     @InjectMocks
     private BookmarkService bookmarkService;
 
@@ -61,6 +65,7 @@ class BookmarkServiceTest {
         ReflectionTestUtils.setField(actor, "id", 1L);
 
         post = Post.builder()
+                .user(actor)
                 .title("테스트 게시글")
                 .body("내용")
                 .publishStatus(PublishStatus.PUBLIC)
@@ -234,5 +239,56 @@ class BookmarkServiceTest {
             // then
             assertThat(result.getContent()).isEmpty();
         }
+
+        @Test
+        @DisplayName("성공: 북마크한 게시글의 isBookmarked는 항상 true를 반환한다")
+        void getMyBookmarks_isBookmarked_alwaysTrue() {
+            // given
+            Pageable pageable = PageRequest.of(0, 10);
+            Bookmark bookmark = new Bookmark(post, actor);
+            Page<Bookmark> page = new PageImpl<>(List.of(bookmark));
+            given(bookmarkRepository.findByUserIdAndPostDeletedAtIsNull(1L, pageable)).willReturn(page);
+
+            // when
+            Page<PostListResponse> result = bookmarkService.getMyBookmarks(actor, pageable);
+
+            // then
+            assertThat(result.getContent().get(0).isBookmarked()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공: 북마크한 게시글을 좋아요도 했으면 isLiked=true를 반환한다")
+        void getMyBookmarks_isLiked_true() {
+            // given
+            Pageable pageable = PageRequest.of(0, 10);
+            Bookmark bookmark = new Bookmark(post, actor);
+            Page<Bookmark> page = new PageImpl<>(List.of(bookmark));
+            given(bookmarkRepository.findByUserIdAndPostDeletedAtIsNull(1L, pageable)).willReturn(page);
+            given(likeRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(true);
+
+            // when
+            Page<PostListResponse> result = bookmarkService.getMyBookmarks(actor, pageable);
+
+            // then
+            assertThat(result.getContent().get(0).isLiked()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공: 북마크한 게시글을 좋아요하지 않았으면 isLiked=false를 반환한다")
+        void getMyBookmarks_isLiked_false() {
+            // given
+            Pageable pageable = PageRequest.of(0, 10);
+            Bookmark bookmark = new Bookmark(post, actor);
+            Page<Bookmark> page = new PageImpl<>(List.of(bookmark));
+            given(bookmarkRepository.findByUserIdAndPostDeletedAtIsNull(1L, pageable)).willReturn(page);
+            given(likeRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(false);
+
+            // when
+            Page<PostListResponse> result = bookmarkService.getMyBookmarks(actor, pageable);
+
+            // then
+            assertThat(result.getContent().get(0).isLiked()).isFalse();
+        }
     }
+
 }
