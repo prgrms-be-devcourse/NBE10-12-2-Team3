@@ -10,7 +10,7 @@ import { ContentCard } from "@/components/common/content-card";
 import { SeriesListRow } from "@/components/common/series-list-row";
 import { ConfirmModal } from "@/components/common/confirm-modal";
 import { useAuth } from "@/providers/auth-provider";
-import { apiPost, apiDelete } from "@/lib/api";
+import { apiFetch, apiPost, apiDelete } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { UserProfileResponse, PostListResponse, SeriesListResponse } from "./page";
 
@@ -19,6 +19,26 @@ import type { UserProfileResponse, PostListResponse, SeriesListResponse } from "
 type Profile = UserProfileResponse;
 type PostItem = PostListResponse;
 type SeriesItem = SeriesListResponse;
+
+// Swagger 확정 스펙: GET /api/subscriptions?page={n}&size={s} → RsData<PageResponse<SubscriptionResponse>>
+// 로그인한 사용자의 구독(팔로우/멤버십) 목록. 번호식 페이지네이션(PageResponse) 응답입니다.
+interface SubscriptionResponse {
+  creatorId: number;
+  nickname: string;
+  creatorProfileImage: string;
+  tier: "FOLLOW" | "MEMBERSHIP";
+  startedAt: string;
+  expiredAt: string | null;
+}
+
+interface SubscriptionsPageResponse {
+  content: SubscriptionResponse[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  isLast: boolean;
+}
 
 interface UserProfileViewProps {
   profile: Profile;
@@ -42,10 +62,8 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
   const router = useRouter();
   const { isLoggedIn, user } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
-  // TODO: 로그인한 사용자의 초기 isFollowing/isMember 상태는 프로필 응답(UserProfileResponse)에 없습니다.
-  // GET /api/subscriptions(내 구독 목록, tier: FOLLOW|MEMBERSHIP)에서 creatorId가 일치하는 항목이
-  // 있는지로 판단 가능하나, 페이지네이션된 목록을 직접 뒤져야 해서 비효율적입니다.
-  // 더 나은 방법(예: 프로필 응답에 isFollowing 필드 추가)을 백엔드에 요청하는 것을 고려하세요.
+  // 로그인한 사용자의 초기 isFollowing/isMember 상태는 프로필 응답(UserProfileResponse)에 없어,
+  // 아래 useEffect에서 GET /api/subscriptions 목록을 조회해 판단합니다.
   const [isFollowing, setIsFollowing] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [isFollowSubmitting, setIsFollowSubmitting] = useState(false);
@@ -62,6 +80,36 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page]);
+
+  // 로그인한 사용자이면서 본인 프로필이 아닐 때만, 이미 팔로우/멤버십 중인지 확인합니다.
+  // TODO: 현재는 GET /api/subscriptions 목록을 가져와 creatorId로 매칭하는 방식으로 isFollowing을
+  // 판단하고 있음. 목록이 많은 사용자는 부정확할 수 있음. 추후 GET /api/subscriptions/{creatorId} 같은
+  // 단건 확인 API가 추가되면 이 방식을 대체할 예정.
+  useEffect(() => {
+    if (!isLoggedIn || isOwnProfile) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        // 백엔드에 별도 size 상한 설정이 없어(Spring 기본 max-page-size=2000), 100은 안전한 값입니다.
+        const data = await apiFetch<SubscriptionsPageResponse>(`/api/subscriptions?page=0&size=100`);
+        if (cancelled) return;
+        const matched = data.content.find((s) => s.creatorId === profile.id);
+        if (matched?.tier === "FOLLOW") {
+          setIsFollowing(true);
+        } else if (matched?.tier === "MEMBERSHIP") {
+          setIsFollowing(true);
+          setIsMember(true);
+        }
+      } catch {
+        // 조회 실패 시 기존 기본값(false)을 유지합니다.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, isOwnProfile, profile.id]);
 
   // 응답은 RsData<Void>. 인증은 이 프로젝트의 기존 클라이언트 패턴(apiPost/apiDelete → credentials:'include'
   // 쿠키 기반)을 그대로 따릅니다. 실패 시 최소한의 alert로 알리고 버튼 상태는 성공했을 때만 갱신합니다.
@@ -92,6 +140,11 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
         await apiDelete(`/api/subscriptions/membership/${profile.id}`);
       } else {
         await apiPost(`/api/subscriptions/membership/${profile.id}`);
+        // 백엔드가 멤버십 가입 시 자동으로 팔로우 처리하므로, 프론트 상태도 함께 맞춰줍니다.
+        // 이걸 빼먹으면 팔로우 없이 바로 멤버십에 가입한 사용자가 나중에 멤버십을 해지했을 때
+        // isFollowing이 여전히 false로 남아 팔로우 버튼이 "팔로우"로 보이고, 클릭 시 백엔드가
+        // 이미 존재하는 구독으로 거부(ALREADY_SUBSCRIBED)해 실패 alert가 뜨는 버그가 있었습니다.
+        setIsFollowing(true);
       }
       setIsMember((prev) => !prev);
     } catch {
@@ -237,7 +290,14 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
 
           {!isOwnProfile && (
             <div className="flex items-end gap-2 pb-2">
-              <Button size="sm" variant="outlined" className="rounded-full px-6" onClick={handleFollowClick} disabled={isFollowSubmitting}>
+              <Button
+                size="sm"
+                variant="outlined"
+                className="rounded-full px-6"
+                onClick={handleFollowClick}
+                disabled={isFollowSubmitting || isMember}
+                title={isMember ? "멤버십 해지 후 언팔로우할 수 있습니다." : undefined}
+              >
                 {isFollowing ? "팔로잉" : "팔로우"}
               </Button>
               {profile.offersMembership && (
