@@ -118,7 +118,7 @@ export function SeriesCard({
           <div className="absolute bottom-3 right-3 flex items-center z-20">
             <div className="flex items-center rounded-[10px] bg-neutral-800/50 backdrop-blur-md px-3 py-1.5 shadow-lg border border-white/10">
               <span className="text-[12px] font-bold text-white tracking-wide drop-shadow-sm">
-                {postCount}개의 게시글
+                {postCount}개의 포스트
               </span>
             </div>
           </div>

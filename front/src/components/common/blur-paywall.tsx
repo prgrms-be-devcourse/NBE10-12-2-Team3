@@ -22,12 +22,12 @@ export function BlurPaywall({ isLoggedIn = false, className }: BlurPaywallProps)
       </div>
 
       <h3 className="mb-2 text-xl font-bold tracking-tight text-neutral-dark">
-        {isLoggedIn ? "유료 멤버십 전용 콘텐츠입니다" : "로그인이 필요한 콘텐츠입니다"}
+        {isLoggedIn ? "유료 멤버십 전용 포스트입니다" : "로그인이 필요한 포스트입니다"}
       </h3>
       
       <p className="mb-8 max-w-sm text-sm leading-relaxed text-neutral-meta">
         {isLoggedIn 
-          ? "이서연 크리에이터의 멤버십을 구독하시면 이 글을 포함한 모든 콘텐츠를 볼 수 있어요."
+          ? "이서연 크리에이터의 멤버십을 구독하시면 이 글을 포함한 모든 포스트를 볼 수 있어요."
           : "Commit에 가입하고 개발자들의 진짜 경험과 노하우를 확인해 보세요."}
       </p>
 

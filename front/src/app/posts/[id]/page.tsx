@@ -117,7 +117,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
             </button>
             <button
               onClick={() => {
-                if (confirm("게시글을 삭제할까요?")) {
+                if (confirm("포스트를 삭제할까요?")) {
                   // TODO: 백엔드 API 연동 (DELETE /api/posts/{id})
                   router.push("/posts");
                 }

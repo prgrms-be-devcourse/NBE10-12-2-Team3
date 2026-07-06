@@ -160,14 +160,14 @@ export function SeriesListRow({
               </p>
             </div>
 
-            {/* Footer Area: 공개여부 · 게시글 개수 (좌) / 업데이트일 (우) */}
+            {/* Footer Area: 공개여부 · 포스트 개수 (좌) / 업데이트일 (우) */}
             <div className="flex items-center justify-between gap-2 pt-4 mt-auto text-sm font-medium text-neutral-meta">
               <div className="flex items-center gap-2">
                 <span className={cn("font-bold", isMembership ? "text-membership" : "text-primary")}>
                   {isMembership ? "멤버십" : "공개"}
                 </span>
                 <span className="text-neutral-300">·</span>
-                <span>{postCount}개의 게시글</span>
+                <span>{postCount}개의 포스트</span>
               </div>
               <span className="flex items-center gap-1 text-neutral-400">
                 업데이트

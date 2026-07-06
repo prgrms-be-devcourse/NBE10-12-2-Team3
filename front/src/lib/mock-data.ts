@@ -2,7 +2,7 @@
 // { id, userId, seriesId, title, publishStatus, accessLevel, viewCount, createdAt }만 내려주고
 // description/thumbnailUrl/likeCount/bookmarkCount/membershipPrice는 없습니다.
 // 이 필드들은 홈/검색 등 다른 mock 전용 화면에서 계속 쓰이므로 여기서는 남겨두되,
-// users/[id] 프로필 페이지(콘텐츠 탭)는 이 필드들을 사용하지 않습니다.
+// users/[id] 프로필 페이지(포스트 탭)는 이 필드들을 사용하지 않습니다.
 export interface MockPost {
   id: number;
   title: string;
