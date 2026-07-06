@@ -218,4 +218,59 @@ class SubscriptionServiceTest {
             assertThat(infos.getContent().get(0).tier()).isEqualTo(SubscriptionTier.FOLLOW);
         }
     }
+
+    @Nested
+    @DisplayName("API 6: 단건 구독 상태 확인 테스트")
+    class GetSubscriptionStatusTest {
+        @Test
+        @DisplayName("성공: 구독하지 않은 경우 NONE 반환")
+        void returnNoneWhenNotSubscribed() {
+            // given
+            given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.empty());
+
+            // when
+            String status = subscriptionService.getSubscriptionStatus(1L, 2L);
+
+            // then
+            assertThat(status).isEqualTo("NONE");
+        }
+
+        @Test
+        @DisplayName("성공: 팔로우 중인 경우 FOLLOW 반환")
+        void returnFollowWhenFollowing() {
+            // given
+            given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.of(followSubscription));
+
+            // when
+            String status = subscriptionService.getSubscriptionStatus(1L, 2L);
+
+            // then
+            assertThat(status).isEqualTo("FOLLOW");
+        }
+
+        @Test
+        @DisplayName("성공: 멤버십 가입 중인 경우 MEMBERSHIP 반환")
+        void returnMembershipWhenJoined() {
+            // given
+            followSubscription.upgradeToMembership();
+            given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.of(followSubscription));
+
+            // when
+            String status = subscriptionService.getSubscriptionStatus(1L, 2L);
+
+            // then
+            assertThat(status).isEqualTo("MEMBERSHIP");
+        }
+
+        @Test
+        @DisplayName("성공: 자기 자신을 조회하는 경우 NONE 반환")
+        void returnNoneWhenSelf() {
+            // when
+            String status = subscriptionService.getSubscriptionStatus(1L, 1L);
+
+            // then
+            assertThat(status).isEqualTo("NONE");
+            verify(subscriptionRepository, never()).findByUserIdAndCreatorId(any(), any());
+        }
+    }
 }
