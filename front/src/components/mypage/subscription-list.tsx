@@ -23,30 +23,35 @@ export function SubscriptionList() {
   const fetchSubscriptions = async (page: number) => {
     setIsLoading(true);
     try {
-      // 백엔드는 0-based page index를 사용하므로 page - 1
-      const res = await fetch(`/api/subscriptions?page=${page - 1}&size=10`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data && json.data.content) {
-          setItems(json.data.content);
-          setTotalPages(json.data.totalPages === 0 ? 1 : json.data.totalPages);
-        }
-      }
+      // 🚨 [임시 테스트용 더미 데이터] 실제 백엔드 연동 전 UI 확인을 위한 가짜 데이터입니다.
+      setTimeout(() => {
+        const dummyData: SubscriptionItem[] = [
+          { creatorId: 101, nickname: "토스 테크", creatorProfileImage: null, tier: "FOLLOW" },
+          { creatorId: 102, nickname: "우아한 형제들 기술블로그", creatorProfileImage: null, tier: "MEMBERSHIP" },
+          { creatorId: 103, nickname: "카카오 엔터프라이즈", creatorProfileImage: null, tier: "FOLLOW" },
+          { creatorId: 104, nickname: "당근마켓 팀", creatorProfileImage: null, tier: "FOLLOW" },
+          { creatorId: 105, nickname: "네이버 D2", creatorProfileImage: null, tier: "MEMBERSHIP" },
+          { creatorId: 106, nickname: "라인 엔지니어링", creatorProfileImage: null, tier: "FOLLOW" },
+        ];
+        
+        // 페이지네이션 테스트를 위해 3개씩 잘라서 보여줍니다.
+        const start = (page - 1) * 3;
+        const end = start + 3;
+        
+        setItems(dummyData.slice(start, end));
+        setTotalPages(Math.ceil(dummyData.length / 3));
+        setIsLoading(false);
+      }, 500); // 0.5초 로딩 효과
     } catch (e) {
       console.error(e);
-    } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isLoggedIn) {
-      fetchSubscriptions(currentPage);
-    } else {
-      setIsLoading(false);
-      setItems([]);
-    }
-  }, [currentPage, isLoggedIn]);
+    // 테스트를 위해 로그인 여부와 상관없이 항상 더미 데이터를 불러오도록 수정
+    fetchSubscriptions(currentPage);
+  }, [currentPage]);
 
   if (isLoading) {
     return (

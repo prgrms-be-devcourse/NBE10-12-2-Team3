@@ -23,28 +23,19 @@ export function FollowButton({ creatorId, initialTier = "NONE", className }: Fol
     e.stopPropagation(); // 카드 클릭 이벤트 전파 방지
     e.preventDefault();
 
-    if (!isLoggedIn) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
-
-    if (!creatorId) return;
     if (isLoading) return;
 
     setIsLoading(true);
     try {
+      // 🚨 [임시 테스트용] 백엔드 연동 없이 UI 전환만 시뮬레이션 합니다.
+      await new Promise((resolve) => setTimeout(resolve, 400)); // 0.4초 통신 딜레이 흉내
+      
       if (tier === "NONE") {
-        // FOLLOW 하기
-        const res = await fetch(`/api/subscriptions/follow/${creatorId}`, { method: "POST" });
-        if (res.ok) setTier("FOLLOW");
+        setTier("FOLLOW");
       } else if (tier === "FOLLOW") {
-        // MEMBERSHIP 가입
-        const res = await fetch(`/api/subscriptions/membership/${creatorId}`, { method: "POST" });
-        if (res.ok) setTier("MEMBERSHIP");
+        setTier("MEMBERSHIP");
       } else if (tier === "MEMBERSHIP") {
-        // 언팔로우 (멤버십 해지 + 팔로우 해지가 동시에 되는지 확실치 않으므로 언팔로우 호출)
-        const res = await fetch(`/api/subscriptions/follow/${creatorId}`, { method: "DELETE" });
-        if (res.ok) setTier("NONE");
+        setTier("NONE");
       }
     } catch (error) {
       console.error("Subscription toggle failed", error);
