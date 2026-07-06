@@ -2,6 +2,7 @@ package com.scommit.domain.subscription.subscription.controller;
 
 import com.scommit.domain.subscription.subscription.dto.SubscriptionResponse;
 import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 import com.scommit.domain.subscription.subscription.dto.SubscriptionStatusResponse;
 import com.scommit.domain.subscription.subscription.service.SubscriptionService;
 import com.scommit.global.dto.RsData;
@@ -103,7 +104,7 @@ public class SubscriptionController {
             @PathVariable("creatorId") Long creatorId,
             @AuthenticationPrincipal SecurityUser user
     ) {
-        String status = subscriptionService.getSubscriptionStatus(user.getId(), creatorId);
+        SubscriptionStatus status = subscriptionService.getSubscriptionStatus(user.getId(), creatorId);
         return new RsData<>("200-1", "구독 상태 조회 성공", new SubscriptionStatusResponse(status));
     }
 }

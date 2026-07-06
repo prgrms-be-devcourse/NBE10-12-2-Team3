@@ -4,6 +4,7 @@ import com.scommit.domain.subscription.subscription.entity.Subscription;
 import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
 import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
 import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
@@ -229,10 +230,10 @@ class SubscriptionServiceTest {
             given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.empty());
 
             // when
-            String status = subscriptionService.getSubscriptionStatus(1L, 2L);
+            SubscriptionStatus status = subscriptionService.getSubscriptionStatus(1L, 2L);
 
             // then
-            assertThat(status).isEqualTo("NONE");
+            assertThat(status).isEqualTo(SubscriptionStatus.NONE);
         }
 
         @Test
@@ -242,10 +243,10 @@ class SubscriptionServiceTest {
             given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.of(followSubscription));
 
             // when
-            String status = subscriptionService.getSubscriptionStatus(1L, 2L);
+            SubscriptionStatus status = subscriptionService.getSubscriptionStatus(1L, 2L);
 
             // then
-            assertThat(status).isEqualTo("FOLLOW");
+            assertThat(status).isEqualTo(SubscriptionStatus.FOLLOW);
         }
 
         @Test
@@ -256,20 +257,20 @@ class SubscriptionServiceTest {
             given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.of(followSubscription));
 
             // when
-            String status = subscriptionService.getSubscriptionStatus(1L, 2L);
+            SubscriptionStatus status = subscriptionService.getSubscriptionStatus(1L, 2L);
 
             // then
-            assertThat(status).isEqualTo("MEMBERSHIP");
+            assertThat(status).isEqualTo(SubscriptionStatus.MEMBERSHIP);
         }
 
         @Test
         @DisplayName("성공: 자기 자신을 조회하는 경우 NONE 반환")
         void returnNoneWhenSelf() {
             // when
-            String status = subscriptionService.getSubscriptionStatus(1L, 1L);
+            SubscriptionStatus status = subscriptionService.getSubscriptionStatus(1L, 1L);
 
             // then
-            assertThat(status).isEqualTo("NONE");
+            assertThat(status).isEqualTo(SubscriptionStatus.NONE);
             verify(subscriptionRepository, never()).findByUserIdAndCreatorId(any(), any());
         }
     }

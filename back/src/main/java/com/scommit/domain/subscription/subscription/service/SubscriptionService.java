@@ -17,6 +17,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -139,14 +140,14 @@ public class SubscriptionService {
         return subscriptionsPage.map(SubscriptionInfo::from);
     }
 
-    public String getSubscriptionStatus(Long userId, Long creatorId) {
+    public SubscriptionStatus getSubscriptionStatus(Long userId, Long creatorId) {
         if (userId.equals(creatorId)) {
-            return "NONE";
+            return SubscriptionStatus.NONE;
         }
         Optional<Subscription> subscriptionOpt = subscriptionRepository.findByUserIdAndCreatorId(userId, creatorId);
         if (subscriptionOpt.isEmpty() || subscriptionOpt.get().getDeletedAt() != null) {
-            return "NONE";
+            return SubscriptionStatus.NONE;
         }
-        return subscriptionOpt.get().getTier().name();
+        return SubscriptionStatus.valueOf(subscriptionOpt.get().getTier().name());
     }
 }
