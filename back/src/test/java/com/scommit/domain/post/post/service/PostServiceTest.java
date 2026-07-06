@@ -1,13 +1,17 @@
 package com.scommit.domain.post.post.service;
 
+import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
+import com.scommit.domain.post.post.dto.PostListResponse;
 import com.scommit.domain.post.post.dto.PostResponse;
 import com.scommit.domain.post.post.entity.Post;
-import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
 import com.scommit.domain.post.post.entity.PostAccessLevel;
 import com.scommit.domain.post.post.entity.PublishStatus;
 import com.scommit.domain.post.post.repository.PostRepository;
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.repository.SeriesRepository;
+import com.scommit.domain.subscription.subscription.entity.Subscription;
+import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
+import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
@@ -21,18 +25,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.SliceImpl;
-import com.scommit.domain.post.post.dto.PostListResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -58,6 +56,9 @@ class PostServiceTest {
 
     @Mock
     private SubscriptionRepository subscriptionRepository;
+
+    @Mock
+    private SseEmitterRepository sseEmitterRepository;
 
     @InjectMocks
     private PostService postService;
@@ -249,6 +250,46 @@ class PostServiceTest {
             assertThat(response.seriesId()).isEqualTo(5L);
         }
 
+        @Test
+        @DisplayName("성공: PUBLIC 게시글 생성 시 구독자에게 SSE 알림을 전송한다.")
+        void create_Public_SendsSse() {
+            Subscription sub = Subscription.builder()
+                    .user(otherUser)
+                    .creator(mockUser)
+                    .tier(SubscriptionTier.FOLLOW)
+                    .build();
+            when(subscriptionRepository.findByCreatorIdAndDeletedAtIsNull(1L)).thenReturn(List.of(sub));
+
+            postService.createPost(mockUser, "제목", "내용", PublishStatus.PUBLIC, PostAccessLevel.FREE, null);
+
+            verify(sseEmitterRepository).sendToUser(eq(2L), any());
+        }
+
+        @Test
+        @DisplayName("성공: PAID 게시글 생성 시 멤버십 구독자에게만 SSE 알림을 전송한다.")
+        void create_Paid_SendsSseOnlyToMembers() {
+            Subscription member = Subscription.builder()
+                    .user(otherUser)
+                    .creator(mockUser)
+                    .tier(SubscriptionTier.MEMBERSHIP)
+                    .build();
+            when(subscriptionRepository.findByCreatorIdAndTierAndDeletedAtIsNull(1L, SubscriptionTier.MEMBERSHIP))
+                    .thenReturn(List.of(member));
+
+            postService.createPost(mockUser, "제목", "내용", PublishStatus.PUBLIC, PostAccessLevel.PAID, null);
+
+            verify(sseEmitterRepository).sendToUser(eq(2L), any());
+            verify(subscriptionRepository, never()).findByCreatorIdAndDeletedAtIsNull(any());
+        }
+
+        @Test
+        @DisplayName("성공: DRAFT 게시글 생성 시 SSE 알림을 전송하지 않는다.")
+        void create_Draft_NoSse() {
+            postService.createPost(mockUser, "제목", "내용", PublishStatus.DRAFT, PostAccessLevel.FREE, null);
+
+            verify(sseEmitterRepository, never()).sendToUser(any(), any());
+        }
+
         // 없는 시리즈 ID를 넘기면 저장 전에 예외가 발생해야 함
         @Test
         @DisplayName("실패: 존재하지 않는 시리즈 ID면 RESOURCE_NOT_FOUND 예외를 던진다.")
@@ -277,6 +318,35 @@ class PostServiceTest {
                     PublishStatus.DRAFT, PostAccessLevel.FREE, null);
 
             assertThat(response.title()).isEqualTo("수정제목");
+        }
+
+        @Test
+        @DisplayName("성공: DRAFT→PUBLIC 전환 시 구독자에게 SSE 알림을 전송한다.")
+        void update_DraftToPublic_SendsSse() {
+            Post post = buildPost(1L, mockUser, null);
+            ReflectionTestUtils.setField(post, "publishStatus", PublishStatus.DRAFT);
+            Subscription sub = Subscription.builder()
+                    .user(otherUser)
+                    .creator(mockUser)
+                    .tier(SubscriptionTier.FOLLOW)
+                    .build();
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(subscriptionRepository.findByCreatorIdAndDeletedAtIsNull(1L)).thenReturn(List.of(sub));
+
+            postService.updatePost(mockUser, 1L, "제목", "내용", PublishStatus.PUBLIC, PostAccessLevel.FREE, null);
+
+            verify(sseEmitterRepository).sendToUser(eq(2L), any());
+        }
+
+        @Test
+        @DisplayName("성공: 이미 PUBLIC인 게시글 수정 시 SSE 알림을 다시 전송하지 않는다.")
+        void update_AlreadyPublic_NoSse() {
+            Post post = buildPost(1L, mockUser, null);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            postService.updatePost(mockUser, 1L, "수정제목", "수정내용", PublishStatus.PUBLIC, PostAccessLevel.FREE, null);
+
+            verify(sseEmitterRepository, never()).sendToUser(any(), any());
         }
 
         // 없는 게시글 ID → 조회 시점에 예외 발생
