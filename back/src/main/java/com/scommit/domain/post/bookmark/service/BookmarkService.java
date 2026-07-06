@@ -2,6 +2,7 @@ package com.scommit.domain.post.bookmark.service;
 
 import com.scommit.domain.post.bookmark.entity.Bookmark;
 import com.scommit.domain.post.bookmark.repository.BookmarkRepository;
+import com.scommit.domain.post.like.repository.LikeRepository;
 import com.scommit.domain.post.post.dto.PostListResponse;
 import com.scommit.domain.post.post.entity.Post;
 import com.scommit.domain.post.post.repository.PostRepository;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class BookmarkService {
     private final BookmarkRepository postBookmarkRepository;
     private final PostRepository postRepository;
+    private final LikeRepository likeRepository;
 
     @Transactional
     public void createBookmark(Long postId, User actor) {
@@ -38,7 +40,11 @@ public class BookmarkService {
     @Transactional(readOnly = true)
     public Page<PostListResponse> getMyBookmarks(User actor, Pageable pageable) {
         return postBookmarkRepository.findByUserIdAndPostDeletedAtIsNull(actor.getId(), pageable)
-                .map(bookmark -> new PostListResponse(bookmark.getPost()));
+                .map(bookmark -> new PostListResponse(
+                        bookmark.getPost(),
+                        likeRepository.existsByPostIdAndUserId(bookmark.getPost().getId(), actor.getId()),
+                        true
+                ));
     }
 
     @Transactional
