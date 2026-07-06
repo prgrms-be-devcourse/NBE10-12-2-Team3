@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   login: (userType?: "USER" | "ADMIN") => void;
   loginWithCredentials: (email: string, password: string) => Promise<void>;
+  signupWithCredentials: (email: string, password: string, nickname: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -82,6 +83,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // 회원가입 요청
+  const signupWithCredentials = async (email: string, password: string, nickname: string) => {
+    try {
+      const res = await fetch("/api/users/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, nickname }),
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.msg || json?.message || "회원가입에 실패했습니다.");
+      }
+      
+      // 회원가입 성공 시 추가 로직은 사용하는 컴포넌트(page)에서 진행합니다.
+    } catch (e: any) {
+      console.error("Signup failed:", e);
+      throw e;
+    }
+  };
+
   const logout = async () => {
     try {
       await fetch("/api/users/logout", { method: "POST" });
@@ -98,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, loginWithCredentials, logout, refreshUser }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, login, loginWithCredentials, signupWithCredentials, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
