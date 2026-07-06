@@ -25,3 +25,9 @@ jwt:
 
 file:
   path: ./build/test-uploads
+
+cors:
+  allowed-origins: http://localhost:3000
+
+cookie:
+  domain: localhost

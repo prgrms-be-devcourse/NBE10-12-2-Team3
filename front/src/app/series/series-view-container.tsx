@@ -9,7 +9,7 @@ import {SeriesListCard} from "@/components/common/series-list-card";
 import {cn} from "@/lib/utils";
 import {useAuth} from "@/providers/auth-provider";
 import {getSeriesList} from "@/lib/series-api";
-import {MEDIA_BASE} from "@/lib/api";
+import {resolveMediaUrl} from "@/lib/api";
 
 interface Series {
   id: number | string;
@@ -60,7 +60,7 @@ export function SeriesViewContainer({initialSeries, initialHasNext}: SeriesViewC
                 postCount: s.postCount,
                 authorName: s.nickname,
                 lastUpdatedAt: s.updatedAt ? s.updatedAt.split("T")[0] : "",
-                thumbnailUrl: s.thumbnailUrl ? `${MEDIA_BASE}/${s.thumbnailUrl}` : "",
+                thumbnailUrl: s.thumbnailUrl ? resolveMediaUrl(s.thumbnailUrl) : "",
             }));
             setSeriesList((prev) => [...prev, ...newItems]);
             setHasNext(!data.last);

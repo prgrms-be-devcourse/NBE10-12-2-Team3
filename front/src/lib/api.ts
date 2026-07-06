@@ -8,6 +8,12 @@ export class ApiError extends Error {
     }
 }
 
+export function resolveMediaUrl(url: string): string {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${MEDIA_BASE}/${url}`;
+}
+
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const res = await fetch(`${BASE_URL}${path}`, {
         credentials: 'include',

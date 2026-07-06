@@ -1,6 +1,8 @@
 package com.scommit.domain.post.post.service;
 
+import com.scommit.domain.post.post.dto.PostResponse;
 import com.scommit.domain.post.post.entity.Post;
+import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
 import com.scommit.domain.post.post.entity.PostAccessLevel;
 import com.scommit.domain.post.post.entity.PublishStatus;
 import com.scommit.domain.post.post.repository.PostRepository;
@@ -8,6 +10,7 @@ import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.repository.SeriesRepository;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
+import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,12 +24,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.SliceImpl;
+import com.scommit.domain.post.post.dto.PostListResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
+/**
+ * PostService 단위 테스트
+ * - DB, Spring Context 없이 Mockito로 의존성을 가짜(Mock)로 대체
+ * - postRepository, seriesRepository, userRepository의 반환값을 미리 지정(when/thenReturn)하고
+ *   실제 서비스 로직만 검증
+ */
 @ExtendWith(MockitoExtension.class)
 class PostServiceTest {
 
@@ -36,14 +53,22 @@ class PostServiceTest {
     @Mock
     private SeriesRepository seriesRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private SubscriptionRepository subscriptionRepository;
+
     @InjectMocks
     private PostService postService;
 
+    // 테스트에 사용할 유저 2명 (본인 / 타인 구분용)
     private User mockUser;
     private User otherUser;
 
     @BeforeEach
     void setUp() {
+        // JPA가 없으므로 id는 ReflectionTestUtils로 직접 주입
         mockUser = User.builder()
                 .email("test@example.com")
                 .nickname("테스터")
@@ -59,6 +84,7 @@ class PostServiceTest {
         ReflectionTestUtils.setField(otherUser, "id", 2L);
     }
 
+    // 테스트용 Post 빌더 헬퍼 - 매 테스트마다 반복 코드를 줄이기 위해 사용
     private Post buildPost(Long id, User user, Series series) {
         Post post = Post.builder()
                 .user(user)
@@ -72,6 +98,7 @@ class PostServiceTest {
         return post;
     }
 
+    // softDelete된 게시글 생성 (deletedAt이 null이 아닌 상태)
     private Post buildDeletedPost(Long id, User user) {
         Post post = buildPost(id, user, null);
         ReflectionTestUtils.setField(post, "deletedAt", LocalDateTime.now());
@@ -86,6 +113,343 @@ class PostServiceTest {
                 .build();
         ReflectionTestUtils.setField(series, "id", id);
         return series;
+    }
+
+    @Nested
+    @DisplayName("게시글 목록 조회 테스트")
+    class GetPosts {
+
+        // creatorId 없이 전체 조회 시 PUBLIC 게시글만 반환해야 함
+        @Test
+        @DisplayName("성공: creatorId 없이 조회하면 PUBLIC 게시글 목록을 반환한다.")
+        void getPosts_All_OnlyPublic() {
+            Pageable pageable = PageRequest.of(0, 8);
+            Post post = buildPost(1L, mockUser, null);
+            SliceImpl<Post> slice = new SliceImpl<>(List.of(post), pageable, false);
+
+            when(postRepository.findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable))
+                    .thenReturn(slice);
+
+            var result = postService.getPosts(null, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+            verify(postRepository).findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable);
+        }
+
+        // creatorId 지정 시 해당 유저의 게시글만 조회
+        @Test
+        @DisplayName("성공: creatorId를 지정하면 해당 유저의 게시글 목록을 반환한다.")
+        void getPosts_ByCreator() {
+            Pageable pageable = PageRequest.of(0, 8);
+            Post post = buildPost(1L, mockUser, null);
+            SliceImpl<Post> slice = new SliceImpl<>(List.of(post), pageable, false);
+
+            when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
+            when(postRepository.findSliceByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(slice);
+
+            var result = postService.getPosts(1L, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+        }
+
+        // 존재하지 않는 creatorId로 조회 시 예외
+        @Test
+        @DisplayName("실패: 존재하지 않는 creatorId면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        void getPosts_CreatorNotFound() {
+            Pageable pageable = PageRequest.of(0, 8);
+            when(userRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> postService.getPosts(999L, pageable))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+        }
+    }
+
+    @Nested
+    @DisplayName("유저 게시글 목록 조회 테스트 (번호 페이지네이션)")
+    class GetUserPosts {
+
+        // 프로필 화면에서 특정 유저의 게시글을 페이지 번호 방식으로 조회
+        @Test
+        @DisplayName("성공: 특정 유저의 게시글 목록을 페이지로 반환한다.")
+        void getUserPosts_Success() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Post post = buildPost(1L, mockUser, null);
+            Page<Post> postPage = new PageImpl<>(List.of(post), pageable, 1);
+
+            when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
+            when(postRepository.findByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(postPage);
+
+            Page<PostListResponse> result = postService.getUserPosts(1L, pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.getContent().get(0).title()).isEqualTo("테스트 포스트");
+        }
+
+        // 존재하지 않는 유저 조회 시 예외
+        @Test
+        @DisplayName("실패: 존재하지 않는 유저면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        void getUserPosts_UserNotFound() {
+            Pageable pageable = PageRequest.of(0, 10);
+            when(userRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> postService.getUserPosts(999L, pageable))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+        }
+
+        // 게시글이 없는 유저도 빈 페이지를 반환해야 함
+        @Test
+        @DisplayName("성공: 게시글이 없는 유저면 빈 페이지를 반환한다.")
+        void getUserPosts_Empty() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Post> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+
+            when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
+            when(postRepository.findByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(emptyPage);
+
+            Page<PostListResponse> result = postService.getUserPosts(1L, pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(0);
+            assertThat(result.getContent()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("게시글 생성 테스트")
+    class CreatePost {
+
+        // seriesId가 null이면 시리즈 조회를 아예 하지 않아야 함
+        @Test
+        @DisplayName("성공: 시리즈 없이 게시글을 생성한다.")
+        void create_Success_NoSeries() {
+            Post saved = buildPost(1L, mockUser, null);
+            when(postRepository.save(any(Post.class))).thenReturn(saved);
+
+            PostResponse response = postService.createPost(mockUser, "제목", "내용",
+                    PublishStatus.PUBLIC, PostAccessLevel.FREE, null);
+
+            assertThat(response.userId()).isEqualTo(mockUser.getId());
+            // seriesId가 null이면 seriesRepository를 호출하지 않는지 검증
+            verify(seriesRepository, never()).findById(any());
+        }
+
+        // seriesId가 있으면 시리즈를 조회해서 게시글에 연결해야 함
+        @Test
+        @DisplayName("성공: 존재하는 시리즈와 함께 게시글을 생성한다.")
+        void create_Success_WithSeries() {
+            Series series = buildSeries(5L, mockUser);
+            Post saved = buildPost(1L, mockUser, series);
+            when(seriesRepository.findById(5L)).thenReturn(Optional.of(series));
+            when(postRepository.save(any(Post.class))).thenReturn(saved);
+
+            PostResponse response = postService.createPost(mockUser, "제목", "내용",
+                    PublishStatus.PUBLIC, PostAccessLevel.FREE, 5L);
+
+            assertThat(response.seriesId()).isEqualTo(5L);
+        }
+
+        // 없는 시리즈 ID를 넘기면 저장 전에 예외가 발생해야 함
+        @Test
+        @DisplayName("실패: 존재하지 않는 시리즈 ID면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        void create_SeriesNotFound() {
+            when(seriesRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> postService.createPost(mockUser, "제목", "내용",
+                    PublishStatus.PUBLIC, PostAccessLevel.FREE, 999L))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+        }
+    }
+
+    @Nested
+    @DisplayName("게시글 수정 테스트")
+    class UpdatePost {
+
+        // 본인 게시글 수정 → 제목/내용이 실제로 바뀌는지 확인
+        @Test
+        @DisplayName("성공: 본인 게시글을 수정한다.")
+        void update_Success() {
+            Post post = buildPost(1L, mockUser, null);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            PostResponse response = postService.updatePost(mockUser, 1L, "수정제목", "수정내용",
+                    PublishStatus.DRAFT, PostAccessLevel.FREE, null);
+
+            assertThat(response.title()).isEqualTo("수정제목");
+        }
+
+        // 없는 게시글 ID → 조회 시점에 예외 발생
+        @Test
+        @DisplayName("실패: 존재하지 않는 게시글이면 POST_NOT_FOUND 예외를 던진다.")
+        void update_PostNotFound() {
+            when(postRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> postService.updatePost(mockUser, 999L, "제목", "내용",
+                    PublishStatus.PUBLIC, PostAccessLevel.FREE, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
+        }
+
+        // softDelete된 게시글은 없는 것과 동일하게 처리
+        @Test
+        @DisplayName("실패: 삭제된 게시글이면 POST_NOT_FOUND 예외를 던진다.")
+        void update_PostDeleted() {
+            Post deletedPost = buildDeletedPost(1L, mockUser);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(deletedPost));
+
+            assertThatThrownBy(() -> postService.updatePost(mockUser, 1L, "제목", "내용",
+                    PublishStatus.PUBLIC, PostAccessLevel.FREE, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
+        }
+
+        // 타인의 게시글 수정 시도 → 본인 확인 로직에서 차단
+        @Test
+        @DisplayName("실패: 다른 유저의 게시글을 수정하면 ACCESS_DENIED 예외를 던진다.")
+        void update_NotOwner() {
+            Post post = buildPost(1L, otherUser, null);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            assertThatThrownBy(() -> postService.updatePost(mockUser, 1L, "제목", "내용",
+                    PublishStatus.PUBLIC, PostAccessLevel.FREE, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    @Nested
+    @DisplayName("게시글 삭제 테스트")
+    class DeletePost {
+
+        // softDelete 방식이므로 실제로 행이 지워지는 게 아니라 deletedAt이 채워져야 함
+        @Test
+        @DisplayName("성공: 본인 게시글을 삭제한다.")
+        void delete_Success() {
+            Post post = buildPost(1L, mockUser, null);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            postService.deletePost(mockUser, 1L);
+
+            assertThat(post.getDeletedAt()).isNotNull();
+        }
+
+        // 없는 게시글 삭제 시도
+        @Test
+        @DisplayName("실패: 존재하지 않는 게시글이면 POST_NOT_FOUND 예외를 던진다.")
+        void delete_PostNotFound() {
+            when(postRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> postService.deletePost(mockUser, 999L))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
+        }
+
+        // 이미 삭제된 게시글 재삭제 시도 → 멱등성 보장이 아닌 에러 반환 방식
+        @Test
+        @DisplayName("실패: 이미 삭제된 게시글이면 POST_NOT_FOUND 예외를 던진다.")
+        void delete_AlreadyDeleted() {
+            Post deletedPost = buildDeletedPost(1L, mockUser);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(deletedPost));
+
+            assertThatThrownBy(() -> postService.deletePost(mockUser, 1L))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
+        }
+
+        // 타인 게시글 삭제 시도 → 본인 확인 로직에서 차단
+        @Test
+        @DisplayName("실패: 다른 유저의 게시글을 삭제하면 ACCESS_DENIED 예외를 던진다.")
+        void delete_NotOwner() {
+            Post post = buildPost(1L, otherUser, null);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            assertThatThrownBy(() -> postService.deletePost(mockUser, 1L))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    @Nested
+    @DisplayName("게시글 상세 조회 테스트")
+    class GetPost {
+
+        // 조회할 때마다 viewCount가 1씩 올라야 함 (더티체킹 방식)
+        @Test
+        @DisplayName("성공: 게시글 조회 시 조회수가 1 증가한다.")
+        void getPost_Success_ViewCountIncreased() {
+            Post post = buildPost(1L, mockUser, null);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            postService.getPost(1L, mockUser);
+
+            assertThat(post.getViewCount()).isEqualTo(1L);
+        }
+
+        // 없는 게시글 조회
+        @Test
+        @DisplayName("실패: 존재하지 않는 게시글이면 POST_NOT_FOUND 예외를 던진다.")
+        void getPost_NotFound() {
+            when(postRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> postService.getPost(999L, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
+        }
+
+        // softDelete된 게시글은 조회 불가
+        @Test
+        @DisplayName("실패: 삭제된 게시글이면 POST_NOT_FOUND 예외를 던진다.")
+        void getPost_Deleted() {
+            Post deletedPost = buildDeletedPost(1L, mockUser);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(deletedPost));
+
+            assertThatThrownBy(() -> postService.getPost(1L, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
+        }
+
+        // PRIVATE 게시글은 작성자 본인만 조회 가능
+        @Test
+        @DisplayName("실패: PRIVATE 게시글을 타인이 조회하면 ACCESS_DENIED 예외를 던진다.")
+        void getPost_Private_NotOwner() {
+            Post post = buildPost(1L, mockUser, null);
+            ReflectionTestUtils.setField(post, "publishStatus", PublishStatus.PRIVATE);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            assertThatThrownBy(() -> postService.getPost(1L, otherUser))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_DENIED);
+        }
+
+        // PRIVATE 게시글은 비로그인 사용자도 조회 불가
+        @Test
+        @DisplayName("실패: PRIVATE 게시글을 비로그인 사용자가 조회하면 ACCESS_DENIED 예외를 던진다.")
+        void getPost_Private_Anonymous() {
+            Post post = buildPost(1L, mockUser, null);
+            ReflectionTestUtils.setField(post, "publishStatus", PublishStatus.PRIVATE);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            assertThatThrownBy(() -> postService.getPost(1L, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_DENIED);
+        }
+
+        // PAID 게시글을 멤버십 비구독자가 조회하면 본문이 잠긴 상태로 반환
+        @Test
+        @DisplayName("성공: PAID 게시글을 비구독자가 조회하면 isLocked=true로 반환한다.")
+        void getPost_Paid_NotMember_IsLocked() {
+            Post post = buildPost(1L, mockUser, null);
+            ReflectionTestUtils.setField(post, "accessLevel", PostAccessLevel.PAID);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(subscriptionRepository.findByUserIdAndCreatorId(otherUser.getId(), mockUser.getId()))
+                    .thenReturn(Optional.empty());
+
+            PostResponse response = postService.getPost(1L, otherUser);
+
+            assertThat(response.isLocked()).isTrue();
+            assertThat(response.body()).isNull();
+        }
     }
 
     @Nested
@@ -106,6 +470,7 @@ class PostServiceTest {
             assertThat(post.getSeries()).isEqualTo(series);
         }
 
+        // 포스트 조회 실패 시 시리즈 조회는 아예 하지 않아야 함 (불필요한 DB 호출 방지)
         @Test
         @DisplayName("실패: 존재하지 않는 포스트면 POST_NOT_FOUND 예외를 던진다.")
         void add_PostNotFound() {
@@ -129,6 +494,7 @@ class PostServiceTest {
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
         }
 
+        // 포스트 주인이 아니면 시리즈 조회 전에 차단해야 함
         @Test
         @DisplayName("실패: 포스트 주인이 아니면 ACCESS_DENIED 예외를 던진다.")
         void add_PostNotOwned() {
@@ -207,6 +573,7 @@ class PostServiceTest {
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
         }
 
+        // 시리즈에 속하지 않은 포스트를 특정 시리즈에서 제거하려는 경우
         @Test
         @DisplayName("실패: 포스트가 어떤 시리즈에도 속하지 않으면 RESOURCE_NOT_FOUND 예외를 던진다.")
         void remove_PostHasNoSeries() {
@@ -218,6 +585,7 @@ class PostServiceTest {
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
         }
 
+        // 다른 시리즈에 속한 포스트를 잘못된 시리즈 ID로 제거 시도
         @Test
         @DisplayName("실패: 포스트가 다른 시리즈에 속하면 RESOURCE_NOT_FOUND 예외를 던진다.")
         void remove_PostBelongsToDifferentSeries() {
