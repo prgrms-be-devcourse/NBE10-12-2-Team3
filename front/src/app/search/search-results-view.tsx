@@ -47,6 +47,8 @@ interface Post {
   viewCount: number;
   likeCount?: number;
   bookmarkCount?: number;
+    isLiked?: boolean;
+    isBookmarked?: boolean;
   membershipPrice?: number;
 }
 

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ContentCard } from "@/components/common/content-card";
-import { ContentListCard } from "@/components/common/content-list-card";
-import { LayoutGrid, List } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { apiFetch } from "@/lib/api";
+import React, {useCallback, useEffect, useRef, useState} from "react";
+import {ContentCard} from "@/components/common/content-card";
+import {ContentListCard} from "@/components/common/content-list-card";
+import {LayoutGrid, List} from "lucide-react";
+import {cn} from "@/lib/utils";
+import {apiDelete, apiFetch, apiPost} from "@/lib/api";
+import {useAuth} from "@/providers/auth-provider";
 
 interface Post {
     id: number;
@@ -16,6 +17,10 @@ interface Post {
     publishStatus: "PUBLIC" | "PRIVATE";
     accessLevel: "FREE" | "PAID";
     viewCount: number;
+    likeCount: number;
+    bookmarkCount: number;
+    isLiked: boolean;
+    isBookmarked: boolean;
     createdAt: string;
 }
 
@@ -27,6 +32,7 @@ interface SliceResponse {
 const PAGE_SIZE = 8;
 
 export default function PostsPage() {
+    const {isLoggedIn} = useAuth();
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [posts, setPosts] = useState<Post[]>([]);
     const [page, setPage] = useState(0);
@@ -72,6 +78,54 @@ export default function PostsPage() {
         if (observerRef.current) observer.observe(observerRef.current);
         return () => observer.disconnect();
     }, [loadMore]);
+
+    const handleLike = async (postId: number, currentlyLiked: boolean) => {
+        if (!isLoggedIn) return;
+        try {
+            if (currentlyLiked) {
+                await apiDelete(`/api/posts/${postId}/likes`);
+            } else {
+                await apiPost(`/api/posts/${postId}/likes`);
+            }
+            setPosts((prev) =>
+                prev.map((p) =>
+                    p.id === postId
+                        ? {
+                            ...p,
+                            isLiked: !currentlyLiked,
+                            likeCount: currentlyLiked ? p.likeCount - 1 : p.likeCount + 1
+                        }
+                        : p
+                )
+            );
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleBookmark = async (postId: number, currentlyBookmarked: boolean) => {
+        if (!isLoggedIn) return;
+        try {
+            if (currentlyBookmarked) {
+                await apiDelete(`/api/posts/${postId}/bookmarks`);
+            } else {
+                await apiPost(`/api/posts/${postId}/bookmarks`);
+            }
+            setPosts((prev) =>
+                prev.map((p) =>
+                    p.id === postId
+                        ? {
+                            ...p,
+                            isBookmarked: !currentlyBookmarked,
+                            bookmarkCount: currentlyBookmarked ? p.bookmarkCount - 1 : p.bookmarkCount + 1
+                        }
+                        : p
+                )
+            );
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-neutral-50 pb-20 pt-20">
@@ -138,10 +192,14 @@ export default function PostsPage() {
                                     accessLevel={post.accessLevel}
                                     thumbnailUrl={undefined}
                                     authorName={post.nickname}
-                                    createdAt={post.createdAt}
+                                    createdAt={post.createdAt.split("T")[0]}
                                     viewCount={post.viewCount}
-                                    likeCount={0}
-                                    bookmarkCount={0}
+                                    likeCount={post.likeCount}
+                                    bookmarkCount={post.bookmarkCount}
+                                    isLiked={post.isLiked}
+                                    isBookmarked={post.isBookmarked}
+                                    onLike={() => handleLike(post.id, post.isLiked)}
+                                    onBookmark={() => handleBookmark(post.id, post.isBookmarked)}
                                 />
                             ))}
                         </div>
@@ -156,10 +214,14 @@ export default function PostsPage() {
                                     accessLevel={post.accessLevel}
                                     thumbnailUrl={undefined}
                                     authorName={post.nickname}
-                                    createdAt={post.createdAt}
+                                    createdAt={post.createdAt.split("T")[0]}
                                     viewCount={post.viewCount}
-                                    likeCount={0}
-                                    bookmarkCount={0}
+                                    likeCount={post.likeCount}
+                                    bookmarkCount={post.bookmarkCount}
+                                    isLiked={post.isLiked}
+                                    isBookmarked={post.isBookmarked}
+                                    onLike={() => handleLike(post.id, post.isLiked)}
+                                    onBookmark={() => handleBookmark(post.id, post.isBookmarked)}
                                 />
                             ))}
                         </div>

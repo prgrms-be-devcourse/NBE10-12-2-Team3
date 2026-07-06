@@ -1,10 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { Avatar } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { Heart, Eye, Bookmark } from "lucide-react";
-import { formatCompact } from "@/lib/format";
-import { AccessBadge } from "@/components/common/access-badge";
+import {Avatar} from "@/components/ui/avatar";
+import {cn} from "@/lib/utils";
+import {Bookmark, Eye, Heart} from "lucide-react";
+import {formatCompact} from "@/lib/format";
+import {AccessBadge} from "@/components/common/access-badge";
 
 interface ContentListCardProps {
   id: string | number;
@@ -17,6 +17,10 @@ interface ContentListCardProps {
   viewCount: number;
   likeCount?: number;
   bookmarkCount?: number;
+    isLiked?: boolean;
+    isBookmarked?: boolean;
+    onLike?: () => void;
+    onBookmark?: () => void;
   className?: string;
 }
 
@@ -31,6 +35,10 @@ export function ContentListCard({
   viewCount,
   likeCount = 0,
   bookmarkCount = 0,
+                                    isLiked = false,
+                                    isBookmarked = false,
+                                    onLike,
+                                    onBookmark,
   className,
 }: ContentListCardProps) {
   const formattedViews = formatCompact(viewCount);
@@ -85,7 +93,7 @@ export function ContentListCard({
           <h3 className="mb-2.5 line-clamp-2 text-xl md:text-2xl font-extrabold leading-snug tracking-tight text-neutral-dark group-hover:text-primary transition-colors">
             {title}
           </h3>
-          
+
           <p className="line-clamp-2 md:line-clamp-3 text-sm md:text-base leading-relaxed text-neutral-meta">
             {description}
           </p>
@@ -95,14 +103,34 @@ export function ContentListCard({
         <div className="flex items-center justify-between pt-4 mt-auto">
           <span className="text-sm font-medium text-neutral-meta">{createdAt}</span>
           <div className="flex items-center gap-5">
-             <div className="flex items-center gap-2 text-neutral-meta">
-                <Bookmark className="h-4 w-4" />
-                <span className="text-sm font-bold">{formattedBookmarks}</span>
-             </div>
-             <div className="flex items-center gap-2 text-neutral-meta">
-                <Heart className="h-4 w-4" />
-                <span className="text-sm font-bold">{formattedLikes}</span>
-             </div>
+              <button
+                  onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onBookmark?.();
+                  }}
+                  className={cn(
+                      "flex items-center gap-2 transition-colors",
+                      isBookmarked ? "text-primary" : "text-neutral-meta hover:text-primary"
+                  )}
+              >
+                  <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-primary")}/>
+                  <span className="text-sm font-bold">{formattedBookmarks}</span>
+              </button>
+              <button
+                  onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onLike?.();
+                  }}
+                  className={cn(
+                      "flex items-center gap-2 transition-colors",
+                      isLiked ? "text-red-500" : "text-neutral-meta hover:text-red-400"
+                  )}
+              >
+                  <Heart className={cn("h-4 w-4", isLiked && "fill-red-500")}/>
+                  <span className="text-sm font-bold">{formattedLikes}</span>
+              </button>
              <div className="flex items-center gap-2 text-neutral-meta">
                 <Eye className="h-4 w-4" />
                 <span className="text-sm font-bold">{formattedViews}</span>
