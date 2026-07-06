@@ -99,22 +99,30 @@ export default function Home() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const isLoadingMoreRef = useRef(false);
 
   const lastPostElementRef = useCallback((node: HTMLDivElement) => {
     if (isLoadingMore) return;
     if (observerRef.current) observerRef.current.disconnect();
 
     observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0].isIntersecting && hasMore && !isLoadingMoreRef.current) {
+        isLoadingMoreRef.current = true;
         setIsLoadingMore(true);
         apiFetch<SliceResponse>(`/api/posts?page=${recentPage}&size=10&sort=id,desc`)
           .then((data) => {
-            setRecentPosts(prev => [...prev, ...data.content]);
+            setRecentPosts(prev => {
+              const existingIds = new Set(prev.map(p => p.id));
+              return [...prev, ...data.content.filter(p => !existingIds.has(p.id))];
+            });
             setHasMore(!data.last);
             setRecentPage(prev => prev + 1);
           })
           .catch(console.error)
-          .finally(() => setIsLoadingMore(false));
+          .finally(() => {
+            isLoadingMoreRef.current = false;
+            setIsLoadingMore(false);
+          });
       }
     });
 
