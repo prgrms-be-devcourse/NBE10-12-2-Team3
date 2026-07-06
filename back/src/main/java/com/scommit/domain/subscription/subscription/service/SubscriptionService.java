@@ -138,4 +138,15 @@ public class SubscriptionService {
         Page<Subscription> subscriptionsPage = subscriptionRepository.findMySubscriptions(userId, pageable);
         return subscriptionsPage.map(SubscriptionInfo::from);
     }
+
+    public String getSubscriptionStatus(Long userId, Long creatorId) {
+        if (userId.equals(creatorId)) {
+            return "NONE";
+        }
+        Optional<Subscription> subscriptionOpt = subscriptionRepository.findByUserIdAndCreatorId(userId, creatorId);
+        if (subscriptionOpt.isEmpty() || subscriptionOpt.get().getDeletedAt() != null) {
+            return "NONE";
+        }
+        return subscriptionOpt.get().getTier().name();
+    }
 }
