@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class BookmarkService {
-    private final BookmarkRepository postBookmarkRepository;
+    private final BookmarkRepository bookmarkRepository;
     private final PostRepository postRepository;
     private final LikeRepository likeRepository;
 
@@ -27,15 +27,15 @@ public class BookmarkService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
-        if (!postBookmarkRepository.existsByPostIdAndUserId(postId, actor.getId())) {
-            postBookmarkRepository.save(new Bookmark(post, actor));
+        if (!bookmarkRepository.existsByPostIdAndUserId(postId, actor.getId())) {
+            bookmarkRepository.save(new Bookmark(post, actor));
             post.increaseBookmarkCount();
         }
     }
 
     @Transactional(readOnly = true)
     public Page<PostListResponse> getMyBookmarks(User actor, Pageable pageable) {
-        return postBookmarkRepository.findByUserIdAndPostDeletedAtIsNull(actor.getId(), pageable)
+        return bookmarkRepository.findByUserIdAndPostDeletedAtIsNull(actor.getId(), pageable)
                 .map(bookmark -> new PostListResponse(
                         bookmark.getPost(),
                         likeRepository.existsByPostIdAndUserId(bookmark.getPost().getId(), actor.getId()),
@@ -48,9 +48,9 @@ public class BookmarkService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
-        Bookmark bookmark = postBookmarkRepository.findByPostIdAndUserId(postId, actor.getId())
+        Bookmark bookmark = bookmarkRepository.findByPostIdAndUserId(postId, actor.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
-        postBookmarkRepository.delete(bookmark);
+        bookmarkRepository.delete(bookmark);
         post.decreaseBookmarkCount();
     }
 }

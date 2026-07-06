@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class LikeService {
-    private final LikeRepository postLikeRepository;
+    private final LikeRepository likeRepository;
     private final PostRepository postRepository;
 
     @Transactional
@@ -22,8 +22,8 @@ public class LikeService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
-        if (!postLikeRepository.existsByPostIdAndUserId(postId, actor.getId())) {
-            postLikeRepository.save(new Like(post, actor));
+        if (!likeRepository.existsByPostIdAndUserId(postId, actor.getId())) {
+            likeRepository.save(new Like(post, actor));
             post.increaseLikeCount();
         }
     }
@@ -33,9 +33,9 @@ public class LikeService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
-        Like like = postLikeRepository.findByPostIdAndUserId(postId, actor.getId())
+        Like like = likeRepository.findByPostIdAndUserId(postId, actor.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
-        postLikeRepository.delete(like);
+        likeRepository.delete(like);
         post.decreaseLikeCount();
     }
 }
