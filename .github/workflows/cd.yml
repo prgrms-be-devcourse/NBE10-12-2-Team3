@@ -73,7 +73,7 @@ jobs:
               printf "CLOUDINARY_CLOUD_NAME=%s\n" "${CLOUDINARY_CLOUD_NAME}"
               printf "CLOUDINARY_API_KEY=%s\n" "${CLOUDINARY_API_KEY}"
               printf "CLOUDINARY_API_SECRET=%s\n" "${CLOUDINARY_API_SECRET}"
-              printf "CORS_ALLOWED_ORIGIN=https://scommit.store\n"
+              printf "CORS_ALLOWED_ORIGIN=https://*.scommit.store,https://scommit.store\n"
             } > .env
             docker compose pull back
             docker compose up -d
