@@ -65,14 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 3. 실제 백엔드 로그인 — 프록시 연동 추가 (Incoming 장점 + Current 프록시 혼합)
-  const loginWithCredentials = async (email: string, password: string) => {
-    try {
-      const res = await fetch("/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+    // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
+    const loginWithCredentials = async (email: string, password: string) => {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/users/login`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            credentials: "include",
+            body: JSON.stringify({email, password}),
+        });
+
+        if (!res.ok) {
+            const json = await res.json().catch(() => null);
+            throw new Error(json?.msg || "로그인에 실패했습니다.");
+        }
 
       if (!res.ok) {
         const json = await res.json().catch(() => null);
@@ -86,15 +91,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 4. 로그아웃 비동기 처리
-  const logout = async () => {
-    try {
-      await fetch("/api/users/logout", { method: "POST" });
-    } catch (e) {
-      console.error(e);
-    }
-    setIsLoggedIn(false);
-    setUser(null);
+  const logout = () => {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/users/logout`, {
+          method: "POST",
+          credentials: "include",
+      }).finally(() => {
+          setIsLoggedIn(false);
+          setUser(null);
+      });
   };
 
   useEffect(() => {

@@ -24,7 +24,7 @@ import java.util.List;
 public class Post extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = true) // TODO: Security 완료 후 nullable = false로 복구
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)

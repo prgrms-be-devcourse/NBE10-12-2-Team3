@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 interface PublishModalProps {
   accessLevel: "FREE" | "PAID";
   setAccessLevel: (v: "FREE" | "PAID") => void;
-  publishStatus: "PUBLIC" | "PRIVATE";
-  setPublishStatus: (v: "PUBLIC" | "PRIVATE") => void;
+  publishStatus: "PUBLIC" | "PRIVATE" | "DRAFT";
+  setPublishStatus: (v: "PUBLIC" | "PRIVATE" | "DRAFT") => void;
   thumbnailPreview: string | null;
   thumbnailFile: File | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -61,14 +61,12 @@ export function PublishModal({
         <div className="mb-5">
           <p className="mb-2 text-sm font-bold text-neutral-700">공개 범위</p>
           <div className="flex overflow-hidden rounded-lg border border-neutral-200">
-            <button type="button" onClick={() => setPublishStatus("PUBLIC")}
-              className={`flex-1 py-2 text-sm font-bold transition-colors ${publishStatus === "PUBLIC" ? "bg-primary text-white" : "bg-white text-neutral-500 hover:bg-neutral-50"}`}>
-              공개
-            </button>
-            <button type="button" onClick={() => setPublishStatus("PRIVATE")}
-              className={`flex-1 py-2 text-sm font-bold transition-colors ${publishStatus === "PRIVATE" ? "bg-primary text-white" : "bg-white text-neutral-500 hover:bg-neutral-50"}`}>
-              비공개
-            </button>
+            {(["PUBLIC", "PRIVATE"] as const).map((value) => (
+              <button key={value} type="button" onClick={() => setPublishStatus(value)}
+                className={`flex-1 py-2 text-sm font-bold transition-colors ${publishStatus === value ? "bg-primary text-white" : "bg-white text-neutral-500 hover:bg-neutral-50"}`}>
+                {value === "PUBLIC" ? "공개" : "비공개"}
+              </button>
+            ))}
           </div>
           <p className="mt-1.5 text-xs text-neutral-400">
             {publishStatus === "PUBLIC" ? "모든 사람이 이 글을 볼 수 있어요." : "나만 볼 수 있어요."}

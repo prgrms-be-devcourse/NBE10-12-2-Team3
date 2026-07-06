@@ -26,8 +26,8 @@ export function BlurPaywall({ isLoggedIn = false, className }: BlurPaywallProps)
       </h3>
       
       <p className="mb-8 max-w-sm text-sm leading-relaxed text-neutral-meta">
-        {isLoggedIn 
-          ? "이서연 크리에이터의 멤버십을 구독하시면 이 글을 포함한 모든 콘텐츠를 볼 수 있어요."
+        {isLoggedIn
+          ? "멤버십을 구독하시면 이 글을 포함한 모든 유료 콘텐츠를 볼 수 있어요."
           : "Commit에 가입하고 개발자들의 진짜 경험과 노하우를 확인해 보세요."}
       </p>
 

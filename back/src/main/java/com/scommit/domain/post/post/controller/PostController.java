@@ -52,10 +52,21 @@ public class PostController {
     @PostMapping
     public RsData<PostResponse> createPost(
             @RequestBody PostCreateRequest request) {
+        User actor = securityHelper.getActor();
         PostResponse response = postService.createPost(
-                request.title(), request.body(),
+                actor, request.title(), request.body(),
                 request.publishStatus(), request.accessLevel(), request.seriesId());
         return new RsData<>("201-1", "게시글이 생성되었습니다.", response);
+    }
+
+    // GET /api/posts/users/{userId} 특정 유저 게시글 조회 - 번호 페이지네이션 (프로필 화면)
+    @Operation(summary = "유저 게시글 목록 조회", description = "특정 유저가 작성한 게시글 목록을 번호 페이지네이션으로 조회합니다.")
+    @GetMapping("/users/{userId}")
+    public RsData<Page<PostListResponse>> getUserPosts(
+            @PathVariable Long userId,
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<PostListResponse> response = postService.getUserPosts(userId, pageable);
+        return new RsData<>("200-1", "유저의 게시글 목록입니다.", response);
     }
 
     // GET /api/posts 홈페이지 전체 조회 - 무한 스크롤
@@ -72,7 +83,8 @@ public class PostController {
     @Operation(summary = "게시글 상세 조회", description = "게시글 ID로 특정 게시글의 상세 정보를 조회합니다.")
     @GetMapping("/{id}")
     public RsData<PostResponse> getPost(@PathVariable Long id) {
-        PostResponse response = postService.getPost(id);
+        User actor = securityHelper.getActor();
+        PostResponse response = postService.getPost(id, actor);
         return new RsData<>("200-1", "게시글 상세 정보입니다.", response);
     }
 
@@ -82,7 +94,8 @@ public class PostController {
     public RsData<PostResponse> updatePost(
             @PathVariable Long id,
             @RequestBody PostUpdateRequest request) {
-        PostResponse response = postService.updatePost(id,
+        User actor = securityHelper.getActor();
+        PostResponse response = postService.updatePost(actor, id,
                 request.title(), request.body(),
                 request.publishStatus(), request.accessLevel(), request.seriesId());
         return new RsData<>("200-1", "게시글이 수정되었습니다.", response);
@@ -92,7 +105,8 @@ public class PostController {
     @Operation(summary = "게시글 삭제", description = "게시글 ID로 특정 게시글을 삭제합니다.")
     @DeleteMapping("/{id}")
     public RsData<Void> deletePost(@PathVariable Long id) {
-        postService.deletePost(id);
+        User actor = securityHelper.getActor();
+        postService.deletePost(actor, id);
         return new RsData<>("200-1", "게시글이 삭제되었습니다.");
     }
 
