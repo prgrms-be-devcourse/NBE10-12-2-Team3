@@ -1,12 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { RichEditor } from "@/components/editor/rich-editor";
 import { PublishModal } from "@/components/common/publish-modal";
 import { useThumbnail } from "@/hooks/use-thumbnail";
-import { apiPost } from "@/lib/api";
+import { apiPost, apiFetch } from "@/lib/api";
+import { X } from "lucide-react";
+
+interface DraftPost {
+  id: number;
+  title: string;
+  body: string;
+  accessLevel: "FREE" | "PAID";
+  publishStatus: "PUBLIC" | "PRIVATE" | "DRAFT";
+}
+
+interface PageResponse {
+  content: DraftPost[];
+}
 
 export default function PostNewPage() {
   const router = useRouter();
@@ -15,17 +28,34 @@ export default function PostNewPage() {
   const [accessLevel, setAccessLevel] = useState<"FREE" | "PAID">("FREE");
   const [publishStatus, setPublishStatus] = useState<"PUBLIC" | "PRIVATE" | "DRAFT">("PUBLIC");
   const [showModal, setShowModal] = useState(false);
+  const [drafts, setDrafts] = useState<DraftPost[]>([]);
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [draftCount, setDraftCount] = useState(0);
 
   const {
     thumbnailPreview, thumbnailFile, isDragging, setIsDragging,
     fileInputRef, handleThumbnailChange, handleDrop, removeThumbnail,
   } = useThumbnail();
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleResize = () => { if (window.innerWidth >= 768) setShowModal(false); };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    apiFetch<PageResponse>("/api/posts/me?size=50&sort=id,desc")
+      .then((data) => {
+        const draftList = data.content.filter(p => p.publishStatus === "DRAFT");
+        setDrafts(draftList);
+        setDraftCount(draftList.length);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleOpenDraftModal = () => {
+    setShowDraftModal(true);
+  };
 
   const handleSubmit = async () => {
     try {
@@ -117,6 +147,15 @@ export default function PostNewPage() {
       <form onSubmit={(e) => e.preventDefault()} className="flex h-[calc(100vh-64px)]">
         {/* 왼쪽: 제목 + 본문 */}
         <div className="flex flex-1 flex-col overflow-y-auto px-8 py-10 md:px-16 lg:px-24">
+          {draftCount > 0 && (
+            <button
+              type="button"
+              onClick={handleOpenDraftModal}
+              className="mb-4 self-start rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-meta transition-colors hover:border-primary hover:text-primary md:hidden"
+            >
+              임시저장된 글 불러오기 ({draftCount})
+            </button>
+          )}
           <input
             type="text"
             placeholder="제목을 입력하세요"
@@ -142,7 +181,16 @@ export default function PostNewPage() {
         <aside className="hidden w-[260px] shrink-0 border-l border-neutral-100 bg-neutral-50 md:flex flex-col gap-6 px-6 py-10">
           {sidebarSettings}
           <div className="mt-auto flex flex-col gap-2">
-            <Button type="button" variant="outlined" color="secondary" onClick={() => router.back()}>
+            {draftCount > 0 && (
+              <button
+                type="button"
+                onClick={handleOpenDraftModal}
+                className="rounded-lg border border-neutral-200 py-2 text-xs font-semibold text-neutral-meta transition-colors hover:border-primary hover:text-primary"
+              >
+                임시저장된 글 불러오기 ({draftCount})
+              </button>
+            )}
+            <Button type="button" variant="outlined" color="secondary" onClick={handleDraft}>
               임시저장
             </Button>
             <Button type="button" variant="filled" onClick={handleSubmit}>
@@ -151,6 +199,40 @@ export default function PostNewPage() {
           </div>
         </aside>
       </form>
+
+      {/* 임시저장 불러오기 모달 */}
+      {showDraftModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <button
+              onClick={() => setShowDraftModal(false)}
+              className="absolute right-4 top-4 rounded-full p-1 text-neutral-meta hover:bg-neutral-100"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h2 className="mb-1 text-lg font-bold text-neutral-dark">임시저장된 글</h2>
+            <p className="mb-4 text-sm text-neutral-meta">불러올 글을 선택하거나 새 글을 작성하세요.</p>
+            <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+              {drafts.map((draft) => (
+                <button
+                  key={draft.id}
+                  onClick={() => router.push(`/posts/${draft.id}/edit`)}
+                  className="flex w-full flex-col items-start rounded-xl border border-neutral-200 px-4 py-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
+                >
+                  <span className="font-semibold text-neutral-dark line-clamp-1">
+                    {draft.title || "(제목 없음)"}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button type="button" variant="filled" onClick={() => setShowDraftModal(false)}>
+                새 글 작성
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <PublishModal
