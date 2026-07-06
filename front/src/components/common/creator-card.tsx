@@ -19,7 +19,7 @@ export function CreatorCard({ id, nickname, subscriberCount, introduction, class
   const formattedSubscribers = new Intl.NumberFormat("ko-KR", { notation: "compact" }).format(subscriberCount);
 
   return (
-    <div className={cn("relative flex flex-col min-h-[260px] rounded-[16px] bg-white border border-neutral-200/60 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden group", className)}>
+    <div className={cn("relative flex flex-col min-h-[260px] rounded-[16px] bg-white border border-neutral-200/60 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 transition-all duration-300 group", className)}>
       {/* 전체 영역을 덮는 Link (버튼 제외) */}
       <Link href={href || `/users/${id}`} className="absolute inset-0 z-0" aria-label={`${nickname} 프로필 보기`} />
       
