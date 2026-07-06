@@ -1,15 +1,15 @@
 package com.scommit.domain.subscription.subscription.repository;
 
 import com.scommit.domain.subscription.subscription.entity.Subscription;
+import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
@@ -20,4 +20,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     @Query(value = "SELECT s FROM Subscription s JOIN FETCH s.creator WHERE s.user.id = :userId AND s.deletedAt IS NULL",
            countQuery = "SELECT count(s) FROM Subscription s WHERE s.user.id = :userId AND s.deletedAt IS NULL")
     Page<Subscription> findMySubscriptions(@Param("userId") Long userId, Pageable pageable);
+
+    // 4. 새 포스트 알림용: 창작자의 모든 구독자 조회 (다건)
+    List<Subscription> findByCreatorIdAndDeletedAtIsNull(Long creatorId);
+
+    // 5. 새 포스트 알림용: 창작자의 멤버십 구독자만 조회 (다건)
+    List<Subscription> findByCreatorIdAndTierAndDeletedAtIsNull(Long creatorId, SubscriptionTier tier);
 }

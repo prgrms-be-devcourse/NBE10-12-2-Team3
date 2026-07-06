@@ -1,5 +1,8 @@
 package com.scommit.domain.post.post.service;
 
+import com.scommit.domain.notification.notification.dto.NotificationResponse;
+import com.scommit.domain.notification.notification.dto.NotificationType;
+import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
 import com.scommit.domain.post.post.dto.PostListResponse;
 import com.scommit.domain.post.post.dto.PostResponse;
 import com.scommit.domain.post.post.entity.Post;
@@ -32,6 +35,7 @@ public class PostService {
     private final SeriesRepository seriesRepository;
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final SseEmitterRepository sseEmitterRepository;
 
     // 게시글 생성
     @Transactional
@@ -50,7 +54,13 @@ public class PostService {
                 .series(series)
                 .build();
 
-        return new PostResponse(postRepository.save(post));
+        postRepository.save(post);
+
+        if (publishStatus == PublishStatus.PUBLIC) {
+            sendSse(post);
+        }
+
+        return new PostResponse(post);
     }
 
     // 홈페이지 전체 조회 - 무한 스크롤
@@ -117,7 +127,12 @@ public class PostService {
                 ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
                 : null;
 
+        PublishStatus oldStatus = post.getPublishStatus();
         post.update(title, body, publishStatus, accessLevel, series);
+
+        if (oldStatus != PublishStatus.PUBLIC && publishStatus == PublishStatus.PUBLIC) {
+            sendSse(post);
+        }
 
         return new PostResponse(post);
     }
@@ -199,5 +214,30 @@ public class PostService {
         return postRepository.findBySeriesIdAndDeletedAtIsNull(seriesId).stream()
                 .map(PostListResponse::new)
                 .toList();
+    }
+
+    private void sendSse(Post post) {
+        Long creatorId = post.getUser().getId();
+        List<Long> subscriberIds;
+
+        if (post.getAccessLevel() == PostAccessLevel.PAID) {
+            subscriberIds = subscriptionRepository.findByCreatorIdAndTierAndDeletedAtIsNull(creatorId, SubscriptionTier.MEMBERSHIP)
+                    .stream()
+                    .map(s -> s.getUser().getId())
+                    .toList();
+        } else {
+            subscriberIds = subscriptionRepository.findByCreatorIdAndDeletedAtIsNull(creatorId)
+                    .stream()
+                    .map(s -> s.getUser().getId())
+                    .toList();
+        }
+
+        for (Long subscriberId : subscriberIds) {
+            sseEmitterRepository.sendToUser(subscriberId, new NotificationResponse(
+                    NotificationType.NEW_POST,
+                    post.getUser().getNickname() + "님이 새 게시글을 작성했습니다.",
+                    post.getId()
+            ));
+        }
     }
 }
