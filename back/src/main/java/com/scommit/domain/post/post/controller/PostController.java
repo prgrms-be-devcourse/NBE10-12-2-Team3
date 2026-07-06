@@ -52,8 +52,9 @@ public class PostController {
     @PostMapping
     public RsData<PostResponse> createPost(
             @RequestBody PostCreateRequest request) {
+        User actor = securityHelper.getActor();
         PostResponse response = postService.createPost(
-                request.title(), request.body(),
+                actor, request.title(), request.body(),
                 request.publishStatus(), request.accessLevel(), request.seriesId());
         return new RsData<>("201-1", "게시글이 생성되었습니다.", response);
     }
@@ -82,7 +83,8 @@ public class PostController {
     public RsData<PostResponse> updatePost(
             @PathVariable Long id,
             @RequestBody PostUpdateRequest request) {
-        PostResponse response = postService.updatePost(id,
+        User actor = securityHelper.getActor();
+        PostResponse response = postService.updatePost(actor, id,
                 request.title(), request.body(),
                 request.publishStatus(), request.accessLevel(), request.seriesId());
         return new RsData<>("200-1", "게시글이 수정되었습니다.", response);
@@ -92,7 +94,8 @@ public class PostController {
     @Operation(summary = "게시글 삭제", description = "게시글 ID로 특정 게시글을 삭제합니다.")
     @DeleteMapping("/{id}")
     public RsData<Void> deletePost(@PathVariable Long id) {
-        postService.deletePost(id);
+        User actor = securityHelper.getActor();
+        postService.deletePost(actor, id);
         return new RsData<>("200-1", "게시글이 삭제되었습니다.");
     }
 

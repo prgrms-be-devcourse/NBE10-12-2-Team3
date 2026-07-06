@@ -4,14 +4,18 @@ import com.scommit.domain.post.comment.dto.CommentCreateRequest;
 import com.scommit.domain.post.comment.dto.CommentResponse;
 import com.scommit.domain.post.comment.dto.CommentUpdateRequest;
 import com.scommit.domain.post.comment.service.CommentService;
+import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.dto.RsData;
+import com.scommit.global.security.SecurityHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 @Tag(name = "Comment", description = "댓글 관련 API")
 @RestController
@@ -20,6 +24,7 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
+    private final SecurityHelper securityHelper;
 
     @Operation(summary = "댓글 작성", description = "게시글에 댓글을 작성합니다.")
     @ResponseStatus(HttpStatus.CREATED)
@@ -27,15 +32,17 @@ public class CommentController {
     public RsData<CommentResponse> createComment(
             @PathVariable Long postId,
             @RequestBody CommentCreateRequest request) {
-        CommentResponse response = commentService.createComment(postId, request.body());
+        User actor = securityHelper.getActor();
+        CommentResponse response = commentService.createComment(actor, postId, request.body());
         return new RsData<>("201-1", "댓글이 작성되었습니다.", response);
     }
 
-    @Operation(summary = "댓글 전체 조회", description = "특정 게시글의 댓글 목록을 조회합니다.")
+    @Operation(summary = "댓글 목록 조회", description = "특정 게시글의 댓글 목록을 페이지로 조회합니다.")
     @GetMapping
-    public RsData<List<CommentResponse>> getComments(
-            @PathVariable Long postId) {
-        List<CommentResponse> response = commentService.getComments(postId);
+    public RsData<Page<CommentResponse>> getComments(
+            @PathVariable Long postId,
+            @PageableDefault(size = 10, sort = "id") Pageable pageable) {
+        Page<CommentResponse> response = commentService.getComments(postId, pageable);
         return new RsData<>("200-1", "댓글 목록입니다.", response);
     }
 
@@ -45,7 +52,8 @@ public class CommentController {
             @PathVariable Long postId,
             @PathVariable Long id,
             @RequestBody CommentUpdateRequest request) {
-        CommentResponse response = commentService.updateComment(id, request.body());
+        User actor = securityHelper.getActor();
+        CommentResponse response = commentService.updateComment(actor, id, request.body());
         return new RsData<>("200-1", "댓글이 수정되었습니다.", response);
     }
 
@@ -54,7 +62,8 @@ public class CommentController {
     public RsData<Void> deleteComment(
             @PathVariable Long postId,
             @PathVariable Long id) {
-        commentService.deleteComment(id);
+        User actor = securityHelper.getActor();
+        commentService.deleteComment(actor, id);
         return new RsData<>("200-1", "댓글이 삭제되었습니다.");
     }
 }

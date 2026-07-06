@@ -9,6 +9,7 @@ import com.scommit.domain.post.post.repository.PostRepository;
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.repository.SeriesRepository;
 import com.scommit.domain.user.user.entity.User;
+import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -27,18 +28,18 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final SeriesRepository seriesRepository;
-    // TODO: Security 완료 후 UserRepository 추가
+    private final UserRepository userRepository;
 
     // 게시글 생성
     @Transactional
-    public PostResponse createPost(String title, String body,
+    public PostResponse createPost(User actor, String title, String body,
                                    PublishStatus publishStatus, PostAccessLevel accessLevel, Long seriesId) {
-        // TODO: Security 완료 후 로그인 유저로 교체
         Series series = seriesId != null
                 ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
                 : null;
 
         Post post = Post.builder()
+                .user(actor)
                 .title(title)
                 .body(body)
                 .publishStatus(publishStatus)
@@ -51,7 +52,12 @@ public class PostService {
 
     // 홈페이지 전체 조회 - 무한 스크롤
     public Slice<PostListResponse> getPosts(Long creatorId, Pageable pageable) {
-        // TODO: creatorId로 특정 유저 게시글 조회 (UserRepository 완료 후)
+        if (creatorId != null) {
+            User creator = userRepository.findByIdAndDeletedAtIsNull(creatorId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+            return postRepository.findSliceByUserAndDeletedAtIsNull(creator, pageable)
+                    .map(PostListResponse::new);
+        }
         return postRepository.findAllByDeletedAtIsNull(pageable)
                 .map(PostListResponse::new);
     }
@@ -73,7 +79,7 @@ public class PostService {
 
     // 게시글 수정
     @Transactional
-    public PostResponse updatePost(Long id, String title, String body,
+    public PostResponse updatePost(User actor, Long id, String title, String body,
                                    PublishStatus publishStatus, PostAccessLevel accessLevel, Long seriesId) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
@@ -82,7 +88,10 @@ public class PostService {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
 
-        // TODO: 본인 게시글인지 확인 (Security 완료 후)
+        if (post.getUser() == null || !post.getUser().getId().equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
         Series series = seriesId != null
                 ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
                 : null;
@@ -94,7 +103,7 @@ public class PostService {
 
     // 게시글 삭제
     @Transactional
-    public void deletePost(Long id) {
+    public void deletePost(User actor, Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
@@ -102,7 +111,9 @@ public class PostService {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
 
-        // TODO: 본인 게시글인지 확인 (Security 완료 후)
+        if (post.getUser() == null || !post.getUser().getId().equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
 
         post.softDelete();
     }

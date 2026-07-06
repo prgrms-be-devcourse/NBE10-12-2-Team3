@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { RichEditor } from "@/components/editor/rich-editor";
 import { PublishModal } from "@/components/common/publish-modal";
 import { useThumbnail } from "@/hooks/use-thumbnail";
+import { apiPost } from "@/lib/api";
 
 export default function PostNewPage() {
   const router = useRouter();
@@ -26,10 +27,13 @@ export default function PostNewPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const handleSubmit = () => {
-    // TODO: 백엔드 API 연동 (POST /api/posts)
-    console.log({ title, body, accessLevel, publishStatus, thumbnailFile });
-    router.push("/posts");
+  const handleSubmit = async () => {
+    try {
+      await apiPost("/api/posts", { title, body, accessLevel, publishStatus });
+      router.push("/posts");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "게시글 작성에 실패했습니다.");
+    }
   };
 
   const sidebarSettings = (

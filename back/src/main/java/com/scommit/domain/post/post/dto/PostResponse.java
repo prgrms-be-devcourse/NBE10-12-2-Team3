@@ -24,7 +24,7 @@ public record PostResponse(
     public PostResponse(Post post) {
         this(
                 post.getId(),
-                post.getUser() != null ? post.getUser().getId() : null, // TODO: 유저 연동 완료 후 null 체크 제거
+                post.getUser().getId(),
                 post.getSeries() != null ? post.getSeries().getId() : null,
                 post.getTitle(),
                 post.getBody(),

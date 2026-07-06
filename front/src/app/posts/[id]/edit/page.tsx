@@ -1,29 +1,51 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
-import { MOCK_POSTS } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { RichEditor } from "@/components/editor/rich-editor";
 import { PublishModal } from "@/components/common/publish-modal";
 import { useThumbnail } from "@/hooks/use-thumbnail";
+import { apiFetch, apiPut } from "@/lib/api";
+
+interface Post {
+  id: number;
+  title: string;
+  body: string;
+  accessLevel: "FREE" | "PAID";
+  publishStatus: "PUBLIC" | "PRIVATE";
+}
 
 export default function PostEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
   const router = useRouter();
-  const post = MOCK_POSTS.find((p) => p.id === Number(id));
+  const [post, setPost] = useState<Post | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [title, setTitle] = useState(post?.title ?? "");
-  const [body, setBody] = useState(post?.description ?? "");
-  const [accessLevel, setAccessLevel] = useState<"FREE" | "PAID">(post?.accessLevel ?? "FREE");
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("<p></p>");
+  const [accessLevel, setAccessLevel] = useState<"FREE" | "PAID">("FREE");
   const [publishStatus, setPublishStatus] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
   const [showModal, setShowModal] = useState(false);
 
   const {
     thumbnailPreview, thumbnailFile, isDragging, setIsDragging,
     fileInputRef, handleThumbnailChange, handleDrop, removeThumbnail,
-  } = useThumbnail(post?.thumbnailUrl ?? null);
+  } = useThumbnail(null);
+
+  useEffect(() => {
+    apiFetch<Post>(`/api/posts/${id}`)
+      .then((data) => {
+        setPost(data);
+        setTitle(data.title);
+        setBody(data.body);
+        setAccessLevel(data.accessLevel);
+        setPublishStatus(data.publishStatus);
+      })
+      .catch(() => setPost(null))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   React.useEffect(() => {
     const handleResize = () => { if (window.innerWidth >= 768) setShowModal(false); };
@@ -31,17 +53,20 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  if (loading) return <div className="min-h-screen bg-white pt-16 flex justify-center items-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>;
   if (!post) return notFound();
 
-  const handleSubmit = () => {
-    // TODO: 백엔드 API 연동 (PUT /api/posts/{id})
-    console.log({ title, body, accessLevel, publishStatus, thumbnailFile });
-    router.push(`/posts/${id}`);
+  const handleSubmit = async () => {
+    try {
+      await apiPut(`/api/posts/${id}`, { title, body, accessLevel, publishStatus });
+      router.push(`/posts/${id}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "게시글 수정에 실패했습니다.");
+    }
   };
 
   const sidebarSettings = (
     <>
-      {/* 공개 설정 */}
       <div>
         <p className="mb-3 text-sm font-bold text-neutral-dark">공개 설정</p>
         <div className="flex overflow-hidden rounded-lg border border-neutral-200">
@@ -57,7 +82,6 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
         </p>
       </div>
 
-      {/* 공개 범위 */}
       <div>
         <p className="mb-3 text-sm font-bold text-neutral-dark">공개 범위</p>
         <div className="flex overflow-hidden rounded-lg border border-neutral-200">
@@ -73,7 +97,6 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
         </p>
       </div>
 
-      {/* 썸네일 */}
       <div>
         <p className="mb-3 text-sm font-bold text-neutral-dark">썸네일</p>
         <div
@@ -109,7 +132,6 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
   return (
     <div className="min-h-screen bg-white pt-16">
       <form onSubmit={(e) => e.preventDefault()} className="flex h-[calc(100vh-64px)]">
-        {/* 왼쪽: 제목 + 본문 */}
         <div className="flex flex-1 flex-col overflow-y-auto px-8 py-10 md:px-16 lg:px-24">
           <input
             type="text"
@@ -121,10 +143,9 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
           />
           <RichEditor value={body} onChange={setBody} />
 
-          {/* 모바일 하단 버튼 */}
           <div className="mt-auto flex gap-2 pt-6 md:hidden">
             <Button type="button" variant="outlined" color="secondary" onClick={() => router.back()} className="flex-1">
-              임시저장
+              취소
             </Button>
             <Button type="button" variant="filled" onClick={() => setShowModal(true)} className="flex-1">
               수정 완료
@@ -132,12 +153,11 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
 
-        {/* 오른쪽: 사이드바 (데스크탑만) */}
         <aside className="hidden w-[260px] shrink-0 border-l border-neutral-100 bg-neutral-50 md:flex flex-col gap-6 px-6 py-10">
           {sidebarSettings}
           <div className="mt-auto flex flex-col gap-2">
             <Button type="button" variant="outlined" color="secondary" onClick={() => router.back()}>
-              임시저장
+              취소
             </Button>
             <Button type="button" variant="filled" onClick={handleSubmit}>
               수정 완료
