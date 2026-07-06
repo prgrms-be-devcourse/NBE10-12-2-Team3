@@ -14,7 +14,7 @@ interface Post {
   title: string;
   body: string;
   accessLevel: "FREE" | "PAID";
-  publishStatus: "PUBLIC" | "PRIVATE";
+  publishStatus: "PUBLIC" | "PRIVATE" | "DRAFT";
 }
 
 export default function PostEditPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +26,7 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("<p></p>");
   const [accessLevel, setAccessLevel] = useState<"FREE" | "PAID">("FREE");
-  const [publishStatus, setPublishStatus] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
+  const [publishStatus, setPublishStatus] = useState<"PUBLIC" | "PRIVATE" | "DRAFT">("PUBLIC");
   const [showModal, setShowModal] = useState(false);
 
   const {

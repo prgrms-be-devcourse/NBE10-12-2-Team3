@@ -58,7 +58,7 @@ public class PostService {
             return postRepository.findSliceByUserAndDeletedAtIsNull(creator, pageable)
                     .map(PostListResponse::new);
         }
-        return postRepository.findAllByDeletedAtIsNull(pageable)
+        return postRepository.findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable)
                 .map(PostListResponse::new);
     }
 

@@ -13,7 +13,7 @@ export default function PostNewPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("<p></p>");
   const [accessLevel, setAccessLevel] = useState<"FREE" | "PAID">("FREE");
-  const [publishStatus, setPublishStatus] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
+  const [publishStatus, setPublishStatus] = useState<"PUBLIC" | "PRIVATE" | "DRAFT">("PUBLIC");
   const [showModal, setShowModal] = useState(false);
 
   const {
@@ -33,6 +33,15 @@ export default function PostNewPage() {
       router.push("/posts");
     } catch (err) {
       alert(err instanceof Error ? err.message : "게시글 작성에 실패했습니다.");
+    }
+  };
+
+  const handleDraft = async () => {
+    try {
+      await apiPost("/api/posts", { title, body, accessLevel, publishStatus: "DRAFT" });
+      router.push("/posts");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "임시저장에 실패했습니다.");
     }
   };
 
@@ -120,7 +129,7 @@ export default function PostNewPage() {
 
           {/* 모바일 하단 버튼 */}
           <div className="mt-auto flex gap-2 pt-6 md:hidden">
-            <Button type="button" variant="outlined" color="secondary" onClick={() => router.back()} className="flex-1">
+            <Button type="button" variant="outlined" color="secondary" onClick={handleDraft} className="flex-1">
               임시저장
             </Button>
             <Button type="button" variant="filled" onClick={() => setShowModal(true)} className="flex-1">

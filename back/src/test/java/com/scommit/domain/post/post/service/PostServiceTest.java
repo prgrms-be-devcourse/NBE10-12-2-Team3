@@ -23,7 +23,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.SliceImpl;
+import com.scommit.domain.post.post.dto.PostListResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -101,6 +107,56 @@ class PostServiceTest {
                 .build();
         ReflectionTestUtils.setField(series, "id", id);
         return series;
+    }
+
+    @Nested
+    @DisplayName("게시글 목록 조회 테스트")
+    class GetPosts {
+
+        // creatorId 없이 전체 조회 시 PUBLIC 게시글만 반환해야 함
+        @Test
+        @DisplayName("성공: creatorId 없이 조회하면 PUBLIC 게시글 목록을 반환한다.")
+        void getPosts_All_OnlyPublic() {
+            Pageable pageable = PageRequest.of(0, 8);
+            Post post = buildPost(1L, mockUser, null);
+            SliceImpl<Post> slice = new SliceImpl<>(List.of(post), pageable, false);
+
+            when(postRepository.findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable))
+                    .thenReturn(slice);
+
+            var result = postService.getPosts(null, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+            verify(postRepository).findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable);
+        }
+
+        // creatorId 지정 시 해당 유저의 게시글만 조회
+        @Test
+        @DisplayName("성공: creatorId를 지정하면 해당 유저의 게시글 목록을 반환한다.")
+        void getPosts_ByCreator() {
+            Pageable pageable = PageRequest.of(0, 8);
+            Post post = buildPost(1L, mockUser, null);
+            SliceImpl<Post> slice = new SliceImpl<>(List.of(post), pageable, false);
+
+            when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
+            when(postRepository.findSliceByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(slice);
+
+            var result = postService.getPosts(1L, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+        }
+
+        // 존재하지 않는 creatorId로 조회 시 예외
+        @Test
+        @DisplayName("실패: 존재하지 않는 creatorId면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        void getPosts_CreatorNotFound() {
+            Pageable pageable = PageRequest.of(0, 8);
+            when(userRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> postService.getPosts(999L, pageable))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+        }
     }
 
     @Nested
