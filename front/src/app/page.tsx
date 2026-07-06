@@ -332,7 +332,7 @@ export default function Home() {
                 최근 업데이트
               </h2>
             </div>
-            <Button variant="ghost" className="text-sm font-bold text-neutral-meta hover:text-primary">전체보기</Button>
+            <Link href="/posts" className="text-sm font-bold text-neutral-meta hover:text-primary">전체보기</Link>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
