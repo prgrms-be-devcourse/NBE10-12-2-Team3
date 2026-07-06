@@ -5,13 +5,15 @@ import com.scommit.domain.post.comment.entity.Comment;
 import com.scommit.domain.post.comment.repository.CommentRepository;
 import com.scommit.domain.post.post.entity.Post;
 import com.scommit.domain.post.post.repository.PostRepository;
+import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -20,11 +22,10 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
-    // TODO: User 도메인 완료 후 UserRepository 추가
 
     // 댓글 작성
     @Transactional
-    public CommentResponse createComment(Long postId, String body) {
+    public CommentResponse createComment(User actor, Long postId, String body) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
@@ -32,8 +33,8 @@ public class CommentService {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
 
-        // TODO: 유저 연동 완료 후 로그인 유저로 교체
         Comment comment = Comment.builder()
+                .user(actor)
                 .post(post)
                 .body(body)
                 .build();
@@ -41,8 +42,8 @@ public class CommentService {
         return new CommentResponse(commentRepository.save(comment));
     }
 
-    // 특정 게시글 댓글 전체 조회
-    public List<CommentResponse> getComments(Long postId) {
+    // 특정 게시글 댓글 페이지 조회
+    public Page<CommentResponse> getComments(Long postId, Pageable pageable) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
@@ -50,14 +51,13 @@ public class CommentService {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
 
-        return commentRepository.findAllByPostIdAndDeletedAtIsNull(postId).stream()
-                .map(CommentResponse::new)
-                .toList();
+        return commentRepository.findAllByPostIdAndDeletedAtIsNull(postId, pageable)
+                .map(CommentResponse::new);
     }
 
     // 댓글 수정
     @Transactional
-    public CommentResponse updateComment(Long id, String body) {
+    public CommentResponse updateComment(User actor, Long id, String body) {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
 
@@ -65,7 +65,9 @@ public class CommentService {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
         }
 
-        // TODO: 본인 댓글인지 확인 (유저 연동 완료 후)
+        if (!comment.getUser().getId().equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
 
         comment.update(body);
         return new CommentResponse(comment);
@@ -73,7 +75,7 @@ public class CommentService {
 
     // 댓글 삭제
     @Transactional
-    public void deleteComment(Long id) {
+    public void deleteComment(User actor, Long id) {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
 
@@ -81,7 +83,9 @@ public class CommentService {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
         }
 
-        // TODO: 본인 댓글인지 확인 (User 도메인 완료 후)
+        if (!comment.getUser().getId().equals(actor.getId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
 
         comment.softDelete();
     }

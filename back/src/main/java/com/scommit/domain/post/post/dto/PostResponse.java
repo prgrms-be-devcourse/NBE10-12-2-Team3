@@ -1,6 +1,7 @@
 package com.scommit.domain.post.post.dto;
 
 import com.scommit.domain.post.post.entity.Post;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.scommit.domain.post.post.entity.PostAccessLevel;
 import com.scommit.domain.post.post.entity.PublishStatus;
 
@@ -12,25 +13,46 @@ import java.time.LocalDateTime;
 public record PostResponse(
         Long id,
         Long userId,
+        String nickname,
         Long seriesId,
         String title,
         String body,
         PublishStatus publishStatus,
         PostAccessLevel accessLevel,
         Long viewCount,
+        @JsonProperty("isLocked") boolean isLocked,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
     public PostResponse(Post post) {
         this(
                 post.getId(),
-                post.getUser() != null ? post.getUser().getId() : null, // TODO: 유저 연동 완료 후 null 체크 제거
+                post.getUser().getId(),
+                post.getUser().getNickname(),
                 post.getSeries() != null ? post.getSeries().getId() : null,
                 post.getTitle(),
                 post.getBody(),
                 post.getPublishStatus(),
                 post.getAccessLevel(),
                 post.getViewCount(),
+                false,
+                post.getCreatedAt(),
+                post.getUpdatedAt()
+        );
+    }
+
+    public PostResponse(Post post, boolean isLocked) {
+        this(
+                post.getId(),
+                post.getUser().getId(),
+                post.getUser().getNickname(),
+                post.getSeries() != null ? post.getSeries().getId() : null,
+                post.getTitle(),
+                isLocked ? null : post.getBody(),
+                post.getPublishStatus(),
+                post.getAccessLevel(),
+                post.getViewCount(),
+                isLocked,
                 post.getCreatedAt(),
                 post.getUpdatedAt()
         );
