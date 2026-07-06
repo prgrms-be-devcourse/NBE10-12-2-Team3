@@ -20,24 +20,10 @@ type Profile = UserProfileResponse;
 type PostItem = PostListResponse;
 type SeriesItem = SeriesListResponse;
 
-// Swagger 확정 스펙: GET /api/subscriptions?page={n}&size={s} → RsData<PageResponse<SubscriptionResponse>>
-// 로그인한 사용자의 구독(팔로우/멤버십) 목록. 번호식 페이지네이션(PageResponse) 응답입니다.
-interface SubscriptionResponse {
-  creatorId: number;
-  nickname: string;
-  creatorProfileImage: string;
-  tier: "FOLLOW" | "MEMBERSHIP";
-  startedAt: string;
-  expiredAt: string | null;
-}
-
-interface SubscriptionsPageResponse {
-  content: SubscriptionResponse[];
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  isLast: boolean;
+// Swagger 확정 스펙: GET /api/subscriptions/status/{creatorId} → RsData<SubscriptionStatusResponse>
+// 로그인한 사용자의 특정 창작자에 대한 구독 상태(NONE/FOLLOW/MEMBERSHIP) 단건 조회입니다.
+interface SubscriptionStatusResponse {
+  status: "NONE" | "FOLLOW" | "MEMBERSHIP";
 }
 
 interface UserProfileViewProps {
@@ -63,7 +49,7 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
   const { isLoggedIn, user } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   // 로그인한 사용자의 초기 isFollowing/isMember 상태는 프로필 응답(UserProfileResponse)에 없어,
-  // 아래 useEffect에서 GET /api/subscriptions 목록을 조회해 판단합니다.
+  // 아래 useEffect에서 GET /api/subscriptions/status/{creatorId} 단건 조회로 판단합니다.
   const [isFollowing, setIsFollowing] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [isFollowSubmitting, setIsFollowSubmitting] = useState(false);
@@ -82,25 +68,21 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
   }, [page]);
 
   // 로그인한 사용자이면서 본인 프로필이 아닐 때만, 이미 팔로우/멤버십 중인지 확인합니다.
-  // TODO: 현재는 GET /api/subscriptions 목록을 가져와 creatorId로 매칭하는 방식으로 isFollowing을
-  // 판단하고 있음. 목록이 많은 사용자는 부정확할 수 있음. 추후 GET /api/subscriptions/{creatorId} 같은
-  // 단건 확인 API가 추가되면 이 방식을 대체할 예정.
+  // 로그아웃했거나 본인 프로필일 때는 이전 세션(다른 계정)의 상태가 남지 않도록 초기화합니다.
   useEffect(() => {
-    if (!isLoggedIn || isOwnProfile) return;
-
     let cancelled = false;
     (async () => {
+      if (!isLoggedIn || isOwnProfile) {
+        setIsFollowing(false);
+        setIsMember(false);
+        return;
+      }
       try {
-        // 백엔드에 별도 size 상한 설정이 없어(Spring 기본 max-page-size=2000), 100은 안전한 값입니다.
-        const data = await apiFetch<SubscriptionsPageResponse>(`/api/subscriptions?page=0&size=100`);
+        const data = await apiFetch<SubscriptionStatusResponse>(`/api/subscriptions/status/${profile.id}`);
         if (cancelled) return;
-        const matched = data.content.find((s) => s.creatorId === profile.id);
-        if (matched?.tier === "FOLLOW") {
-          setIsFollowing(true);
-        } else if (matched?.tier === "MEMBERSHIP") {
-          setIsFollowing(true);
-          setIsMember(true);
-        }
+        // 재로그인/계정 전환 시 이전 계정의 구독 상태가 남지 않도록 매 상태를 명시적으로 반영합니다.
+        setIsFollowing(data.status === "FOLLOW" || data.status === "MEMBERSHIP");
+        setIsMember(data.status === "MEMBERSHIP");
       } catch {
         // 조회 실패 시 기존 기본값(false)을 유지합니다.
       }
@@ -275,7 +257,7 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
         {/* 프로필 사진 + 닉네임: 배너 경계가 아바타(xl, 96px) 세로 길이의 45% 지점을 가로지르도록 배치.
             겹침 비율은 이 margin-top 값(아바타 높이의 45%)으로만 결정됩니다 — 배너 높이(page.tsx의 h-40 sm:h-48)는
             겹침 비율에 영향을 주지 않습니다. */}
-        <div className="flex flex-wrap items-end justify-between gap-4 -mt-[43.2px] relative z-10">
+        <div className="flex flex-wrap items-end justify-between gap-4 mt-[-43.2px] relative z-10">
           <div className="flex items-end gap-4">
             <Avatar
               src={profile.profileImageUrl}
@@ -342,7 +324,7 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
         </div>
 
         {/* 포스트 / 시리즈 목록 */}
-        <div className="mt-8 min-h-[300px]">
+        <div className="mt-8 min-h-75">
           {tab === "post" ? (
             posts.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white py-24 text-center">
