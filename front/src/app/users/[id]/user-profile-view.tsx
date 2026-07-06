@@ -22,19 +22,19 @@ type SeriesItem = SeriesListResponse;
 
 interface UserProfileViewProps {
   profile: Profile;
-  tab: "content" | "series";
+  tab: "post" | "series";
   // 시리즈 탭 전용: 번호식 페이지네이션 기준 페이지
   page: number;
   // 시리즈 탭 전용: 번호식 페이지네이션 총 페이지 수
   totalPages: number;
-  // 콘텐츠 탭 전용: Slice 응답의 last 필드. true면 다음 페이지가 없음
+  // 포스트 탭 전용: Slice 응답의 last 필드. true면 다음 페이지가 없음
   isLastPostsPage: boolean;
   posts: PostItem[];
   series: SeriesItem[];
 }
 
 const TABS: TabItem[] = [
-  { id: "content", label: "콘텐츠" },
+  { id: "post", label: "포스트" },
   { id: "series", label: "시리즈" },
 ];
 
@@ -130,7 +130,7 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
   };
 
   const stats: { label: string; value: string }[] = [
-    { label: "콘텐츠", value: profile.contentCount.toLocaleString("ko-KR") },
+    { label: "포스트", value: profile.postCount.toLocaleString("ko-KR") },
     { label: "구독자", value: profile.subscriberCount.toLocaleString("ko-KR") },
     { label: "구독 중", value: profile.subscribingCount.toLocaleString("ko-KR") },
   ];
@@ -185,9 +185,9 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
     );
   };
 
-  // 콘텐츠 탭: Slice 응답이라 totalPages/totalElements가 없음 → "이전/다음" 버튼만 노출.
+  // 포스트 탭: Slice 응답이라 totalPages/totalElements가 없음 → "이전/다음" 버튼만 노출.
   // "다음"은 last === true일 때 비활성화하고, "이전"은 프론트가 직접 추적하는 page 번호로 판단합니다.
-  const renderContentPagination = () => {
+  const renderPostPagination = () => {
     if (page <= 1 && isLastPostsPage) return null;
 
     return (
@@ -281,18 +281,18 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
           <Tab tabs={TABS} activeTabId={tab} onChange={handleTabChange} />
         </div>
 
-        {/* 콘텐츠 / 시리즈 목록 */}
+        {/* 포스트 / 시리즈 목록 */}
         <div className="mt-8 min-h-[300px]">
-          {tab === "content" ? (
+          {tab === "post" ? (
             posts.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white py-24 text-center">
-                <p className="text-neutral-500">아직 작성한 콘텐츠가 없습니다.</p>
+                <p className="text-neutral-500">아직 작성한 포스트가 없습니다.</p>
               </div>
             ) : (
               // TODO: 썸네일 API 미제공 — PostListResponse에 thumbnailUrl 필드가 없어 ContentCard가 기본 썸네일로 대체합니다.
-              // TODO: 게시글 설명은 PostListResponse에 없어 ContentCard에 전달하지 않습니다
+              // TODO: 포스트 설명은 PostListResponse에 없어 ContentCard에 전달하지 않습니다
               // (description은 optional이라 비워두면 빈 값으로 렌더링됩니다).
-              // authorName은 이 페이지의 게시글이 모두 profile(조회 중인 유저)의 글이므로 profile.nickname을 그대로 사용합니다.
+              // authorName은 이 페이지의 포스트가 모두 profile(조회 중인 유저)의 글이므로 profile.nickname을 그대로 사용합니다.
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {posts.map((post) => (
                   <ContentCard
@@ -330,7 +330,7 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
             </div>
           )}
 
-          {tab === "content" ? renderContentPagination() : renderSeriesPagination()}
+          {tab === "post" ? renderPostPagination() : renderSeriesPagination()}
         </div>
       </div>
 
