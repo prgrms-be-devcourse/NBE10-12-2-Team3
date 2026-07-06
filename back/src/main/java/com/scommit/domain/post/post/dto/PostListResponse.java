@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 public record PostListResponse(
         Long id,
         Long userId,
+        String nickname,
         Long seriesId,
         String title,
         PublishStatus publishStatus,
@@ -23,6 +24,7 @@ public record PostListResponse(
         this(
                 post.getId(),
                 post.getUser().getId(),
+                post.getUser().getNickname(),
                 post.getSeries() != null ? post.getSeries().getId() : null,
                 post.getTitle(),
                 post.getPublishStatus(),

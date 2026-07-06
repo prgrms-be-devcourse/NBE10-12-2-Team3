@@ -11,6 +11,7 @@ import { apiFetch, apiPost, apiPut, apiDelete } from "@/lib/api";
 interface Comment {
     id: number;
     userId: number;
+    nickname: string;
     postId: number;
     body: string;
     createdAt: string;
@@ -21,7 +22,7 @@ interface PageResponse {
     totalElements: number;
 }
 
-export function CommentList({ postId }: { postId: number }) {
+export function CommentList({ postId, isLocked = false }: { postId: number; isLocked?: boolean }) {
     const { isLoggedIn, user } = useAuth();
     const [comments, setComments] = useState<Comment[]>([]);
     const [totalCount, setTotalCount] = useState(0);
@@ -78,14 +79,20 @@ export function CommentList({ postId }: { postId: number }) {
                 댓글 {totalCount}개
             </h2>
 
+            {isLocked && (
+                <div className="rounded-xl border border-neutral-border bg-neutral-50 px-4 py-6 text-center text-sm text-neutral-meta">
+                    멤버십 구독자만 댓글을 볼 수 있습니다.
+                </div>
+            )}
+
             {/* 댓글 목록 */}
-            <div className="flex flex-col gap-4">
+            {!isLocked && <div className="flex flex-col gap-4">
                 {comments.map((comment) => (
                     <div key={comment.id} className="rounded-xl border border-neutral-border bg-white p-4">
                         <div className="mb-2 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Avatar name={`user ${comment.userId}`} size="sm" />
-                                <span className="text-sm font-bold text-neutral-dark">user {comment.userId}</span>
+                                <Avatar name={comment.nickname} size="sm" />
+                                <span className="text-sm font-bold text-neutral-dark">{comment.nickname}</span>
                                 <span className="text-xs text-neutral-meta">{comment.createdAt}</span>
                             </div>
                             {isLoggedIn && user?.id === comment.userId && (
@@ -124,10 +131,10 @@ export function CommentList({ postId }: { postId: number }) {
                         )}
                     </div>
                 ))}
-            </div>
+            </div>}
 
             {/* 댓글 작성 */}
-            {isLoggedIn ? (
+            {!isLocked && isLoggedIn ? (
                 <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
                     <textarea
                         value={newComment}
@@ -142,11 +149,11 @@ export function CommentList({ postId }: { postId: number }) {
                         </Button>
                     </div>
                 </form>
-            ) : (
+            ) : (!isLocked && (
                 <div className="mt-6 rounded-xl border border-neutral-border bg-white px-4 py-6 text-center text-sm text-neutral-meta">
                     댓글을 작성하려면 로그인이 필요합니다.
                 </div>
-            )}
+            ))}
         </div>
     );
 }

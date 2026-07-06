@@ -83,7 +83,8 @@ public class PostController {
     @Operation(summary = "게시글 상세 조회", description = "게시글 ID로 특정 게시글의 상세 정보를 조회합니다.")
     @GetMapping("/{id}")
     public RsData<PostResponse> getPost(@PathVariable Long id) {
-        PostResponse response = postService.getPost(id);
+        User actor = securityHelper.getActor();
+        PostResponse response = postService.getPost(id, actor);
         return new RsData<>("200-1", "게시글 상세 정보입니다.", response);
     }
 

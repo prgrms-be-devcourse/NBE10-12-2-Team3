@@ -12,10 +12,37 @@ import { cn } from "@/lib/utils";
 import { useCarouselObserver } from "@/hooks/use-carousel-observer";
 import { useAuth } from "@/providers/auth-provider";
 
-// --- Dummy Data ---
-// TODO: [백엔드 연동] 현재 화면 구성을 위해 프론트엔드 단독으로 더미 데이터를 사용 중입니다.
+import { apiFetch } from "@/lib/api";
+import { MOCK_CREATORS } from "@/lib/mock-data";
 
-import { MOCK_POSTS, MOCK_CREATORS } from "@/lib/mock-data";
+interface PostItem {
+  id: number;
+  userId: number;
+  nickname: string;
+  title: string;
+  accessLevel: "FREE" | "PAID";
+  viewCount: number;
+  createdAt: string;
+}
+
+interface SliceResponse {
+  content: PostItem[];
+  last: boolean;
+}
+
+function toCardProps(post: PostItem) {
+  return {
+    id: post.id,
+    title: post.title,
+    description: "",
+    accessLevel: post.accessLevel,
+    authorName: post.nickname,
+    createdAt: post.createdAt.split("T")[0],
+    viewCount: post.viewCount,
+    likeCount: 0,
+    bookmarkCount: 0,
+  };
+}
 
 const HERO_ITEMS = [
   { text: "개발자들의 진짜 경험을,", color: "from-primary to-emerald-400", glow: "bg-primary/20", tags: ["#이직후기", "#신입생존기", "#연봉협상"] },
@@ -34,29 +61,41 @@ export default function Home() {
   const freeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // 영웅 배너 타이머
     const timer = setInterval(() => {
       setHeroIdx((prev) => (prev + 1) % HERO_ITEMS.length);
     }, 3000);
-    
-    // 스켈레톤 레이아웃 붕괴 방어(CLS) 검증을 위한 가상의 1초 로딩
-    const loadTimer = setTimeout(() => setIsLoading(false), 1000);
-    
-    return () => {
-      clearInterval(timer);
-      clearTimeout(loadTimer);
-    };
+
+    // 캐러셀용 데이터 (viewCount 정렬, 충분히 많이 가져와서 FREE/PAID 분리)
+    apiFetch<SliceResponse>("/api/posts?size=50&sort=viewCount,desc")
+      .then((data) => {
+        setTrendingPaidPosts(data.content.filter(p => p.accessLevel === "PAID").slice(0, 15));
+        setFreePosts(data.content.filter(p => p.accessLevel === "FREE").slice(0, 10));
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+
+    // 최근 업데이트 첫 페이지
+    apiFetch<SliceResponse>("/api/posts?page=0&size=10&sort=id,desc")
+      .then((data) => {
+        setRecentPosts(data.content);
+        setHasMore(!data.last);
+        setRecentPage(1);
+      })
+      .catch(console.error);
+
+    return () => clearInterval(timer);
   }, []);
 
-  const freePosts = MOCK_POSTS.filter(p => p.accessLevel === "FREE").slice(0, 10);
-  const trendingPaidPosts = MOCK_POSTS.filter(p => p.accessLevel === "PAID").sort((a, b) => b.viewCount - a.viewCount).slice(0, 15);
+  const [freePosts, setFreePosts] = useState<PostItem[]>([]);
+  const [trendingPaidPosts, setTrendingPaidPosts] = useState<PostItem[]>([]);
 
   // 옵저버 훅 연결
   const { showLeft: premiumLeft, showRight: premiumRight } = useCarouselObserver(premiumRef, [isLoading, trendingPaidPosts]);
   const { showLeft: freeLeft, showRight: freeRight } = useCarouselObserver(freeRef, [isLoading, freePosts]);
 
   // 무한 스크롤 상태 관리
-  const [recentPosts, setRecentPosts] = useState(MOCK_POSTS.slice(0, 10));
+  const [recentPosts, setRecentPosts] = useState<PostItem[]>([]);
+  const [recentPage, setRecentPage] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -64,28 +103,23 @@ export default function Home() {
   const lastPostElementRef = useCallback((node: HTMLDivElement) => {
     if (isLoadingMore) return;
     if (observerRef.current) observerRef.current.disconnect();
-    
+
     observerRef.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) {
         setIsLoadingMore(true);
-        // 프론트엔드 단독 시뮬레이터: 0.8초 딜레이 후 남아있는 MOCK_POSTS 10개씩 불러오기
-        setTimeout(() => {
-          setRecentPosts(prev => {
-            const nextIndex = prev.length;
-            const nextPosts = MOCK_POSTS.slice(nextIndex, nextIndex + 10);
-            
-            if (nextIndex + nextPosts.length >= MOCK_POSTS.length) {
-              setHasMore(false); 
-            }
-            return [...prev, ...nextPosts];
-          });
-          setIsLoadingMore(false);
-        }, 800);
+        apiFetch<SliceResponse>(`/api/posts?page=${recentPage}&size=10&sort=id,desc`)
+          .then((data) => {
+            setRecentPosts(prev => [...prev, ...data.content]);
+            setHasMore(!data.last);
+            setRecentPage(prev => prev + 1);
+          })
+          .catch(console.error)
+          .finally(() => setIsLoadingMore(false));
       }
     });
-    
+
     if (node) observerRef.current.observe(node);
-  }, [isLoadingMore, hasMore]);
+  }, [isLoadingMore, hasMore, recentPage]);
 
   // 화면 가로 길이(한 페이지) 기준으로 스크롤 이동
   const scrollByPage = (ref: React.RefObject<HTMLDivElement | null>, direction: "left" | "right") => {
@@ -228,7 +262,7 @@ export default function Home() {
             ) : (
               trendingPaidPosts.map((post) => (
                 <div key={`trending-${post.id}`} className="w-[260px] sm:w-[280px] flex-none snap-start">
-                  <ContentCard {...post} />
+                  <ContentCard {...toCardProps(post)} />
                 </div>
               ))
             )}
@@ -282,7 +316,7 @@ export default function Home() {
             ) : (
               freePosts.map((post) => (
                 <div key={`free-${post.id}`} className="w-[260px] sm:w-[280px] flex-none snap-start">
-                  <ContentCard {...post} />
+                  <ContentCard {...toCardProps(post)} />
                 </div>
               ))
             )}
@@ -311,11 +345,11 @@ export default function Home() {
                 if (recentPosts.length === index + 1) {
                   return (
                     <div ref={lastPostElementRef} key={post.id} className="w-full">
-                      <ContentCard {...post} />
+                      <ContentCard {...toCardProps(post)} />
                     </div>
                   );
                 } else {
-                  return <ContentCard key={post.id} {...post} />;
+                  return <ContentCard key={post.id} {...toCardProps(post)} />;
                 }
               })
             )}

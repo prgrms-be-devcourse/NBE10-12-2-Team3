@@ -8,6 +8,7 @@ public record CommentResponse(
         Long id,
         Long postId,
         Long userId,
+        String nickname,
         String body,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -16,7 +17,8 @@ public record CommentResponse(
         this(
                 comment.getId(),
                 comment.getPost().getId(),
-                comment.getUser() != null ? comment.getUser().getId() : null,
+                comment.getUser().getId(),
+                comment.getUser().getNickname(),
                 comment.getBody(),
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()

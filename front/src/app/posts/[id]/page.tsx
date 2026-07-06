@@ -15,12 +15,14 @@ import { apiFetch, apiDelete } from "@/lib/api";
 interface Post {
     id: number;
     userId: number;
+    nickname: string;
     seriesId: number | null;
     title: string;
-    body: string;
-    publishStatus: "PUBLIC" | "PRIVATE";
+    body: string | null;
+    publishStatus: "PUBLIC" | "PRIVATE" | "DRAFT";
     accessLevel: "FREE" | "PAID";
     viewCount: number;
+    isLocked: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -45,8 +47,6 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     if (!post) return notFound();
 
     const isAuthor = isLoggedIn && user?.id === post.userId;
-    const isPaid = post.accessLevel === "PAID";
-    const canRead = !isPaid || isLoggedIn;
 
     const handleDelete = async () => {
         if (!confirm("게시글을 삭제할까요?")) return;
@@ -77,9 +77,9 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                 {/* 작성자 & 메타 정보 */}
                 <div className="mb-8 flex items-center justify-between border-b border-neutral-border pb-6">
                     <div className="flex items-center gap-3">
-                        <Avatar name={`user ${post.userId}`} size="md" />
+                        <Avatar name={post.nickname} size="md" />
                         <div>
-                            <p className="font-bold text-neutral-dark">user {post.userId}</p>
+                            <p className="font-bold text-neutral-dark">{post.nickname}</p>
                             <div className="flex items-center gap-1 text-xs text-neutral-meta">
                                 <Calendar className="h-3 w-3" />
                                 {post.createdAt}
@@ -107,12 +107,12 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
 
                 {/* 본문 */}
-                {canRead ? (
-                    <div className="prose max-w-none text-neutral-dark">
-                        <div dangerouslySetInnerHTML={{ __html: post.body }} />
-                    </div>
-                ) : (
+                {post.isLocked ? (
                     <BlurPaywall isLoggedIn={isLoggedIn} />
+                ) : (
+                    <div className="prose max-w-none text-neutral-dark">
+                        <div dangerouslySetInnerHTML={{ __html: post.body ?? "" }} />
+                    </div>
                 )}
 
                 {/* 수정/삭제 버튼 */}
@@ -136,7 +136,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                 )}
 
                 {/* 댓글 */}
-                <CommentList postId={Number(id)} />
+                <CommentList postId={Number(id)} isLocked={post.isLocked} />
             </div>
         </div>
     );

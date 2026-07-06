@@ -2,6 +2,7 @@ package com.scommit.domain.post.post.service;
 
 import com.scommit.domain.post.post.dto.PostResponse;
 import com.scommit.domain.post.post.entity.Post;
+import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
 import com.scommit.domain.post.post.entity.PostAccessLevel;
 import com.scommit.domain.post.post.entity.PublishStatus;
 import com.scommit.domain.post.post.repository.PostRepository;
@@ -54,6 +55,9 @@ class PostServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private SubscriptionRepository subscriptionRepository;
 
     @InjectMocks
     private PostService postService;
@@ -377,7 +381,7 @@ class PostServiceTest {
             Post post = buildPost(1L, mockUser, null);
             when(postRepository.findById(1L)).thenReturn(Optional.of(post));
 
-            postService.getPost(1L);
+            postService.getPost(1L, mockUser);
 
             assertThat(post.getViewCount()).isEqualTo(1L);
         }
@@ -388,7 +392,7 @@ class PostServiceTest {
         void getPost_NotFound() {
             when(postRepository.findById(999L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> postService.getPost(999L))
+            assertThatThrownBy(() -> postService.getPost(999L, null))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
         }
@@ -400,9 +404,51 @@ class PostServiceTest {
             Post deletedPost = buildDeletedPost(1L, mockUser);
             when(postRepository.findById(1L)).thenReturn(Optional.of(deletedPost));
 
-            assertThatThrownBy(() -> postService.getPost(1L))
+            assertThatThrownBy(() -> postService.getPost(1L, null))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
+        }
+
+        // PRIVATE 게시글은 작성자 본인만 조회 가능
+        @Test
+        @DisplayName("실패: PRIVATE 게시글을 타인이 조회하면 ACCESS_DENIED 예외를 던진다.")
+        void getPost_Private_NotOwner() {
+            Post post = buildPost(1L, mockUser, null);
+            ReflectionTestUtils.setField(post, "publishStatus", PublishStatus.PRIVATE);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            assertThatThrownBy(() -> postService.getPost(1L, otherUser))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_DENIED);
+        }
+
+        // PRIVATE 게시글은 비로그인 사용자도 조회 불가
+        @Test
+        @DisplayName("실패: PRIVATE 게시글을 비로그인 사용자가 조회하면 ACCESS_DENIED 예외를 던진다.")
+        void getPost_Private_Anonymous() {
+            Post post = buildPost(1L, mockUser, null);
+            ReflectionTestUtils.setField(post, "publishStatus", PublishStatus.PRIVATE);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+
+            assertThatThrownBy(() -> postService.getPost(1L, null))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_DENIED);
+        }
+
+        // PAID 게시글을 멤버십 비구독자가 조회하면 본문이 잠긴 상태로 반환
+        @Test
+        @DisplayName("성공: PAID 게시글을 비구독자가 조회하면 isLocked=true로 반환한다.")
+        void getPost_Paid_NotMember_IsLocked() {
+            Post post = buildPost(1L, mockUser, null);
+            ReflectionTestUtils.setField(post, "accessLevel", PostAccessLevel.PAID);
+            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(subscriptionRepository.findByUserIdAndCreatorId(otherUser.getId(), mockUser.getId()))
+                    .thenReturn(Optional.empty());
+
+            PostResponse response = postService.getPost(1L, otherUser);
+
+            assertThat(response.isLocked()).isTrue();
+            assertThat(response.body()).isNull();
         }
     }
 

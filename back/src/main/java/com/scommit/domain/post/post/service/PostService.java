@@ -8,6 +8,8 @@ import com.scommit.domain.post.post.entity.PublishStatus;
 import com.scommit.domain.post.post.repository.PostRepository;
 import com.scommit.domain.series.series.entity.Series;
 import com.scommit.domain.series.series.repository.SeriesRepository;
+import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
+import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
@@ -29,6 +31,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final SeriesRepository seriesRepository;
     private final UserRepository userRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     // 게시글 생성
     @Transactional
@@ -65,14 +68,32 @@ public class PostService {
 
     // 게시글 상세 조회
     @Transactional
-    public PostResponse getPost(Long id) {
+    public PostResponse getPost(Long id, User actor) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
         if (post.getDeletedAt() != null) {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
 
+        boolean isOwner = actor != null && post.getUser().getId().equals(actor.getId());
+
+        // PRIVATE 게시글은 작성자만 접근 가능
+        if (post.getPublishStatus() == PublishStatus.PRIVATE && !isOwner) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
         post.increaseViewCount();
+
+        // PAID 게시글은 작성자 또는 멤버십 구독자만 본문 열람 가능
+        if (post.getAccessLevel() == PostAccessLevel.PAID && !isOwner) {
+            boolean isMember = actor != null && subscriptionRepository
+                    .findByUserIdAndCreatorId(actor.getId(), post.getUser().getId())
+                    .map(sub -> sub.getTier() == SubscriptionTier.MEMBERSHIP)
+                    .orElse(false);
+            if (!isMember) {
+                return new PostResponse(post, true);
+            }
+        }
 
         return new PostResponse(post);
     }

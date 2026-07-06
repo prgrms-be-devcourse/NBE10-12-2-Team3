@@ -10,6 +10,7 @@ import { apiFetch } from "@/lib/api";
 interface Post {
     id: number;
     userId: number;
+    nickname: string;
     seriesId: number | null;
     title: string;
     publishStatus: "PUBLIC" | "PRIVATE";
@@ -111,7 +112,7 @@ export default function PostsPage() {
                                 description=""
                                 accessLevel={post.accessLevel}
                                 thumbnailUrl={undefined}
-                                authorName={`user ${post.userId}`}
+                                authorName={post.nickname}
                                 createdAt={post.createdAt}
                                 viewCount={post.viewCount}
                                 likeCount={0}
@@ -129,7 +130,7 @@ export default function PostsPage() {
                                 description=""
                                 accessLevel={post.accessLevel}
                                 thumbnailUrl={undefined}
-                                authorName={`user ${post.userId}`}
+                                authorName={post.nickname}
                                 createdAt={post.createdAt}
                                 viewCount={post.viewCount}
                                 likeCount={0}
