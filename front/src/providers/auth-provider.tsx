@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
     const loginWithCredentials = async (email: string, password: string) => {
+      try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/users/login`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
@@ -76,23 +77,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!res.ok) {
             const json = await res.json().catch(() => null);
-            throw new Error(json?.msg || "로그인에 실패했습니다.");
+            throw new Error(json?.msg || json?.message || "로그인에 실패했습니다.");
         }
 
-      if (!res.ok) {
-        const json = await res.json().catch(() => null);
-        throw new Error(json?.msg || json?.message || "로그인에 실패했습니다.");
+        await refreshUser();
+      } catch (e: any) {
+        console.error("Login failed:", e);
+        throw e;
       }
+    };
 
-      await refreshUser();
-    } catch (e: any) {
-      console.error("Login failed:", e);
-      throw e;
-    }
-  };
-
-  const logout = () => {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/users/logout`, {
+  const logout = async () => {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/users/logout`, {
           method: "POST",
           credentials: "include",
       }).finally(() => {
