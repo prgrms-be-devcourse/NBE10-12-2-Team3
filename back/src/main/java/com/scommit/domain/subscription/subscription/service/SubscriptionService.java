@@ -19,6 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -161,5 +166,16 @@ public class SubscriptionService {
     public Page<SubscriptionInfo> getMySubscriptions(Long userId, Pageable pageable) {
         Page<Subscription> subscriptionsPage = subscriptionRepository.findMySubscriptions(userId, pageable);
         return subscriptionsPage.map(SubscriptionInfo::from);
+    }
+
+    public SubscriptionStatus getSubscriptionStatus(Long userId, Long creatorId) {
+        if (userId.equals(creatorId)) {
+            return SubscriptionStatus.NONE;
+        }
+        Optional<Subscription> subscriptionOpt = subscriptionRepository.findByUserIdAndCreatorId(userId, creatorId);
+        if (subscriptionOpt.isEmpty() || subscriptionOpt.get().getDeletedAt() != null) {
+            return SubscriptionStatus.NONE;
+        }
+        return SubscriptionStatus.valueOf(subscriptionOpt.get().getTier().name());
     }
 }

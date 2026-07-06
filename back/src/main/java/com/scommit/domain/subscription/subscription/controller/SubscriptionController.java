@@ -2,6 +2,8 @@ package com.scommit.domain.subscription.subscription.controller;
 
 import com.scommit.domain.subscription.subscription.dto.SubscriptionResponse;
 import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatusResponse;
 import com.scommit.domain.subscription.subscription.service.SubscriptionService;
 import com.scommit.global.dto.RsData;
 import com.scommit.global.security.SecurityUser;
@@ -91,5 +93,18 @@ public class SubscriptionController {
         Page<SubscriptionResponse> responsePage = infoPage.map(SubscriptionResponse::from);
 
         return new RsData<>("200-1", "내 구독 목록 조회 성공", new PageResponse<>(responsePage));
+    }
+
+    /**
+     * API 6: 단건 구독 상태 확인
+     */
+    @Operation(summary = "구독 상태 확인", description = "특정 창작자에 대한 현재 로그인 사용자의 구독 상태(NONE, FOLLOW, MEMBERSHIP)를 조회합니다.")
+    @GetMapping("/status/{creatorId}")
+    public RsData<SubscriptionStatusResponse> getSubscriptionStatus(
+            @PathVariable("creatorId") Long creatorId,
+            @AuthenticationPrincipal SecurityUser user
+    ) {
+        SubscriptionStatus status = subscriptionService.getSubscriptionStatus(user.getId(), creatorId);
+        return new RsData<>("200-1", "구독 상태 조회 성공", new SubscriptionStatusResponse(status));
     }
 }
