@@ -1,7 +1,7 @@
 import {notFound} from "next/navigation";
 import {SeriesEditorClient} from "./series-editor-client";
 import {getSeries, getSeriesMedia} from "@/lib/series-api";
-import {MEDIA_BASE} from "@/lib/api";
+import {resolveMediaUrl} from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export default async function SeriesEditPage({
     let thumbnailUrl = "";
     try {
         const media = await getSeriesMedia(id);
-        thumbnailUrl = `${MEDIA_BASE}/${media.url}`;
+        thumbnailUrl = resolveMediaUrl(media.url);
     } catch {
         // 썸네일 없음
   }

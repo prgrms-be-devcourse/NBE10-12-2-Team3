@@ -1,6 +1,12 @@
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 export const MEDIA_BASE = `${BASE_URL}/media`;
+
+export function resolveMediaUrl(url: string): string {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${MEDIA_BASE}/${url}`;
+}
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const res = await fetch(`${BASE_URL}${path}`, {

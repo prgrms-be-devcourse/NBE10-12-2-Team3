@@ -1,7 +1,7 @@
 import {SeriesViewContainer} from "./series-view-container";
 import {SeriesCreateButton} from "./series-create-button";
 import {getSeriesList} from "@/lib/series-api";
-import {MEDIA_BASE} from "@/lib/api";
+import {resolveMediaUrl} from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export default async function SeriesPage() {
         postCount: s.postCount,
         authorName: s.nickname,
         lastUpdatedAt: s.updatedAt ? s.updatedAt.split("T")[0] : "",
-        thumbnailUrl: s.thumbnailUrl ? `${MEDIA_BASE}/${s.thumbnailUrl}` : "",
+        thumbnailUrl: s.thumbnailUrl ? resolveMediaUrl(s.thumbnailUrl) : "",
   }));
 
   return (

@@ -22,6 +22,9 @@ public class SecurityHelper { // 14183의 Rq 복붙
     @Value("${jwt.cookie.max-age}")
     private Duration cookieMaxAge;
 
+    @Value("${cookie.domain}")
+    private String cookieDomain;
+
     public User getActor() {
         return Optional.ofNullable(
                         SecurityContextHolder
@@ -71,7 +74,7 @@ public class SecurityHelper { // 14183의 Rq 복붙
         Cookie cookie = new Cookie(name, value);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
-        cookie.setDomain("localhost");
+        cookie.setDomain(cookieDomain);
         cookie.setSecure(true);
         cookie.setAttribute("SameSite", "Lax"); // TODO: 포트 다를 때 Strict로도 되는지 확인
 
