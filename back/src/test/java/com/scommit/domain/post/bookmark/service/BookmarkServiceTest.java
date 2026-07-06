@@ -26,7 +26,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -82,7 +81,7 @@ class BookmarkServiceTest {
         @DisplayName("성공: 북마크가 추가되고 bookmarkCount가 증가한다")
         void createBookmark_success() {
             // given
-            given(postRepository.findById(10L)).willReturn(Optional.of(post));
+            given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
             given(bookmarkRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(false);
 
             // when
@@ -97,7 +96,7 @@ class BookmarkServiceTest {
         @DisplayName("성공: 이미 북마크한 경우 조용히 무시된다")
         void createBookmark_alreadyBookmarked_ignored() {
             // given
-            given(postRepository.findById(10L)).willReturn(Optional.of(post));
+            given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
             given(bookmarkRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(true);
 
             // when
@@ -112,7 +111,7 @@ class BookmarkServiceTest {
         @DisplayName("실패: 존재하지 않는 게시글이면 POST_NOT_FOUND 예외를 던진다")
         void createBookmark_postNotFound() {
             // given
-            given(postRepository.findById(999L)).willReturn(Optional.empty());
+            given(postRepository.findByIdAndDeletedAtIsNull(999L)).willReturn(Optional.empty());
 
             // when & then
             assertThatThrownBy(() -> bookmarkService.createBookmark(999L, actor))
@@ -122,20 +121,6 @@ class BookmarkServiceTest {
             verify(bookmarkRepository, never()).save(any());
         }
 
-        @Test
-        @DisplayName("실패: 삭제된 게시글이면 POST_NOT_FOUND 예외를 던진다")
-        void createBookmark_deletedPost() {
-            // given
-            ReflectionTestUtils.setField(post, "deletedAt", LocalDateTime.now());
-            given(postRepository.findById(10L)).willReturn(Optional.of(post));
-
-            // when & then
-            assertThatThrownBy(() -> bookmarkService.createBookmark(10L, actor))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
-
-            verify(bookmarkRepository, never()).save(any());
-        }
     }
 
     @Nested
@@ -148,7 +133,7 @@ class BookmarkServiceTest {
             // given
             ReflectionTestUtils.setField(post, "bookmarkCount", 1L);
             Bookmark bookmark = new Bookmark(post, actor);
-            given(postRepository.findById(10L)).willReturn(Optional.of(post));
+            given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
             given(bookmarkRepository.findByPostIdAndUserId(10L, 1L)).willReturn(Optional.of(bookmark));
 
             // when
@@ -163,7 +148,7 @@ class BookmarkServiceTest {
         @DisplayName("실패: 북마크가 없는 경우 RESOURCE_NOT_FOUND 예외를 던진다")
         void deleteBookmark_bookmarkNotFound() {
             // given
-            given(postRepository.findById(10L)).willReturn(Optional.of(post));
+            given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
             given(bookmarkRepository.findByPostIdAndUserId(10L, 1L)).willReturn(Optional.empty());
 
             // when & then
@@ -178,7 +163,7 @@ class BookmarkServiceTest {
         @DisplayName("실패: 존재하지 않는 게시글이면 POST_NOT_FOUND 예외를 던진다")
         void deleteBookmark_postNotFound() {
             // given
-            given(postRepository.findById(999L)).willReturn(Optional.empty());
+            given(postRepository.findByIdAndDeletedAtIsNull(999L)).willReturn(Optional.empty());
 
             // when & then
             assertThatThrownBy(() -> bookmarkService.deleteBookmark(999L, actor))
@@ -188,20 +173,6 @@ class BookmarkServiceTest {
             verify(bookmarkRepository, never()).delete(any());
         }
 
-        @Test
-        @DisplayName("실패: 삭제된 게시글이면 POST_NOT_FOUND 예외를 던진다")
-        void deleteBookmark_deletedPost() {
-            // given
-            ReflectionTestUtils.setField(post, "deletedAt", LocalDateTime.now());
-            given(postRepository.findById(10L)).willReturn(Optional.of(post));
-
-            // when & then
-            assertThatThrownBy(() -> bookmarkService.deleteBookmark(10L, actor))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
-
-            verify(bookmarkRepository, never()).delete(any());
-        }
     }
 
     @Nested
