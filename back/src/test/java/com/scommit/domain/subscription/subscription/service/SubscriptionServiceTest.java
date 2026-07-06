@@ -4,6 +4,7 @@ import com.scommit.domain.subscription.subscription.entity.Subscription;
 import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
 import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
 import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
@@ -216,6 +217,61 @@ class SubscriptionServiceTest {
             assertThat(infos.getContent()).hasSize(1);
             assertThat(infos.getContent().get(0).creatorId()).isEqualTo(2L);
             assertThat(infos.getContent().get(0).tier()).isEqualTo(SubscriptionTier.FOLLOW);
+        }
+    }
+
+    @Nested
+    @DisplayName("API 6: 단건 구독 상태 확인 테스트")
+    class GetSubscriptionStatusTest {
+        @Test
+        @DisplayName("성공: 구독하지 않은 경우 NONE 반환")
+        void returnNoneWhenNotSubscribed() {
+            // given
+            given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.empty());
+
+            // when
+            SubscriptionStatus status = subscriptionService.getSubscriptionStatus(1L, 2L);
+
+            // then
+            assertThat(status).isEqualTo(SubscriptionStatus.NONE);
+        }
+
+        @Test
+        @DisplayName("성공: 팔로우 중인 경우 FOLLOW 반환")
+        void returnFollowWhenFollowing() {
+            // given
+            given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.of(followSubscription));
+
+            // when
+            SubscriptionStatus status = subscriptionService.getSubscriptionStatus(1L, 2L);
+
+            // then
+            assertThat(status).isEqualTo(SubscriptionStatus.FOLLOW);
+        }
+
+        @Test
+        @DisplayName("성공: 멤버십 가입 중인 경우 MEMBERSHIP 반환")
+        void returnMembershipWhenJoined() {
+            // given
+            followSubscription.upgradeToMembership();
+            given(subscriptionRepository.findByUserIdAndCreatorId(1L, 2L)).willReturn(Optional.of(followSubscription));
+
+            // when
+            SubscriptionStatus status = subscriptionService.getSubscriptionStatus(1L, 2L);
+
+            // then
+            assertThat(status).isEqualTo(SubscriptionStatus.MEMBERSHIP);
+        }
+
+        @Test
+        @DisplayName("성공: 자기 자신을 조회하는 경우 NONE 반환")
+        void returnNoneWhenSelf() {
+            // when
+            SubscriptionStatus status = subscriptionService.getSubscriptionStatus(1L, 1L);
+
+            // then
+            assertThat(status).isEqualTo(SubscriptionStatus.NONE);
+            verify(subscriptionRepository, never()).findByUserIdAndCreatorId(any(), any());
         }
     }
 }
