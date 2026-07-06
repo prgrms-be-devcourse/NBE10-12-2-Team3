@@ -1,5 +1,6 @@
 package com.scommit.domain.post.comment.service;
 
+import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
 import com.scommit.domain.post.comment.dto.CommentResponse;
 import com.scommit.domain.post.comment.entity.Comment;
 import com.scommit.domain.post.comment.repository.CommentRepository;
@@ -19,12 +20,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,6 +48,9 @@ class CommentServiceTest {
 
     @Mock
     private PostRepository postRepository;
+
+    @Mock
+    private SseEmitterRepository sseEmitterRepository;
 
     @InjectMocks
     private CommentService commentService;
@@ -178,6 +181,30 @@ class CommentServiceTest {
             assertThatThrownBy(() -> commentService.createComment(mockUser, 999L, "댓글"))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("성공: 타인이 댓글 작성 시 게시글 작성자에게 SSE 알림을 전송한다.")
+        void create_OtherUser_SendsSse() {
+            Comment saved = buildComment(1L, otherUser, mockPost);
+            when(postRepository.findById(10L)).thenReturn(Optional.of(mockPost));
+            when(commentRepository.save(any(Comment.class))).thenReturn(saved);
+
+            commentService.createComment(otherUser, 10L, "댓글");
+
+            verify(sseEmitterRepository).sendToUser(eq(mockUser.getId()), any());
+        }
+
+        @Test
+        @DisplayName("성공: 게시글 작성자 본인이 댓글 작성 시 SSE 알림을 전송하지 않는다.")
+        void create_SelfComment_NoSse() {
+            Comment saved = buildComment(1L, mockUser, mockPost);
+            when(postRepository.findById(10L)).thenReturn(Optional.of(mockPost));
+            when(commentRepository.save(any(Comment.class))).thenReturn(saved);
+
+            commentService.createComment(mockUser, 10L, "댓글");
+
+            verify(sseEmitterRepository, never()).sendToUser(any(), any());
         }
 
         // softDelete된 게시글에는 댓글 작성 불가
