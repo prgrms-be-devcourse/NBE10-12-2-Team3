@@ -1,5 +1,8 @@
 package com.scommit.domain.post.comment.service;
 
+import com.scommit.domain.notification.notification.dto.NotificationResponse;
+import com.scommit.domain.notification.notification.dto.NotificationType;
+import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
 import com.scommit.domain.post.comment.dto.CommentResponse;
 import com.scommit.domain.post.comment.entity.Comment;
 import com.scommit.domain.post.comment.repository.CommentRepository;
@@ -9,11 +12,10 @@ import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final SseEmitterRepository sseEmitterRepository;
 
     // 댓글 작성
     @Transactional
@@ -39,7 +42,17 @@ public class CommentService {
                 .body(body)
                 .build();
 
-        return new CommentResponse(commentRepository.save(comment));
+        CommentResponse response = new CommentResponse(commentRepository.save(comment));
+
+        if (!actor.getId().equals(post.getUser().getId())) {
+            sseEmitterRepository.sendToUser(post.getUser().getId(), new NotificationResponse(
+                    NotificationType.COMMENT,
+                    actor.getNickname() + "님이 댓글을 작성했습니다.",
+                    post.getId()
+            ));
+        }
+
+        return response;
     }
 
     // 특정 게시글 댓글 페이지 조회
