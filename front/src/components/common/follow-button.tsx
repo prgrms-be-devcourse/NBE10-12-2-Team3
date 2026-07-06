@@ -14,7 +14,11 @@ interface FollowButtonProps {
   className?: string;
 }
 
-export function FollowButton({ creatorId, initialTier = "NONE", className }: FollowButtonProps) {
+export function FollowButton({
+  creatorId,
+  initialTier = "NONE",
+  className,
+}: FollowButtonProps) {
   const [tier, setTier] = useState<FollowTier>(initialTier);
   const [isLoading, setIsLoading] = useState(false);
   const { isLoggedIn } = useAuth();
@@ -29,13 +33,13 @@ export function FollowButton({ creatorId, initialTier = "NONE", className }: Fol
     try {
       // 🚨 [임시 테스트용] 백엔드 연동 없이 UI 전환만 시뮬레이션 합니다.
       await new Promise((resolve) => setTimeout(resolve, 400)); // 0.4초 통신 딜레이 흉내
-      
+
       if (tier === "NONE") {
         setTier("FOLLOW");
       } else if (tier === "FOLLOW") {
         setTier("MEMBERSHIP");
       } else if (tier === "MEMBERSHIP") {
-        setTier("NONE");
+        setTier("FOLLOW"); // 멤버십 해지 시 일반 팔로우(FOLLOW)로 강등
       }
     } catch (error) {
       console.error("Subscription toggle failed", error);
@@ -63,7 +67,7 @@ export function FollowButton({ creatorId, initialTier = "NONE", className }: Fol
         "relative flex items-center justify-center gap-1.5 px-6 py-2 rounded-full border text-[13px] font-bold transition-all duration-200 active:scale-[0.98] overflow-hidden min-w-[100px]",
         getStyle(),
         isLoading && "opacity-70 cursor-not-allowed",
-        className
+        className,
       )}
     >
       <AnimatePresence mode="wait" initial={false}>
