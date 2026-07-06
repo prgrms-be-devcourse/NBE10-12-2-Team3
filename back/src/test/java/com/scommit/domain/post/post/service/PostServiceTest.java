@@ -26,6 +26,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
@@ -156,6 +158,56 @@ class PostServiceTest {
             assertThatThrownBy(() -> postService.getPosts(999L, pageable))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+        }
+    }
+
+    @Nested
+    @DisplayName("유저 게시글 목록 조회 테스트 (번호 페이지네이션)")
+    class GetUserPosts {
+
+        // 프로필 화면에서 특정 유저의 게시글을 페이지 번호 방식으로 조회
+        @Test
+        @DisplayName("성공: 특정 유저의 게시글 목록을 페이지로 반환한다.")
+        void getUserPosts_Success() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Post post = buildPost(1L, mockUser, null);
+            Page<Post> postPage = new PageImpl<>(List.of(post), pageable, 1);
+
+            when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
+            when(postRepository.findByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(postPage);
+
+            Page<PostListResponse> result = postService.getUserPosts(1L, pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.getContent().get(0).title()).isEqualTo("테스트 포스트");
+        }
+
+        // 존재하지 않는 유저 조회 시 예외
+        @Test
+        @DisplayName("실패: 존재하지 않는 유저면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        void getUserPosts_UserNotFound() {
+            Pageable pageable = PageRequest.of(0, 10);
+            when(userRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> postService.getUserPosts(999L, pageable))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+        }
+
+        // 게시글이 없는 유저도 빈 페이지를 반환해야 함
+        @Test
+        @DisplayName("성공: 게시글이 없는 유저면 빈 페이지를 반환한다.")
+        void getUserPosts_Empty() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Post> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+
+            when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
+            when(postRepository.findByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(emptyPage);
+
+            Page<PostListResponse> result = postService.getUserPosts(1L, pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(0);
+            assertThat(result.getContent()).isEmpty();
         }
     }
 

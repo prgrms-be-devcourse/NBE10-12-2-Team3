@@ -118,6 +118,14 @@ public class PostService {
         post.softDelete();
     }
 
+    // 특정 유저의 게시글 조회 - 번호 페이지네이션 (프로필 화면)
+    public Page<PostListResponse> getUserPosts(Long userId, Pageable pageable) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        return postRepository.findByUserAndDeletedAtIsNull(user, pageable)
+                .map(PostListResponse::new);
+    }
+
     // 로그인 유저의 게시글 조회
     public Page<PostListResponse> getMyPosts(User actor, Pageable pageable) {
         return postRepository.findByUserAndDeletedAtIsNull(actor, pageable)

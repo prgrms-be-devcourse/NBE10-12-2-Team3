@@ -59,6 +59,16 @@ public class PostController {
         return new RsData<>("201-1", "게시글이 생성되었습니다.", response);
     }
 
+    // GET /api/posts/users/{userId} 특정 유저 게시글 조회 - 번호 페이지네이션 (프로필 화면)
+    @Operation(summary = "유저 게시글 목록 조회", description = "특정 유저가 작성한 게시글 목록을 번호 페이지네이션으로 조회합니다.")
+    @GetMapping("/users/{userId}")
+    public RsData<Page<PostListResponse>> getUserPosts(
+            @PathVariable Long userId,
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<PostListResponse> response = postService.getUserPosts(userId, pageable);
+        return new RsData<>("200-1", "유저의 게시글 목록입니다.", response);
+    }
+
     // GET /api/posts 홈페이지 전체 조회 - 무한 스크롤
     @Operation(summary = "게시글 전체 조회", description = "전체 게시글 목록을 조회합니다. creatorId 입력 시 특정 유저의 게시글만 조회합니다.")
     @GetMapping
