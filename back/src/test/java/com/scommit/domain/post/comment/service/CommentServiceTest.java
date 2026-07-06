@@ -115,7 +115,7 @@ class CommentServiceTest {
             Page<Comment> commentPage = new PageImpl<>(List.of(comment), pageable, 1);
 
             when(postRepository.findById(10L)).thenReturn(Optional.of(mockPost));
-            when(commentRepository.findPageByPostIdAndDeletedAtIsNull(10L, pageable)).thenReturn(commentPage);
+            when(commentRepository.findAllByPostIdAndDeletedAtIsNull(10L, pageable)).thenReturn(commentPage);
 
             Page<CommentResponse> result = commentService.getComments(10L, pageable);
 

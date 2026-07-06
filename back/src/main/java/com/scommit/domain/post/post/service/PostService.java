@@ -88,7 +88,7 @@ public class PostService {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
 
-        if (post.getUser() == null || !post.getUser().getId().equals(actor.getId())) {
+        if (!post.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
@@ -111,14 +111,14 @@ public class PostService {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
 
-        if (post.getUser() == null || !post.getUser().getId().equals(actor.getId())) {
+        if (!post.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
         post.softDelete();
     }
 
-    // 내가 쓴 게시글 조회 - 페이지 번호 방식
+    // 로그인 유저의 게시글 조회
     public Page<PostListResponse> getMyPosts(User actor, Pageable pageable) {
         return postRepository.findByUserAndDeletedAtIsNull(actor, pageable)
                 .map(PostListResponse::new);

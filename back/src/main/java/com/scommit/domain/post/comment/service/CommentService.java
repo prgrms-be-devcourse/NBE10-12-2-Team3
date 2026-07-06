@@ -51,7 +51,7 @@ public class CommentService {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
 
-        return commentRepository.findPageByPostIdAndDeletedAtIsNull(postId, pageable)
+        return commentRepository.findAllByPostIdAndDeletedAtIsNull(postId, pageable)
                 .map(CommentResponse::new);
     }
 
