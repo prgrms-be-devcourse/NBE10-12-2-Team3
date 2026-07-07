@@ -20,7 +20,6 @@ public enum ErrorCode {
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "401-3", "액세스 토큰이 만료되었습니다."),
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "401-4", "액세스 토큰이 유효하지 않습니다."),
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "401-5", "리프레시 토큰이 만료되었습니다. 다시 로그인해 주세요."),
-    REFRESH_TOKEN_REUSED(HttpStatus.UNAUTHORIZED, "401-6", "이미 사용된 리프레시 토큰입니다. 보안을 위해 자동 로그아웃 됩니다."),
 
     // 403 Forbidden
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "403-1", "접근 권한이 없습니다."),
