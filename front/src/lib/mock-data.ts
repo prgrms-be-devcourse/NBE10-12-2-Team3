@@ -122,8 +122,8 @@ export const MOCK_POSTS: MockPost[] = [
 ];
 
 // TODO: [백엔드 연동] GET /api/users/{id} 응답(UserProfileResponse)으로 대체.
-// nickname/introduction/profileImageUrl은 profile 객체 형태로 이미 확정되어 그대로 매핑 가능하지만,
-// subscriberCount/subscribingCount/offersMembership은 이 응답에 없습니다.
+// nickname/introduction/profileImageUrl은 profile 객체 형태로, subscriberCount는 followerCount로
+// 이미 확정되어 그대로 매핑 가능하지만, subscribingCount/offersMembership은 이 응답에 없습니다.
 // 통계 전용 엔드포인트가 Swagger에 아직 없음 — 백엔드 확인 후 추가 예정.
 export interface MockCreator {
   id: number;
