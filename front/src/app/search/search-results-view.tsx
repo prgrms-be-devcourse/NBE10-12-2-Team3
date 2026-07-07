@@ -173,10 +173,10 @@ export function SearchResultsView({ query, posts, postsTotalElements, creators, 
           </div>
         </div>
 
-        {/* 게시글 스켈레톤 */}
+        {/* 포스트 스켈레톤 */}
         <section>
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-neutral-dark">관련 게시글</h2>
+            <h2 className="text-xl font-bold text-neutral-dark">관련 포스트</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             <ContentCardSkeleton />
