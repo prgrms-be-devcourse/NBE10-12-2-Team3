@@ -6,6 +6,7 @@ import { ProfileHeader } from "@/components/mypage/profile-header";
 import { SubscriptionList } from "@/components/mypage/subscription-list";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
+import { apiFetch } from "@/lib/api";
 
 const TABS = [
   { id: "subscriptions", label: "내 구독 목록" },
@@ -20,13 +21,8 @@ export default function MyPage() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      fetch("/api/subscriptions/followers/count")
-        .then(res => res.json())
-        .then(data => {
-          if (data.resultCode?.startsWith("200")) {
-            setFollowerCount(data.data);
-          }
-        })
+      apiFetch<number>("/api/subscriptions/followers/count")
+        .then(setFollowerCount)
         .catch(console.error);
     }
   }, [isLoggedIn]);

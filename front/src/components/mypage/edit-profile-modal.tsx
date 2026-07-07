@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Save, Loader2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { useAuth } from "@/providers/auth-provider";
+import { apiFetch, ApiError } from "@/lib/api";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -29,21 +30,20 @@ export function EditProfileModal({ isOpen, onClose, currentNickname = "User", cu
       const requestBlob = new Blob([JSON.stringify({ nickname })], { type: "application/json" });
       formData.append("request", requestBlob);
 
-      const res = await fetch("/api/users/me", {
+      await apiFetch("/api/users/me", {
         method: "PATCH",
         body: formData,
       });
 
-      if (res.ok) {
-        await refreshUser(); // 전역 상태 업데이트
-        alert("정보가 성공적으로 수정되었습니다!");
-        onClose();
-      } else {
-        const errorData = await res.json().catch(() => null);
-        console.error("Profile update failed", res.status, errorData);
-        alert(`정보 수정에 실패했습니다. (상태: ${res.status}, 사유: ${errorData?.message || '알 수 없음'})`);
-      }
+      await refreshUser(); // 전역 상태 업데이트
+      alert("정보가 성공적으로 수정되었습니다!");
+      onClose();
     } catch (e) {
+      if (e instanceof ApiError) {
+        console.error("Profile update failed", e.status, e.message);
+        alert(`정보 수정에 실패했습니다. (상태: ${e.status}, 사유: ${e.message})`);
+        return;
+      }
       console.error(e);
       alert("오류가 발생했습니다.");
     } finally {

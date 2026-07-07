@@ -5,12 +5,18 @@ import { CreatorCard } from "@/components/common/creator-card";
 import { ChevronLeft, ChevronRight, Inbox, Loader2 } from "lucide-react";
 import { FollowTier } from "@/components/common/follow-button";
 import { useAuth } from "@/providers/auth-provider";
+import { apiFetch } from "@/lib/api";
 
 interface SubscriptionItem {
   creatorId: number;
   nickname: string;
   creatorProfileImage: string | null;
   tier: FollowTier;
+}
+
+interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
 }
 
 export function SubscriptionList() {
@@ -20,28 +26,31 @@ export function SubscriptionList() {
   const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn } = useAuth();
 
-  const fetchSubscriptions = async (page: number) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/subscriptions?page=${page - 1}&size=6`);
-      const data = await res.json();
-      
-      if (data.resultCode?.startsWith("200")) {
-        const pageResponse = data.data;
-        setItems(pageResponse.content);
-        setTotalPages(pageResponse.totalPages || 1);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (isLoggedIn) {
-      fetchSubscriptions(currentPage);
+    if (!isLoggedIn) return;
+    let ignore = false;
+
+    async function fetchSubscriptions() {
+      setIsLoading(true);
+      try {
+        const pageResponse = await apiFetch<PageResponse<SubscriptionItem>>(
+          `/api/subscriptions?page=${currentPage - 1}&size=6`
+        );
+        if (!ignore) {
+          setItems(pageResponse.content);
+          setTotalPages(pageResponse.totalPages || 1);
+        }
+      } catch (e) {
+        if (!ignore) console.error(e);
+      } finally {
+        if (!ignore) setIsLoading(false);
+      }
     }
+
+    fetchSubscriptions();
+    return () => {
+      ignore = true;
+    };
   }, [currentPage, isLoggedIn]);
 
   if (isLoading) {

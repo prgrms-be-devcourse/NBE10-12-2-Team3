@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Star, Check, Plus, Loader2, Ban, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
+import { apiFetch } from "@/lib/api";
 
 export type FollowTier = "NONE" | "FOLLOW" | "MEMBERSHIP";
 
@@ -35,13 +36,8 @@ export function FollowButton({
   // 최초 구독 상태 조회
   useEffect(() => {
     if (isLoggedIn && creatorId) {
-      fetch(`/api/subscriptions/status/${creatorId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.resultCode?.startsWith("200")) {
-            setTier(data.data.status); // "NONE", "FOLLOW", "MEMBERSHIP"
-          }
-        })
+      apiFetch<{ status: FollowTier }>(`/api/subscriptions/status/${creatorId}`)
+        .then((data) => setTier(data.status))
         .catch(console.error);
     }
   }, [isLoggedIn, creatorId]);
@@ -86,27 +82,21 @@ export function FollowButton({
     setIsJoinModalOpen(false);
     setIsCancelModalOpen(false);
     try {
-      let res;
       switch (action) {
         case "FOLLOW":
-          res = await fetch(`/api/subscriptions/follow/${creatorId}`, { method: "POST" });
+          await apiFetch(`/api/subscriptions/follow/${creatorId}`, { method: "POST" });
           break;
         case "UNFOLLOW":
-          res = await fetch(`/api/subscriptions/follow/${creatorId}`, { method: "DELETE" });
+          await apiFetch(`/api/subscriptions/follow/${creatorId}`, { method: "DELETE" });
           break;
         case "JOIN_MEMBERSHIP":
-          res = await fetch(`/api/subscriptions/membership/${creatorId}`, { method: "POST" });
+          await apiFetch(`/api/subscriptions/membership/${creatorId}`, { method: "POST" });
           break;
         case "CANCEL_MEMBERSHIP":
-          res = await fetch(`/api/subscriptions/membership/${creatorId}`, { method: "DELETE" });
+          await apiFetch(`/api/subscriptions/membership/${creatorId}`, { method: "DELETE" });
           break;
       }
-      
-      if (!res?.ok) {
-        const errData = await res?.json().catch(() => null);
-        throw new Error(errData?.message || errData?.msg || "요청에 실패했습니다.");
-      }
-      
+
       switch (action) {
         case "FOLLOW": setTier("FOLLOW"); break;
         case "UNFOLLOW": setTier("NONE"); break;
@@ -304,8 +294,11 @@ function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClos
 
   // 모달이 열려있을 때 바디 스크롤 방지 및 Portal 마운트 확인
   useEffect(() => {
-    setMounted(true);
-    document.body.style.overflow = "hidden";
+    function mount() {
+      setMounted(true);
+      document.body.style.overflow = "hidden";
+    }
+    mount();
     return () => {
       document.body.style.overflow = "unset";
     };
