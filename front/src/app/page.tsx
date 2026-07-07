@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ContentCard } from "@/components/common/content-card";
-import { ContentCardSkeleton } from "@/components/common/content-card-skeleton";
-import { CreatorCard } from "@/components/common/creator-card";
-import { Button } from "@/components/ui/button";
-import { AnimatePresence, motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import React, {useCallback, useEffect, useRef, useState} from "react";
+import {ContentCard} from "@/components/common/content-card";
+import {ContentCardSkeleton} from "@/components/common/content-card-skeleton";
+import {CreatorCard} from "@/components/common/creator-card";
+import {Button} from "@/components/ui/button";
+import {AnimatePresence, motion} from "framer-motion";
+import {useRouter} from "next/navigation";
 import Link from "next/link";
 import { Sparkles, TrendingUp, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,8 +13,8 @@ import { useCarouselObserver } from "@/hooks/use-carousel-observer";
 import { useAuth } from "@/providers/auth-provider";
 import { useHasMounted } from "@/hooks/use-has-mounted";
 
-import { apiFetch } from "@/lib/api";
-import { MOCK_CREATORS } from "@/lib/mock-data";
+import {apiDelete, apiFetch, apiPost} from "@/lib/api";
+import {MOCK_CREATORS} from "@/lib/mock-data";
 
 interface PostItem {
   id: number;
@@ -23,6 +23,10 @@ interface PostItem {
   title: string;
   accessLevel: "FREE" | "PAID";
   viewCount: number;
+    likeCount: number;
+    bookmarkCount: number;
+    isLiked: boolean;
+    isBookmarked: boolean;
   createdAt: string;
 }
 
@@ -40,8 +44,10 @@ function toCardProps(post: PostItem) {
     authorName: post.nickname,
     createdAt: post.createdAt.split("T")[0],
     viewCount: post.viewCount,
-    likeCount: 0,
-    bookmarkCount: 0,
+      likeCount: post.likeCount,
+      bookmarkCount: post.bookmarkCount,
+      isLiked: post.isLiked,
+      isBookmarked: post.isBookmarked,
   };
 }
 
@@ -63,6 +69,9 @@ export default function Home() {
   const premiumRef = useRef<HTMLDivElement>(null);
   const freeRef = useRef<HTMLDivElement>(null);
 
+    const [freePosts, setFreePosts] = useState<PostItem[]>([]);
+    const [trendingPaidPosts, setTrendingPaidPosts] = useState<PostItem[]>([]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setHeroIdx((prev) => (prev + 1) % HERO_ITEMS.length);
@@ -80,8 +89,61 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  const [freePosts, setFreePosts] = useState<PostItem[]>([]);
-  const [trendingPaidPosts, setTrendingPaidPosts] = useState<PostItem[]>([]);
+    const toggleLike = async (
+        setter: React.Dispatch<React.SetStateAction<PostItem[]>>,
+        postId: number,
+        currentlyLiked: boolean
+    ) => {
+        if (!isLoggedIn) return;
+        try {
+            if (currentlyLiked) {
+                await apiDelete(`/api/posts/${postId}/likes`);
+            } else {
+                await apiPost(`/api/posts/${postId}/likes`);
+            }
+            setter((prev) =>
+                prev.map((p) =>
+                    p.id === postId
+                        ? {
+                            ...p,
+                            isLiked: !currentlyLiked,
+                            likeCount: currentlyLiked ? p.likeCount - 1 : p.likeCount + 1
+                        }
+                        : p
+                )
+            );
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const toggleBookmark = async (
+        setter: React.Dispatch<React.SetStateAction<PostItem[]>>,
+        postId: number,
+        currentlyBookmarked: boolean
+    ) => {
+        if (!isLoggedIn) return;
+        try {
+            if (currentlyBookmarked) {
+                await apiDelete(`/api/posts/${postId}/bookmarks`);
+            } else {
+                await apiPost(`/api/posts/${postId}/bookmarks`);
+            }
+            setter((prev) =>
+                prev.map((p) =>
+                    p.id === postId
+                        ? {
+                            ...p,
+                            isBookmarked: !currentlyBookmarked,
+                            bookmarkCount: currentlyBookmarked ? p.bookmarkCount - 1 : p.bookmarkCount + 1
+                        }
+                        : p
+                )
+            );
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
   // 옵저버 훅 연결
   const { showLeft: premiumLeft, showRight: premiumRight } = useCarouselObserver(premiumRef, [isLoading, trendingPaidPosts]);
@@ -90,7 +152,6 @@ export default function Home() {
   // 무한 스크롤 상태 관리
   const [recentPosts, setRecentPosts] = useState<PostItem[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const isLoadingMoreRef = useRef(false);
   const hasMoreRef = useRef(true);
   const recentPageRef = useRef(0);
@@ -107,7 +168,6 @@ export default function Home() {
           return [...prev, ...data.content.filter((p: PostItem) => !existingIds.has(p.id))];
         });
         hasMoreRef.current = !data.last;
-        setHasMore(!data.last);
         recentPageRef.current += 1;
       })
       .catch((err) => {
@@ -135,9 +195,6 @@ export default function Home() {
     );
     infiniteObserverRef.current.observe(node);
   }, [fetchNextRecentPage]);
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  const lastPostElementRef = useCallback((_node: HTMLDivElement) => {}, []);
 
   // 화면 가로 길이(한 페이지) 기준으로 스크롤 이동
   const scrollByPage = (ref: React.RefObject<HTMLDivElement | null>, direction: "left" | "right") => {
@@ -280,7 +337,11 @@ export default function Home() {
             ) : (
               trendingPaidPosts.map((post) => (
                 <div key={`trending-${post.id}`} className="w-[260px] sm:w-[280px] flex-none snap-start">
-                  <ContentCard {...toCardProps(post)} />
+                    <ContentCard
+                        {...toCardProps(post)}
+                        onLike={() => toggleLike(setTrendingPaidPosts, post.id, post.isLiked)}
+                        onBookmark={() => toggleBookmark(setTrendingPaidPosts, post.id, post.isBookmarked)}
+                    />
                 </div>
               ))
             )}
@@ -334,7 +395,11 @@ export default function Home() {
             ) : (
               freePosts.map((post) => (
                 <div key={`free-${post.id}`} className="w-[260px] sm:w-[280px] flex-none snap-start">
-                  <ContentCard {...toCardProps(post)} />
+                    <ContentCard
+                        {...toCardProps(post)}
+                        onLike={() => toggleLike(setFreePosts, post.id, post.isLiked)}
+                        onBookmark={() => toggleBookmark(setFreePosts, post.id, post.isBookmarked)}
+                    />
                 </div>
               ))
             )}
@@ -374,12 +439,23 @@ export default function Home() {
                 recentPosts.map((post, index) => {
                   if (recentPosts.length === index + 1) {
                     return (
-                      <div ref={lastPostElementRef} key={post.id} className="w-full">
-                        <ContentCard {...toCardProps(post)} />
+                        <div key={post.id} className="w-full">
+                          <ContentCard
+                              {...toCardProps(post)}
+                              onLike={() => toggleLike(setRecentPosts, post.id, post.isLiked)}
+                              onBookmark={() => toggleBookmark(setRecentPosts, post.id, post.isBookmarked)}
+                          />
                       </div>
                     );
                   } else {
-                    return <ContentCard key={post.id} {...toCardProps(post)} />;
+                      return (
+                          <ContentCard
+                              key={post.id}
+                              {...toCardProps(post)}
+                              onLike={() => toggleLike(setRecentPosts, post.id, post.isLiked)}
+                              onBookmark={() => toggleBookmark(setRecentPosts, post.id, post.isBookmarked)}
+                          />
+                      );
                   }
                 })
               )}
