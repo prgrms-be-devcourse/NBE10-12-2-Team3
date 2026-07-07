@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { MOCK_CREATORS, MOCK_POSTS } from "@/lib/mock-data";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, resolveMediaUrl } from "@/lib/api";
 import { UserProfileView } from "./user-profile-view";
 
 export const dynamic = "force-dynamic";
@@ -133,7 +133,7 @@ export default async function UserProfilePage({
     id: apiProfile.id,
     nickname: apiProfile.profile.nickname,
     introduction: apiProfile.profile.introduction,
-    profileImageUrl: apiProfile.profile.profileImageUrl,
+    profileImageUrl: apiProfile.profile.profileImageUrl ? resolveMediaUrl(apiProfile.profile.profileImageUrl) : undefined,
     postCount: mockPostCount,
     subscriberCount: mockCreator.subscriberCount,
     subscribingCount: mockCreator.subscribingCount,

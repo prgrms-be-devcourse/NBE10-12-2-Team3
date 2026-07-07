@@ -262,7 +262,7 @@ export function Header() {
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center justify-center relative active:scale-[0.98] transition-transform outline-none ring-primary focus-visible:ring-2 rounded-full"
                 >
-                  <Avatar name={user?.nickname || "User"} className="h-9 w-9 border border-neutral-200" />
+                  <Avatar src={user?.avatarUrl} name={user?.nickname || "User"} className="h-9 w-9 border border-neutral-200" />
                 </button>
 
                 {/* Framer Motion Premium Dropdown */}

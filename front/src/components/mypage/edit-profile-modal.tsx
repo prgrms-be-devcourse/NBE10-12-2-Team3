@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Save, Loader2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -12,12 +12,42 @@ interface EditProfileModalProps {
   onClose: () => void;
   currentNickname?: string;
   currentEmail?: string;
+  currentAvatarUrl?: string;
 }
 
-export function EditProfileModal({ isOpen, onClose, currentNickname = "User", currentEmail = "user@test.com" }: EditProfileModalProps) {
+export function EditProfileModal({ isOpen, onClose, currentNickname = "User", currentEmail = "user@test.com", currentAvatarUrl }: EditProfileModalProps) {
   const [nickname, setNickname] = useState(currentNickname);
   const [isLoading, setIsLoading] = useState(false);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { refreshUser } = useAuth();
+
+  // object URL은 명시적으로 해제하지 않으면 메모리에 계속 남으므로, 미리보기가 바뀌거나
+  // 컴포넌트가 사라질 때 이전 URL을 정리합니다.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setProfileImageFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  // 다음에 다시 열었을 때 이전에 골랐던(저장 안 된) 사진 미리보기가 남아있지 않도록,
+  // 닫는 시점에 선택 상태를 정리합니다.
+  const handleClose = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setProfileImageFile(null);
+    setPreviewUrl(null);
+    onClose();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +59,9 @@ export function EditProfileModal({ isOpen, onClose, currentNickname = "User", cu
       const formData = new FormData();
       const requestBlob = new Blob([JSON.stringify({ nickname })], { type: "application/json" });
       formData.append("request", requestBlob);
+      if (profileImageFile) {
+        formData.append("profileImage", profileImageFile);
+      }
 
       await apiFetch("/api/users/me", {
         method: "PATCH",
@@ -37,7 +70,7 @@ export function EditProfileModal({ isOpen, onClose, currentNickname = "User", cu
 
       await refreshUser(); // 전역 상태 업데이트
       alert("정보가 성공적으로 수정되었습니다!");
-      onClose();
+      handleClose();
     } catch (e) {
       if (e instanceof ApiError) {
         console.error("Profile update failed", e.status, e.message);
@@ -60,7 +93,7 @@ export function EditProfileModal({ isOpen, onClose, currentNickname = "User", cu
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleClose}
             className="fixed inset-0 z-[100] bg-neutral-900/40 backdrop-blur-sm"
           />
           
@@ -77,7 +110,7 @@ export function EditProfileModal({ isOpen, onClose, currentNickname = "User", cu
               <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-100">
                 <h2 className="text-lg font-bold text-neutral-dark">내 정보 수정</h2>
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="p-2 -mr-2 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors"
                 >
                   <X className="h-5 w-5" />
@@ -87,8 +120,18 @@ export function EditProfileModal({ isOpen, onClose, currentNickname = "User", cu
               {/* Body */}
               <form onSubmit={handleSubmit} className="p-6">
                 <div className="flex flex-col items-center gap-4 mb-6">
-                  <div className="relative group cursor-pointer">
-                    <Avatar name={nickname} className="h-24 w-24 border-4 border-white shadow-md transition-transform group-hover:scale-105" />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <div
+                    className="relative group cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Avatar src={previewUrl ?? currentAvatarUrl} name={nickname} className="h-24 w-24 border-4 border-white shadow-md transition-transform group-hover:scale-105" />
                     <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <span className="text-white text-xs font-bold">사진 변경</span>
                     </div>
@@ -114,7 +157,7 @@ export function EditProfileModal({ isOpen, onClose, currentNickname = "User", cu
                 <div className="mt-8 flex gap-3">
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="flex-1 py-3 rounded-xl font-bold text-neutral-600 bg-neutral-100 hover:bg-neutral-200 transition-colors"
                   >
                     취소

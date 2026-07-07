@@ -5,7 +5,7 @@ import { CreatorCard } from "@/components/common/creator-card";
 import { ChevronLeft, ChevronRight, Inbox, Loader2 } from "lucide-react";
 import { FollowTier } from "@/components/common/follow-button";
 import { useAuth } from "@/providers/auth-provider";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, resolveMediaUrl } from "@/lib/api";
 
 interface SubscriptionItem {
   creatorId: number;
@@ -86,7 +86,9 @@ export function SubscriptionList() {
             key={creator.creatorId}
             id={creator.creatorId}
             nickname={creator.nickname}
-            // API 응답에 없는 필드들은 기본값 처리
+            profileImageUrl={creator.creatorProfileImage ? resolveMediaUrl(creator.creatorProfileImage) : undefined}
+            // TODO: [백엔드 확인 필요] GET /api/subscriptions 응답(SubscriptionResponse)에 구독 중인
+            // 창작자별 구독자 수 필드가 없어 Swagger에도 해당 API가 없음 — 추가되면 실데이터로 교체합니다.
             subscriberCount={0}
             introduction="창작자님의 멋진 공간입니다."
             initialTier={creator.tier || "FOLLOW"}

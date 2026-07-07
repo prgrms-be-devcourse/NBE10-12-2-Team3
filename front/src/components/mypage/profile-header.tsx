@@ -9,9 +9,10 @@ interface ProfileHeaderProps {
   nickname: string;
   email: string;
   followerCount: number;
+  avatarUrl?: string;
 }
 
-export function ProfileHeader({ nickname, email, followerCount }: ProfileHeaderProps) {
+export function ProfileHeader({ nickname, email, followerCount, avatarUrl }: ProfileHeaderProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const formattedFollowers = new Intl.NumberFormat("ko-KR").format(followerCount);
@@ -24,7 +25,7 @@ export function ProfileHeader({ nickname, email, followerCount }: ProfileHeaderP
         
         {/* Left: User Info */}
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
-          <Avatar name={nickname} className="h-24 w-24 border-4 border-white shadow-md" />
+          <Avatar src={avatarUrl} name={nickname} className="h-24 w-24 border-4 border-white shadow-md" />
           
           <div className="flex flex-col items-center md:items-start text-center md:text-left pt-2">
             <div className="flex items-center gap-3 mb-1">
@@ -54,11 +55,17 @@ export function ProfileHeader({ nickname, email, followerCount }: ProfileHeaderP
       </div>
 
       {/* Edit Profile Modal */}
-      <EditProfileModal 
-        isOpen={isEditModalOpen} 
-        onClose={() => setIsEditModalOpen(false)} 
+      {/* key={email}: nickname은 내부 state로 관리되는데, useAuth().user가 비동기로 늦게
+          채워지면 최초 마운트 시 placeholder(예: "테스트 유저")로 초기화된 뒤 실제 닉네임이
+          로드돼도 반영되지 않는 문제가 있었습니다. email이 placeholder → 실제 값으로 바뀌는
+          시점에 모달을 새로 마운트시켜 nickname state를 최신값으로 다시 초기화합니다. */}
+      <EditProfileModal
+        key={email}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
         currentNickname={nickname}
         currentEmail={email}
+        currentAvatarUrl={avatarUrl}
       />
     </>
   );

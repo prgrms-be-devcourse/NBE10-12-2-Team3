@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ProfileHeader } from "@/components/mypage/profile-header";
+import { ProfileHeaderSkeleton } from "@/components/mypage/profile-header-skeleton";
 import { SubscriptionList } from "@/components/mypage/subscription-list";
 import { MySeriesList } from "@/components/mypage/my-series-list";
 import { MyPostList } from "@/components/mypage/my-post-list";
@@ -20,7 +21,7 @@ const TABS = [
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState(TABS[0].id);
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, isAuthLoading } = useAuth();
   const [followerCount, setFollowerCount] = useState(0);
   const router = useRouter();
 
@@ -52,11 +53,16 @@ export default function MyPage() {
         >
           {/* Top: Profile Info */}
           <section>
-            <ProfileHeader
-              nickname={user?.nickname || "테스트 유저"}
-              email={user?.email || "로그인해주세요"}
-              followerCount={followerCount}
-            />
+            {isAuthLoading ? (
+              <ProfileHeaderSkeleton />
+            ) : (
+              <ProfileHeader
+                nickname={user?.nickname || "테스트 유저"}
+                email={user?.email || "로그인해주세요"}
+                followerCount={followerCount}
+                avatarUrl={user?.avatarUrl}
+              />
+            )}
           </section>
 
           {/* Middle: Tabs */}
