@@ -53,12 +53,12 @@ interface Post {
 interface SearchResultsViewProps {
   query: string;
   posts: Post[];
-  postsTotalPages?: number;
+  postsTotalElements?: number;
   creators: Creator[];
   series: Series[];
 }
 
-export function SearchResultsView({ query, posts, postsTotalPages, creators, series }: SearchResultsViewProps) {
+export function SearchResultsView({ query, posts, postsTotalElements, creators, series }: SearchResultsViewProps) {
   const [layout, setLayout] = useState<"list" | "grid">("grid");
   const [isMounted, setIsMounted] = useState(false);
   const [accessFilter, setAccessFilter] = useState<"ALL" | "FREE" | "PAID">("ALL");
@@ -224,7 +224,7 @@ export function SearchResultsView({ query, posts, postsTotalPages, creators, ser
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-4">
         <div className="flex items-center gap-6 overflow-x-auto sm:overflow-x-visible sm:flex-wrap scrollbar-hide">
           {(["all", "posts", "series", "creators"] as const).map((tab) => {
-            const count = tab === "posts" ? posts.length : tab === "series" ? series.length : tab === "creators" ? creators.length : -1;
+            const count = tab === "posts" ? (postsTotalElements ?? posts.length) : tab === "series" ? series.length : tab === "creators" ? creators.length : -1;
             const isDisabled = count === 0;
 
             return (
@@ -244,7 +244,7 @@ export function SearchResultsView({ query, posts, postsTotalPages, creators, ser
                 )}
               >
                 {tab === "all" && "통합 검색"}
-                {tab === "posts" && `게시글 (${posts.length})`}
+                {tab === "posts" && `게시글 (${postsTotalElements ?? posts.length})`}
                 {tab === "series" && `시리즈 (${series.length})`}
                 {tab === "creators" && `창작자 (${creators.length})`}
                 {activeTab === tab && !isDisabled && (
@@ -288,7 +288,7 @@ export function SearchResultsView({ query, posts, postsTotalPages, creators, ser
           : posts;
         const displayedPosts = activeTab === "all"
           ? filteredPosts.slice(0, 10)
-          : filteredPosts.slice(startIndex, endIndex);
+          : filteredPosts;
         const gridClass = cn(layout === "list" ? "flex flex-col gap-4 w-full" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6");
         return (
           <section>
@@ -313,7 +313,7 @@ export function SearchResultsView({ query, posts, postsTotalPages, creators, ser
                     ))}
                   </div>
                 )}
-                {activeTab === "all" && posts.length > 10 && (
+                {activeTab === "all" && (postsTotalElements ?? posts.length) > 10 && (
                   <Link href={`/search?q=${encodeURIComponent(query)}&tab=posts&page=1`} className="text-sm font-semibold text-neutral-meta hover:text-primary transition-colors">
                     전체보기
                   </Link>
@@ -327,7 +327,7 @@ export function SearchResultsView({ query, posts, postsTotalPages, creators, ser
                   : <ContentCard key={post.uniqueKey || post.id} {...post} />
               ))}
             </div>
-            {activeTab === "posts" && renderPagination(postsTotalPages ? postsTotalPages * itemsPerPage : filteredPosts.length)}
+            {activeTab === "posts" && renderPagination(postsTotalElements ?? filteredPosts.length)}
           </section>
         );
       })()}

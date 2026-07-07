@@ -105,7 +105,7 @@ export default async function SearchPage({
             )}
             {query && (
               <span className="ml-2 rounded-full bg-neutral-200/50 px-3 py-1 text-sm font-bold text-neutral-500">
-                총 {posts.length + creators.length + series.length}건
+                총 {postsResult.totalElements + creators.length + series.length}건
               </span>
             )}
           </h1>
@@ -117,7 +117,7 @@ export default async function SearchPage({
         <SearchResultsView
           query={query}
           posts={posts}
-          postsTotalPages={postsResult.totalPages}
+          postsTotalElements={postsResult.totalElements}
           creators={creators}
           series={series}
         />
