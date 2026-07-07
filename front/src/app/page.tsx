@@ -11,6 +11,7 @@ import { Sparkles, TrendingUp, Zap, ChevronLeft, ChevronRight } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { useCarouselObserver } from "@/hooks/use-carousel-observer";
 import { useAuth } from "@/providers/auth-provider";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 
 import { apiFetch } from "@/lib/api";
 import { MOCK_CREATORS } from "@/lib/mock-data";
@@ -53,6 +54,7 @@ const HERO_ITEMS = [
 export default function Home() {
   const router = useRouter();
   const { isLoggedIn } = useAuth();
+  const hasMounted = useHasMounted();
   const [heroIdx, setHeroIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [recentError, setRecentError] = useState(false);
@@ -393,7 +395,9 @@ export default function Home() {
         </section>
 
         {/* --- 6. Bottom CTA (Full-width Soft Background) --- */}
-        {!isLoggedIn && (
+        {/* hasMounted 가드: 서버는 로그인 여부를 몰라 항상 비로그인으로 렌더링하므로,
+            하이드레이션 이전엔 isLoggedIn을 그대로 쓰면 서버 HTML과 어긋납니다. */}
+        {hasMounted && !isLoggedIn && (
           <section className="w-full mt-32 bg-[#ebebeb] pt-28 pb-32">
             <div className="mx-auto max-w-[1000px] px-4 sm:px-6 lg:px-8 xl:px-12">
               <div className="flex flex-col items-center justify-center text-center">

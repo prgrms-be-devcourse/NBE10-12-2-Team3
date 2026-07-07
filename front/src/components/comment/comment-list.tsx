@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Check, X } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { cn } from "@/lib/utils";
 import { apiFetch, apiPost, apiPut, apiDelete } from "@/lib/api";
 
@@ -24,6 +25,7 @@ interface PageResponse {
 
 export function CommentList({ postId, isLocked = false }: { postId: number; isLocked?: boolean }) {
     const { isLoggedIn, user } = useAuth();
+    const hasMounted = useHasMounted();
     const [comments, setComments] = useState<Comment[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [newComment, setNewComment] = useState("");
@@ -95,7 +97,7 @@ export function CommentList({ postId, isLocked = false }: { postId: number; isLo
                                 <span className="text-sm font-bold text-neutral-dark">{comment.nickname}</span>
                                 <span className="text-xs text-neutral-meta">{comment.createdAt}</span>
                             </div>
-                            {isLoggedIn && user?.id === comment.userId && (
+                            {hasMounted && isLoggedIn && user?.id === comment.userId && (
                                 <div className="flex items-center gap-1">
                                     {editingId === comment.id ? (
                                         <>
@@ -134,7 +136,7 @@ export function CommentList({ postId, isLocked = false }: { postId: number; isLo
             </div>}
 
             {/* 댓글 작성 */}
-            {!isLocked && isLoggedIn ? (
+            {!isLocked && hasMounted && isLoggedIn ? (
                 <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
                     <textarea
                         value={newComment}

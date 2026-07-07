@@ -7,6 +7,7 @@ import { Eye, Heart, Bookmark, Calendar, Pencil, Trash2, BookOpen } from "lucide
 import { Avatar } from "@/components/ui/avatar";
 import { BlurPaywall } from "@/components/common/blur-paywall";
 import { useAuth } from "@/providers/auth-provider";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { cn } from "@/lib/utils";
 import { CommentList } from "@/components/comment/comment-list";
 import { useRouter } from "next/navigation";
@@ -30,6 +31,7 @@ interface Post {
 export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params);
     const { isLoggedIn, user } = useAuth();
+    const hasMounted = useHasMounted();
     const router = useRouter();
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
@@ -46,7 +48,9 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     if (loading) return <div className="min-h-screen bg-neutral-50 pt-20 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mt-20" /></div>;
     if (!post) return notFound();
 
-    const isAuthor = isLoggedIn && user?.id === post.userId;
+    // hasMounted 가드: 서버는 로그인 여부를 몰라 항상 비로그인으로 렌더링하므로,
+    // 하이드레이션 이전엔 isLoggedIn을 그대로 쓰면 서버 HTML과 어긋납니다.
+    const isAuthor = hasMounted && isLoggedIn && user?.id === post.userId;
 
     const handleDelete = async () => {
         if (!confirm("게시글을 삭제할까요?")) return;
@@ -108,7 +112,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
 
                 {/* 본문 */}
                 {post.isLocked ? (
-                    <BlurPaywall isLoggedIn={isLoggedIn} />
+                    <BlurPaywall isLoggedIn={hasMounted && isLoggedIn} />
                 ) : (
                     <div className="prose max-w-none text-neutral-dark">
                         <div dangerouslySetInnerHTML={{ __html: post.body ?? "" }} />

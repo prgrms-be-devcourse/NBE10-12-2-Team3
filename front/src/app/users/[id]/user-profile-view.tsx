@@ -11,6 +11,7 @@ import { SeriesList } from "@/components/common/series-list";
 import { SeriesPagination } from "@/components/common/series-pagination";
 import { ConfirmModal } from "@/components/common/confirm-modal";
 import { useAuth } from "@/providers/auth-provider";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { apiFetch, apiPost, apiDelete } from "@/lib/api";
 import type { UserProfileResponse, PostListResponse, SeriesListResponse } from "./page";
 
@@ -50,6 +51,7 @@ const TABS: TabItem[] = [
 export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPage, posts, series, tabDataError }: UserProfileViewProps) {
   const router = useRouter();
   const { isLoggedIn, user } = useAuth();
+  const hasMounted = useHasMounted();
   const [showLoginModal, setShowLoginModal] = useState(false);
   // 로그인한 사용자의 초기 isFollowing/isMember 상태는 프로필 응답(UserProfileResponse)에 없어,
   // 아래 useEffect에서 GET /api/subscriptions/status/{creatorId} 단건 조회로 판단합니다.
@@ -59,7 +61,9 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
   const [isMembershipSubmitting, setIsMembershipSubmitting] = useState(false);
 
   // useAuth().user.id(number)와 프로필 id를 비교해 본인 프로필 여부를 판단합니다.
-  const isOwnProfile = isLoggedIn && user?.id === profile.id;
+  // hasMounted 가드: 서버는 로그인 여부를 몰라 항상 비로그인으로 렌더링하므로,
+  // 하이드레이션 이전엔 isLoggedIn을 그대로 쓰면 서버 HTML과 어긋납니다.
+  const isOwnProfile = hasMounted && isLoggedIn && user?.id === profile.id;
 
   const isFirstRender = useRef(true);
   useEffect(() => {
