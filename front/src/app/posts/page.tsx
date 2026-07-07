@@ -64,6 +64,7 @@ export default function PostsPage() {
     }, [hasMore, page]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

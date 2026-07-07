@@ -67,6 +67,9 @@ export default function Home() {
   const premiumRef = useRef<HTMLDivElement>(null);
   const freeRef = useRef<HTMLDivElement>(null);
 
+    const [freePosts, setFreePosts] = useState<PostItem[]>([]);
+    const [trendingPaidPosts, setTrendingPaidPosts] = useState<PostItem[]>([]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setHeroIdx((prev) => (prev + 1) % HERO_ITEMS.length);
@@ -140,9 +143,6 @@ export default function Home() {
         }
     };
 
-  const [freePosts, setFreePosts] = useState<PostItem[]>([]);
-  const [trendingPaidPosts, setTrendingPaidPosts] = useState<PostItem[]>([]);
-
   // 옵저버 훅 연결
   const { showLeft: premiumLeft, showRight: premiumRight } = useCarouselObserver(premiumRef, [isLoading, trendingPaidPosts]);
   const { showLeft: freeLeft, showRight: freeRight } = useCarouselObserver(freeRef, [isLoading, freePosts]);
@@ -150,7 +150,6 @@ export default function Home() {
   // 무한 스크롤 상태 관리
   const [recentPosts, setRecentPosts] = useState<PostItem[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const isLoadingMoreRef = useRef(false);
   const hasMoreRef = useRef(true);
   const recentPageRef = useRef(0);
@@ -167,7 +166,6 @@ export default function Home() {
           return [...prev, ...data.content.filter((p: PostItem) => !existingIds.has(p.id))];
         });
         hasMoreRef.current = !data.last;
-        setHasMore(!data.last);
         recentPageRef.current += 1;
       })
       .catch((err) => {
@@ -195,9 +193,6 @@ export default function Home() {
     );
     infiniteObserverRef.current.observe(node);
   }, [fetchNextRecentPage]);
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  const lastPostElementRef = useCallback((_node: HTMLDivElement) => {}, []);
 
   // 화면 가로 길이(한 페이지) 기준으로 스크롤 이동
   const scrollByPage = (ref: React.RefObject<HTMLDivElement | null>, direction: "left" | "right") => {
@@ -442,7 +437,7 @@ export default function Home() {
                 recentPosts.map((post, index) => {
                   if (recentPosts.length === index + 1) {
                     return (
-                      <div ref={lastPostElementRef} key={post.id} className="w-full">
+                        <div key={post.id} className="w-full">
                           <ContentCard
                               {...toCardProps(post)}
                               onLike={() => toggleLike(setRecentPosts, post.id, post.isLiked)}

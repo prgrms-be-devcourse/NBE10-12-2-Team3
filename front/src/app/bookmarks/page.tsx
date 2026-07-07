@@ -42,7 +42,6 @@ export default function BookmarksPage() {
 
     useEffect(() => {
         if (!isLoggedIn) {
-            setLoading(false);
             router.push("/users/login");
             return;
         }
