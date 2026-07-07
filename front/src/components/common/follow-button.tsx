@@ -32,6 +32,20 @@ export function FollowButton({
   const { isLoggedIn } = useAuth();
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // 최초 구독 상태 조회
+  useEffect(() => {
+    if (isLoggedIn && creatorId) {
+      fetch(`/api/subscriptions/status/${creatorId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.resultCode?.startsWith("200")) {
+            setTier(data.data.status); // "NONE", "FOLLOW", "MEMBERSHIP"
+          }
+        })
+        .catch(console.error);
+    }
+  }, [isLoggedIn, creatorId]);
+
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -63,25 +77,35 @@ export function FollowButton({
   };
 
   const executeAction = async (action: "FOLLOW" | "UNFOLLOW" | "JOIN_MEMBERSHIP" | "CANCEL_MEMBERSHIP") => {
+    if (!isLoggedIn) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
     setIsLoading(true);
     setIsMenuOpen(false);
     setIsJoinModalOpen(false);
     setIsCancelModalOpen(false);
     try {
-      // 🚨 [임시 테스트용] 실제 API 대신 0.5초 통신 지연을 시뮬레이션 합니다.
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      let res;
+      switch (action) {
+        case "FOLLOW":
+          res = await fetch(`/api/subscriptions/follow/${creatorId}`, { method: "POST" });
+          break;
+        case "UNFOLLOW":
+          res = await fetch(`/api/subscriptions/follow/${creatorId}`, { method: "DELETE" });
+          break;
+        case "JOIN_MEMBERSHIP":
+          res = await fetch(`/api/subscriptions/membership/${creatorId}`, { method: "POST" });
+          break;
+        case "CANCEL_MEMBERSHIP":
+          res = await fetch(`/api/subscriptions/membership/${creatorId}`, { method: "DELETE" });
+          break;
+      }
       
-      /* 
-       * 실제 연동 시 아래 코드로 변경하세요.
-       * if (!isLoggedIn) { alert("로그인이 필요합니다."); return; }
-       * 
-       * switch(action) {
-       *   case "FOLLOW": await fetch(`/api/subscriptions/follow/${creatorId}`, { method: "POST" }); break;
-       *   case "UNFOLLOW": await fetch(`/api/subscriptions/follow/${creatorId}`, { method: "DELETE" }); break;
-       *   case "JOIN_MEMBERSHIP": await fetch(`/api/subscriptions/membership/${creatorId}`, { method: "POST" }); break;
-       *   case "CANCEL_MEMBERSHIP": await fetch(`/api/subscriptions/membership/${creatorId}`, { method: "DELETE" }); break;
-       * }
-       */
+      if (!res?.ok) {
+        const errData = await res?.json().catch(() => null);
+        throw new Error(errData?.message || errData?.msg || "요청에 실패했습니다.");
+      }
       
       switch (action) {
         case "FOLLOW": setTier("FOLLOW"); break;
@@ -91,6 +115,7 @@ export function FollowButton({
       }
     } catch (error) {
       console.error("Action failed", error);
+      alert(error instanceof Error ? error.message : "요청에 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
