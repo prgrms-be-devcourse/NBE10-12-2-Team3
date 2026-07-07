@@ -42,8 +42,8 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setErrorMsg("비밀번호는 최소 6자 이상이어야 합니다.");
+    if (password.length < 8) {
+      setErrorMsg("비밀번호는 최소 8자 이상이어야 합니다.");
       return;
     }
 
@@ -102,7 +102,7 @@ export default function SignupPage() {
             새로운 여정을 시작하세요.
           </h1>
           <p className="text-lg text-white/80 max-w-md leading-relaxed">
-            매일 꾸준하게 성장하는 개발자들의 커뮤니티에 합류하여 당신만의 멋진 포트폴리오를 만들어보세요.
+            현업 개발자들이 쌓아온 노하우를 글로 만나고, 마음에 드는 창작자를 팔로우하거나 멤버십으로 구독하세요.
           </p>
         </motion.div>
       </div>
@@ -200,7 +200,7 @@ export default function SignupPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="최소 6자 이상"
+                placeholder="최소 8자 이상"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-12 rounded-xl border-neutral-200 bg-neutral-50 px-4 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
