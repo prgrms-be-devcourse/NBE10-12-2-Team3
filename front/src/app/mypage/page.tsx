@@ -5,13 +5,16 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ProfileHeader } from "@/components/mypage/profile-header";
 import { SubscriptionList } from "@/components/mypage/subscription-list";
+import { MySeriesList } from "@/components/mypage/my-series-list";
+import { MyPostList } from "@/components/mypage/my-post-list";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import { apiFetch, ApiError } from "@/lib/api";
 
 const TABS = [
   { id: "subscriptions", label: "내 구독 목록" },
-  { id: "posts", label: "내가 쓴 글" },
+  { id: "posts", label: "내 포스트" },
+  { id: "series", label: "내 시리즈" },
   { id: "payments", label: "결제 내역" },
 ];
 
@@ -92,12 +95,10 @@ export default function MyPage() {
             >
               {activeTab === "subscriptions" && <SubscriptionList />}
               
-              {activeTab === "posts" && (
-                <div className="py-20 text-center text-neutral-500">
-                  <p>아직 작성한 글이 없습니다.</p>
-                </div>
-              )}
-              
+              {activeTab === "posts" && <MyPostList />}
+
+              {activeTab === "series" && <MySeriesList />}
+
               {activeTab === "payments" && (
                 <div className="py-20 text-center text-neutral-500">
                   <p>결제 내역이 존재하지 않습니다.</p>
