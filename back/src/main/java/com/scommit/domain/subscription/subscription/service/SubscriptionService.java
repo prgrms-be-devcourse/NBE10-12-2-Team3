@@ -178,4 +178,9 @@ public class SubscriptionService {
         }
         return SubscriptionStatus.valueOf(subscriptionOpt.get().getTier().name());
     }
+
+    @Transactional(readOnly = true)
+    public long getFollowerCount(Long creatorId) {
+        return subscriptionRepository.countByCreatorIdAndDeletedAtIsNull(creatorId);
+    }
 }
