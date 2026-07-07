@@ -213,23 +213,23 @@ class SeriesServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 존재하지 않는 시리즈 ID인 경우 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 존재하지 않는 시리즈 ID인 경우 SERIES_NOT_FOUND 예외를 던진다.")
         void findById_NotFound() {
             when(seriesRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> seriesService.getSeries(999L))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SERIES_NOT_FOUND);
         }
 
         @Test
-        @DisplayName("실패: 삭제된 시리즈인 경우 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 삭제된 시리즈인 경우 SERIES_NOT_FOUND 예외를 던진다.")
         void findById_SoftDeleted() {
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> seriesService.getSeries(1L))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SERIES_NOT_FOUND);
         }
     }
 
@@ -250,13 +250,13 @@ class SeriesServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 이미 삭제된 시리즈를 수정하려고 시도하면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 이미 삭제된 시리즈를 수정하려고 시도하면 SERIES_NOT_FOUND 예외를 던진다.")
         void update_SoftDeleted() {
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> seriesService.updateSeries(1L, "수정된 제목", "수정된 설명", 1L, UserRole.USER))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SERIES_NOT_FOUND);
         }
 
         @Test
@@ -300,13 +300,13 @@ class SeriesServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 이미 삭제된 시리즈를 삭제하려고 시도하면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 이미 삭제된 시리즈를 삭제하려고 시도하면 SERIES_NOT_FOUND 예외를 던진다.")
         void delete_AlreadyDeleted() {
             when(seriesRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> seriesService.deleteSeries(1L, 1L, UserRole.USER))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SERIES_NOT_FOUND);
         }
 
         @Test
