@@ -9,8 +9,12 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
+
+    // 삭제되지 않은 게시글 단건 조회
+    Optional<Post> findByIdAndDeletedAtIsNull(Long id);
 
     // 특정 유저 게시글 전체 조회 - 관리자용 (삭제된 게시글 포함)
     List<Post> findByUser(User user);

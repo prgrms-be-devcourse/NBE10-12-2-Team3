@@ -1,5 +1,6 @@
 package com.scommit.domain.post.post.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.scommit.domain.post.post.entity.Post;
 import com.scommit.domain.post.post.entity.PostAccessLevel;
 import com.scommit.domain.post.post.entity.PublishStatus;
@@ -18,9 +19,13 @@ public record PostListResponse(
         PublishStatus publishStatus,
         PostAccessLevel accessLevel,
         Long viewCount,
+        Long likeCount,
+        Long bookmarkCount,
+        @JsonProperty("isLiked") boolean isLiked,
+        @JsonProperty("isBookmarked") boolean isBookmarked,
         LocalDateTime createdAt
 ) {
-    public PostListResponse(Post post) {
+    public PostListResponse(Post post, boolean isLiked, boolean isBookmarked) {
         this(
                 post.getId(),
                 post.getUser().getId(),
@@ -30,6 +35,10 @@ public record PostListResponse(
                 post.getPublishStatus(),
                 post.getAccessLevel(),
                 post.getViewCount(),
+                post.getLikeCount(),
+                post.getBookmarkCount(),
+                isLiked,
+                isBookmarked,
                 post.getCreatedAt()
         );
     }
