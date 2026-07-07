@@ -1,7 +1,7 @@
 "use client";
 
 import React, {createContext, ReactNode, useContext, useState, useEffect} from "react";
-import {apiPost} from "@/lib/api";
+import {apiFetch, apiPost, ApiError} from "@/lib/api";
 
 export interface User {
   id: number;
@@ -28,24 +28,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 1. 현재 로그인한 유저 정보를 백엔드에서 다시 불러옵니다. (Current 장점)
   const refreshUser = async () => {
     try {
-      const res = await fetch("/api/users/me");
-      if (res.ok) {
-        const data = await res.json();
-        const userData = data.data;
-        setUser({
-          id: userData.id,
-          email: userData.email,
-          nickname: userData.profile?.nickname,
-          role: userData.role,
-          avatarUrl: userData.profile?.profileImageUrl,
-        });
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
-        setUser(null);
-      }
+      const userData = await apiFetch<{
+        id: number;
+        email: string;
+        role?: "USER" | "ADMIN";
+        profile?: { nickname: string; profileImageUrl?: string };
+      }>("/api/users/me");
+      setUser({
+        id: userData.id,
+        email: userData.email,
+        nickname: userData.profile?.nickname ?? "",
+        role: userData.role,
+        avatarUrl: userData.profile?.profileImageUrl,
+      });
+      setIsLoggedIn(true);
     } catch (e) {
-      console.error("User refresh failed", e);
+      if (!(e instanceof ApiError)) {
+        console.error("User refresh failed", e);
+      }
+      setIsLoggedIn(false);
+      setUser(null);
     }
   };
 
