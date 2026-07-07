@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { ProfileHeader } from "@/components/mypage/profile-header";
 import { SubscriptionList } from "@/components/mypage/subscription-list";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 
 const TABS = [
   { id: "subscriptions", label: "내 구독 목록" },
@@ -18,14 +19,21 @@ export default function MyPage() {
   const [activeTab, setActiveTab] = useState(TABS[0].id);
   const { user, isLoggedIn } = useAuth();
   const [followerCount, setFollowerCount] = useState(0);
+  const router = useRouter();
 
   useEffect(() => {
-    if (isLoggedIn) {
-      apiFetch<number>("/api/subscriptions/followers/count")
-        .then(setFollowerCount)
-        .catch(console.error);
-    }
-  }, [isLoggedIn]);
+    apiFetch<number>("/api/subscriptions/followers/count")
+      .then(setFollowerCount)
+      .catch((e) => {
+        if (e instanceof ApiError && e.status === 401) {
+          alert("로그인이 필요합니다.");
+          // TODO: 로그인 화면 PR 머지 후, "/"이 아니라 로그인 페이지로 리다이렉트하도록 변경
+          router.push("/");
+          return;
+        }
+        console.error(e);
+      });
+  }, [isLoggedIn, router]);
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-24">

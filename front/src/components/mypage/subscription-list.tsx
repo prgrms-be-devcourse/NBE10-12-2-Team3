@@ -5,7 +5,7 @@ import { CreatorCard } from "@/components/common/creator-card";
 import { ChevronLeft, ChevronRight, Inbox, Loader2 } from "lucide-react";
 import { FollowTier } from "@/components/common/follow-button";
 import { useAuth } from "@/providers/auth-provider";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 
 interface SubscriptionItem {
   creatorId: number;
@@ -27,7 +27,6 @@ export function SubscriptionList() {
   const { isLoggedIn } = useAuth();
 
   useEffect(() => {
-    if (!isLoggedIn) return;
     let ignore = false;
 
     async function fetchSubscriptions() {
@@ -41,7 +40,12 @@ export function SubscriptionList() {
           setTotalPages(pageResponse.totalPages || 1);
         }
       } catch (e) {
-        if (!ignore) console.error(e);
+        if (ignore) return;
+        // 비로그인 상태(401)는 예상된 상태라 에러로 로깅하지 않음.
+        // TODO: 로그인 화면 PR 머지 후, 401이면 로그인 페이지로 리다이렉트 처리
+        if (!(e instanceof ApiError && e.status === 401)) {
+          console.error(e);
+        }
       } finally {
         if (!ignore) setIsLoading(false);
       }
