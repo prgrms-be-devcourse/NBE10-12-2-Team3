@@ -17,6 +17,9 @@ management:
       application: ${spring.application.name}
     enable:
       hikaricp: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
 jwt:
   secret-key: ${JWT_SECRET_KEY}
   token:
