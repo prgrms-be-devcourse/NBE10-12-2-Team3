@@ -6,7 +6,7 @@ positions:
   filename: /tmp/positions.yaml
 
 clients:
-  - url: http://54.252.83.173:3100/loki/api/v1/push
+  - url: http://54.153.142.128:3100/loki/api/v1/push
 
 scrape_configs:
   - job_name: docker
