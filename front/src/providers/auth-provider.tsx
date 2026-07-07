@@ -1,6 +1,6 @@
 "use client";
 
-import React, {createContext, ReactNode, useContext, useState} from "react";
+import React, {createContext, ReactNode, useContext, useState, useEffect} from "react";
 import {apiPost} from "@/lib/api";
 
 export interface User {
@@ -73,8 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
   };
 
-  const logout = () => {
-      apiPost("/api/users/logout").catch(() => {}).finally(() => {
+  const logout = async () => {
+      await apiPost("/api/users/logout").catch(() => {}).finally(() => {
           setIsLoggedIn(false);
           setUser(null);
       });
