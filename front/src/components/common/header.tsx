@@ -70,7 +70,8 @@ export function Header() {
     return () => clearTimeout(timer);
   }, [pathname, searchParams]);
   const [isMounted, setIsMounted] = useState(false);
-  
+  const isAuthReady = isMounted && isLoggedIn;
+
   const searchContainerRef = useRef<HTMLFormElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { recentSearches, addSearchTerm, removeSearchTerm } = useRecentSearches();
@@ -232,7 +233,7 @@ export function Header() {
               )}
             </form>
             
-            {isLoggedIn && (
+            {isAuthReady && (
               <>
                 <Link href="/posts/new">
                   <Button variant="filled" className="hidden sm:flex items-center gap-1.5 text-sm font-bold px-4 py-2">
@@ -249,7 +250,7 @@ export function Header() {
 
           <div className="h-4 w-px bg-neutral-200 hidden sm:block"></div>
 
-          {isLoggedIn ? (
+          {isAuthReady ? (
             <div className="flex items-center gap-4" ref={profileDropdownRef}>
               {user?.role === "ADMIN" ? (
                 <div className="relative group hidden sm:block">
