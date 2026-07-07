@@ -75,6 +75,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 개발
                         .requestMatchers("/h2-console/**").permitAll()
+                        // 모니터링
+                        .requestMatchers("/actuator/**").permitAll()
                         // 정적 리소스
                         .requestMatchers(
                                 "/favicon.ico",
