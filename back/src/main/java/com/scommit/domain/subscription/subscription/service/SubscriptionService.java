@@ -1,5 +1,9 @@
 package com.scommit.domain.subscription.subscription.service;
 
+import com.scommit.domain.notification.notification.dto.NotificationResponse;
+import com.scommit.domain.notification.notification.dto.NotificationType;
+import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
 import com.scommit.domain.subscription.subscription.entity.Subscription;
 import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
 import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
@@ -8,6 +12,8 @@ import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +23,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +32,7 @@ public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
+    private final SseEmitterRepository sseEmitterRepository;
 
     @Transactional
     public void follow(Long userId, Long creatorId) {
@@ -59,6 +67,12 @@ public class SubscriptionService {
 
             subscriptionRepository.save(newSubscription);
         }
+
+        sseEmitterRepository.sendToUser(creatorId, new NotificationResponse(
+                NotificationType.FOLLOW,
+                user.getNickname() + "님이 팔로우했습니다.",
+                userId
+        ));
     }
 
     @Transactional
@@ -99,6 +113,11 @@ public class SubscriptionService {
                     .startedAt(LocalDate.now())
                     .build();
             subscriptionRepository.save(newSubscription);
+            sseEmitterRepository.sendToUser(creatorId, new NotificationResponse(
+                    NotificationType.MEMBERSHIP,
+                    user.getNickname() + "님이 멤버십에 가입했습니다.",
+                    userId
+            ));
             return;
         }
 
@@ -108,6 +127,11 @@ public class SubscriptionService {
             // [NEW] 언팔로우(소프트 딜리트) 상태인 경우: 복구(자동 팔로우) 및 멤버십 승급
             subscription.restoreSubscription();
             subscription.upgradeToMembership();
+            sseEmitterRepository.sendToUser(creatorId, new NotificationResponse(
+                    NotificationType.MEMBERSHIP,
+                    subscription.getUser().getNickname() + "님이 멤버십에 가입했습니다.",
+                    userId
+            ));
             return;
         }
 
@@ -116,6 +140,11 @@ public class SubscriptionService {
         }
 
         subscription.upgradeToMembership();
+        sseEmitterRepository.sendToUser(creatorId, new NotificationResponse(
+                NotificationType.MEMBERSHIP,
+                subscription.getUser().getNickname() + "님이 멤버십에 가입했습니다.",
+                userId
+        ));
     }
 
     @Transactional
@@ -137,5 +166,16 @@ public class SubscriptionService {
     public Page<SubscriptionInfo> getMySubscriptions(Long userId, Pageable pageable) {
         Page<Subscription> subscriptionsPage = subscriptionRepository.findMySubscriptions(userId, pageable);
         return subscriptionsPage.map(SubscriptionInfo::from);
+    }
+
+    public SubscriptionStatus getSubscriptionStatus(Long userId, Long creatorId) {
+        if (userId.equals(creatorId)) {
+            return SubscriptionStatus.NONE;
+        }
+        Optional<Subscription> subscriptionOpt = subscriptionRepository.findByUserIdAndCreatorId(userId, creatorId);
+        if (subscriptionOpt.isEmpty() || subscriptionOpt.get().getDeletedAt() != null) {
+            return SubscriptionStatus.NONE;
+        }
+        return SubscriptionStatus.valueOf(subscriptionOpt.get().getTier().name());
     }
 }

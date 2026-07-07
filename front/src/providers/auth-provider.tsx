@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {createContext, ReactNode, useContext, useState} from "react";
+import {apiPost} from "@/lib/api";
 
 export interface User {
   id: number;
@@ -60,20 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
-  const loginWithCredentials = async (email: string, password: string) => {
-    try {
-      // 프록시(/api/*)를 태워서 CORS 문제를 방지합니다.
-      const res = await fetch("/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) {
-        const json = await res.json().catch(() => null);
-        throw new Error(json?.msg || json?.message || "로그인에 실패했습니다.");
-      }
+    // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
+    const loginWithCredentials = async (email: string, password: string) => {
+        const {user: profile} = await apiPost<{ user: User }>("/api/users/login", {email, password});
 
       // 로그인 성공 시 쿠키가 세팅되므로, refreshUser를 호출하여 최신 유저 정보를 가져옵니다.
       await refreshUser();
@@ -83,13 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 회원가입 요청
-  const signupWithCredentials = async (email: string, password: string, nickname: string) => {
-    try {
-      const res = await fetch("/api/users/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, nickname }),
+  const logout = () => {
+      apiPost("/api/users/logout").catch(() => {}).finally(() => {
+          setIsLoggedIn(false);
+          setUser(null);
       });
 
       if (!res.ok) {

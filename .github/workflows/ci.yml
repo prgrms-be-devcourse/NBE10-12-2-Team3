@@ -31,5 +31,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Run Tests
-        run: ./gradlew test
+      - name: Run Tests with Coverage
+        run: ./gradlew check
+
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: back/build/reports/jacoco/test/html/

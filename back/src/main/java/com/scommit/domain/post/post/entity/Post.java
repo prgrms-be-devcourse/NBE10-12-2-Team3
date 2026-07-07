@@ -24,7 +24,7 @@ import java.util.List;
 public class Post extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = true) // TODO: Security 완료 후 nullable = false로 복구
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -47,6 +47,12 @@ public class Post extends BaseEntity {
 
     @Column(name = "view_count", nullable = false)
     private Long viewCount = 0L;
+
+    @Column(name = "like_count", nullable = false)
+    private Long likeCount = 0L;
+
+    @Column(name = "bookmark_count", nullable = false)
+    private Long bookmarkCount = 0L;
 
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
     private List<PostMedia> medias = new ArrayList<>();
@@ -80,5 +86,21 @@ public class Post extends BaseEntity {
 
     public void increaseViewCount() {
         this.viewCount++;
+    }
+
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        if (this.likeCount > 0) this.likeCount--;
+    }
+
+    public void increaseBookmarkCount() {
+        this.bookmarkCount++;
+    }
+
+    public void decreaseBookmarkCount() {
+        if (this.bookmarkCount > 0) this.bookmarkCount--;
     }
 }

@@ -1,6 +1,12 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export const MEDIA_BASE = `${BASE_URL}/media`;
+
+export class ApiError extends Error {
+    constructor(public status: number, message: string) {
+        super(message);
+    }
+}
 
 export function resolveMediaUrl(url: string): string {
     if (!url) return '';
@@ -15,7 +21,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     });
     if (!res.ok) {
         const json = await res.json().catch(() => null);
-        throw new Error(json?.msg || String(res.status));
+        throw new ApiError(res.status, json?.msg || String(res.status));
     }
     const json = await res.json();
     return json.data as T;

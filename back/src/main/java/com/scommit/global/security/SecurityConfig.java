@@ -15,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -107,9 +108,11 @@ public class SecurityConfig {
                                 "/api/series/{id:\\d+}/medias",
                                 "/api/series/users/{userId:\\d+}",
                                 "/api/posts",
+                                "/api/posts/search",
                                 "/api/posts/{id:\\d+}",
                                 "/api/posts/{id:\\d+}/comments",
-                                "/api/posts/{id:\\d+}/medias/thumbnail"
+                                "/api/posts/{id:\\d+}/medias/thumbnail",
+                                "/api/users/search"
                         ).permitAll()
                         // 일반 인증 필요 경로
                         .requestMatchers("/api/**").authenticated()
@@ -124,7 +127,11 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(allowedOrigins));
+        configuration.setAllowedOriginPatterns(
+                Arrays.stream(allowedOrigins.split(","))
+                        .map(String::trim)
+                        .toList()
+        );
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         configuration.setAllowedHeaders(List.of("*"));

@@ -12,10 +12,37 @@ import { cn } from "@/lib/utils";
 import { useCarouselObserver } from "@/hooks/use-carousel-observer";
 import { useAuth } from "@/providers/auth-provider";
 
-// --- Dummy Data ---
-// TODO: [백엔드 연동] 현재 화면 구성을 위해 프론트엔드 단독으로 더미 데이터를 사용 중입니다.
+import { apiFetch } from "@/lib/api";
+import { MOCK_CREATORS } from "@/lib/mock-data";
 
-import { MOCK_POSTS, MOCK_CREATORS } from "@/lib/mock-data";
+interface PostItem {
+  id: number;
+  userId: number;
+  nickname: string;
+  title: string;
+  accessLevel: "FREE" | "PAID";
+  viewCount: number;
+  createdAt: string;
+}
+
+interface SliceResponse {
+  content: PostItem[];
+  last: boolean;
+}
+
+function toCardProps(post: PostItem) {
+  return {
+    id: post.id,
+    title: post.title,
+    description: "",
+    accessLevel: post.accessLevel,
+    authorName: post.nickname,
+    createdAt: post.createdAt.split("T")[0],
+    viewCount: post.viewCount,
+    likeCount: 0,
+    bookmarkCount: 0,
+  };
+}
 
 const HERO_ITEMS = [
   { text: "개발자들의 진짜 경험을,", color: "from-primary to-emerald-400", glow: "bg-primary/20", tags: ["#이직후기", "#신입생존기", "#연봉협상"] },
@@ -28,64 +55,87 @@ export default function Home() {
   const { isLoggedIn } = useAuth();
   const [heroIdx, setHeroIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [recentError, setRecentError] = useState(false);
 
   // 캐러셀 옵저버를 위한 Ref
   const premiumRef = useRef<HTMLDivElement>(null);
   const freeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // 영웅 배너 타이머
     const timer = setInterval(() => {
       setHeroIdx((prev) => (prev + 1) % HERO_ITEMS.length);
     }, 3000);
-    
-    // 스켈레톤 레이아웃 붕괴 방어(CLS) 검증을 위한 가상의 1초 로딩
-    const loadTimer = setTimeout(() => setIsLoading(false), 1000);
-    
-    return () => {
-      clearInterval(timer);
-      clearTimeout(loadTimer);
-    };
+
+    // 캐러셀용 데이터 (viewCount 정렬, 충분히 많이 가져와서 FREE/PAID 분리)
+    apiFetch<SliceResponse>("/api/posts?size=50&sort=viewCount,desc")
+      .then((data) => {
+        setTrendingPaidPosts(data.content.filter(p => p.accessLevel === "PAID").slice(0, 15));
+        setFreePosts(data.content.filter(p => p.accessLevel === "FREE").slice(0, 10));
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+
+    return () => clearInterval(timer);
   }, []);
 
-  const freePosts = MOCK_POSTS.filter(p => p.accessLevel === "FREE").slice(0, 10);
-  const trendingPaidPosts = MOCK_POSTS.filter(p => p.accessLevel === "PAID").sort((a, b) => b.viewCount - a.viewCount).slice(0, 15);
+  const [freePosts, setFreePosts] = useState<PostItem[]>([]);
+  const [trendingPaidPosts, setTrendingPaidPosts] = useState<PostItem[]>([]);
 
   // 옵저버 훅 연결
   const { showLeft: premiumLeft, showRight: premiumRight } = useCarouselObserver(premiumRef, [isLoading, trendingPaidPosts]);
   const { showLeft: freeLeft, showRight: freeRight } = useCarouselObserver(freeRef, [isLoading, freePosts]);
 
   // 무한 스크롤 상태 관리
-  const [recentPosts, setRecentPosts] = useState(MOCK_POSTS.slice(0, 10));
+  const [recentPosts, setRecentPosts] = useState<PostItem[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const isLoadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const recentPageRef = useRef(0);
+  const infiniteObserverRef = useRef<IntersectionObserver | null>(null);
 
-  const lastPostElementRef = useCallback((node: HTMLDivElement) => {
-    if (isLoadingMore) return;
-    if (observerRef.current) observerRef.current.disconnect();
-    
-    observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        setIsLoadingMore(true);
-        // 프론트엔드 단독 시뮬레이터: 0.8초 딜레이 후 남아있는 MOCK_POSTS 10개씩 불러오기
-        setTimeout(() => {
-          setRecentPosts(prev => {
-            const nextIndex = prev.length;
-            const nextPosts = MOCK_POSTS.slice(nextIndex, nextIndex + 10);
-            
-            if (nextIndex + nextPosts.length >= MOCK_POSTS.length) {
-              setHasMore(false); 
-            }
-            return [...prev, ...nextPosts];
-          });
-          setIsLoadingMore(false);
-        }, 800);
-      }
-    });
-    
-    if (node) observerRef.current.observe(node);
-  }, [isLoadingMore, hasMore]);
+  const fetchNextRecentPage = useCallback(() => {
+    if (isLoadingMoreRef.current || !hasMoreRef.current) return;
+    isLoadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    apiFetch<SliceResponse>(`/api/posts?page=${recentPageRef.current}&size=10&sort=id,desc`)
+      .then((data) => {
+        setRecentPosts(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          return [...prev, ...data.content.filter((p: PostItem) => !existingIds.has(p.id))];
+        });
+        hasMoreRef.current = !data.last;
+        setHasMore(!data.last);
+        recentPageRef.current += 1;
+      })
+      .catch((err) => {
+        console.error(err);
+        setRecentError(true);
+      })
+      .finally(() => {
+        isLoadingMoreRef.current = false;
+        setIsLoadingMore(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchNextRecentPage();
+  }, [fetchNextRecentPage]);
+
+  const observerTargetRef = useCallback((node: HTMLDivElement | null) => {
+    if (infiniteObserverRef.current) infiniteObserverRef.current.disconnect();
+    if (!node) return;
+    infiniteObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) fetchNextRecentPage();
+      },
+      { threshold: 0.1 }
+    );
+    infiniteObserverRef.current.observe(node);
+  }, [fetchNextRecentPage]);
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  const lastPostElementRef = useCallback((_node: HTMLDivElement) => {}, []);
 
   // 화면 가로 길이(한 페이지) 기준으로 스크롤 이동
   const scrollByPage = (ref: React.RefObject<HTMLDivElement | null>, direction: "left" | "right") => {
@@ -189,7 +239,7 @@ export default function Home() {
                 <Zap className="h-6 w-6 text-amber-500 fill-amber-500/20" />
                 실시간 인기 멤버십 
               </h2>
-              <p className="mt-1 text-sm text-neutral-meta">구독자들이 가장 많이 읽고 있는 압도적 퀄리티의 게시글</p>
+              <p className="mt-1 text-sm text-neutral-meta">구독자들이 가장 많이 읽고 있는 압도적 퀄리티의 포스트</p>
             </div>
             {/* 데스크탑 전용 좌우 네비게이션 버튼 (제목 우측 이동) */}
             <div className="hidden md:flex items-center gap-2">
@@ -228,7 +278,7 @@ export default function Home() {
             ) : (
               trendingPaidPosts.map((post) => (
                 <div key={`trending-${post.id}`} className="w-[260px] sm:w-[280px] flex-none snap-start">
-                  <ContentCard {...post} />
+                  <ContentCard {...toCardProps(post)} />
                 </div>
               ))
             )}
@@ -244,7 +294,7 @@ export default function Home() {
                 <Sparkles className="h-6 w-6 text-emerald-500 fill-emerald-500/20" />
                 0원으로 시작하는 노하우
               </h2>
-              <p className="mt-1 text-sm text-neutral-meta">누구나 조건 없이 바로 읽을 수 있는 무료 공개 콘텐츠</p>
+              <p className="mt-1 text-sm text-neutral-meta">누구나 조건 없이 바로 읽을 수 있는 무료 공개 포스트</p>
             </div>
             {/* 데스크탑 전용 좌우 네비게이션 버튼 (제목 우측 이동) */}
             <div className="hidden md:flex items-center gap-2">
@@ -282,7 +332,7 @@ export default function Home() {
             ) : (
               freePosts.map((post) => (
                 <div key={`free-${post.id}`} className="w-[260px] sm:w-[280px] flex-none snap-start">
-                  <ContentCard {...post} />
+                  <ContentCard {...toCardProps(post)} />
                 </div>
               ))
             )}
@@ -298,33 +348,48 @@ export default function Home() {
                 최근 업데이트
               </h2>
             </div>
-            <Button variant="ghost" className="text-sm font-bold text-neutral-meta hover:text-primary">전체보기</Button>
+            <Link href="/posts" className="text-sm font-bold text-neutral-meta hover:text-primary">전체보기</Link>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {isLoading ? (
-              Array.from({ length: 10 }).map((_, i) => (
-                <ContentCardSkeleton key={i} />
-              ))
-            ) : (
-              recentPosts.map((post, index) => {
-                if (recentPosts.length === index + 1) {
-                  return (
-                    <div ref={lastPostElementRef} key={post.id} className="w-full">
-                      <ContentCard {...post} />
-                    </div>
-                  );
-                } else {
-                  return <ContentCard key={post.id} {...post} />;
-                }
-              })
-            )}
-            {isLoadingMore && (
-              Array.from({ length: 5 }).map((_, i) => (
-                <ContentCardSkeleton key={`loading-${i}`} />
-              ))
-            )}
-          </div>
+          {recentError ? (
+            <div className="flex flex-col items-center justify-center py-16 text-neutral-meta">
+              <p className="text-lg font-medium">게시글을 불러오지 못했습니다.</p>
+              <p className="mt-1 text-sm">잠시 후 다시 시도해 주세요.</p>
+            </div>
+          ) : (
+            <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {isLoading ? (
+                Array.from({ length: 10 }).map((_, i) => (
+                  <ContentCardSkeleton key={i} />
+                ))
+              ) : recentPosts.length === 0 ? (
+                <div className="col-span-full flex flex-col items-center justify-center py-16 text-neutral-meta">
+                  <p className="text-lg font-medium">아직 게시글이 없습니다.</p>
+                  <p className="mt-1 text-sm">첫 번째 글을 작성해 보세요!</p>
+                </div>
+              ) : (
+                recentPosts.map((post, index) => {
+                  if (recentPosts.length === index + 1) {
+                    return (
+                      <div ref={lastPostElementRef} key={post.id} className="w-full">
+                        <ContentCard {...toCardProps(post)} />
+                      </div>
+                    );
+                  } else {
+                    return <ContentCard key={post.id} {...toCardProps(post)} />;
+                  }
+                })
+              )}
+              {isLoadingMore && (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <ContentCardSkeleton key={`loading-${i}`} />
+                ))
+              )}
+            </div>
+            <div ref={observerTargetRef} className="h-10 mt-4" />
+            </>
+          )}
         </section>
 
         {/* --- 6. Bottom CTA (Full-width Soft Background) --- */}

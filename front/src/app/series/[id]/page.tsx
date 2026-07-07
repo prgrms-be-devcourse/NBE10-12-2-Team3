@@ -96,7 +96,7 @@ export default async function SeriesDetailPage({
         </section>
       </div>
 
-        {/* 시리즈 포함 게시글 목록 */}
+        {/* 시리즈 포함 포스트 목록 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SeriesDetailPostList
               posts={mappedPosts}
