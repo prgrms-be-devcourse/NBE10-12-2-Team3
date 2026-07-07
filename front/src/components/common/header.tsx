@@ -1,15 +1,28 @@
 "use client";
 
-import React, { useState, useRef, useEffect, KeyboardEvent } from "react";
+import React, {KeyboardEvent, useEffect, useRef, useState} from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, Bell, Menu, CreditCard, Settings, LogOut, X, History, Clock, ChevronDown, User, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar } from "@/components/ui/avatar";
-import { useAuth } from "@/providers/auth-provider";
-import { AnimatePresence, motion } from "framer-motion";
-import { useRecentSearches } from "@/hooks/use-recent-searches";
-import { cn } from "@/lib/utils";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {
+    Bell,
+    ChevronDown,
+    Clock,
+    CreditCard,
+    History,
+    LogOut,
+    Menu,
+    Pencil,
+    Search,
+    Settings,
+    User,
+    X
+} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {Avatar} from "@/components/ui/avatar";
+import {useAuth} from "@/providers/auth-provider";
+import {AnimatePresence, motion} from "framer-motion";
+import {useRecentSearches} from "@/hooks/use-recent-searches";
+import {cn} from "@/lib/utils";
 
 // --- Custom Hook for Click Outside ---
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
@@ -139,8 +152,7 @@ export function Header() {
 
           {/* ERD 기반 GNB */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">🌟 창작자</Link>
-            <Link href="/posts" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">✍️ 포스트</Link>
+            <Link href="/posts" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">✍️ 게시글</Link>
             <Link href="/series" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">📚 시리즈</Link>
           </nav>
         </div>
@@ -228,9 +240,8 @@ export function Header() {
                     글쓰기
                   </Button>
                 </Link>
-                <button className="p-1.5 hover:bg-neutral-100 rounded-full transition-colors relative">
+                  <button className="p-1.5 hover:bg-neutral-100 rounded-full transition-colors">
                   <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
                 </button>
               </>
             )}
@@ -288,16 +299,18 @@ export function Header() {
                         <button onClick={(e) => handleDummyClick(e, "마이페이지")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
                           <User className="h-4 w-4" /> 마이페이지
                         </button>
-                        <button onClick={(e) => handleDummyClick(e, "결제 내역")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
+                          <button
+                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
                           <CreditCard className="h-4 w-4" /> 결제 내역
                         </button>
-                        
+
                         <div className="my-1 h-px w-full bg-neutral-100" />
-                        
-                        <button onClick={(e) => handleDummyClick(e, "설정")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
+
+                          <button
+                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
                           <Settings className="h-4 w-4" /> 설정
                         </button>
-                        <button 
+                          <button
                           onClick={() => {
                             logout();
                             setIsDropdownOpen(false);
