@@ -37,6 +37,9 @@ interface UserProfileViewProps {
   isLastPostsPage: boolean;
   posts: PostItem[];
   series: SeriesItem[];
+  // 현재 탭(포스트/시리즈)의 목록 조회가 실패했는지 여부. 프로필 자체는 이미 불러온 상태이므로,
+  // 이 경우에도 프로필 헤더는 그대로 보여주고 탭 영역에만 에러를 표시합니다.
+  tabDataError: boolean;
 }
 
 const TABS: TabItem[] = [
@@ -44,7 +47,7 @@ const TABS: TabItem[] = [
   { id: "series", label: "시리즈" },
 ];
 
-export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPage, posts, series }: UserProfileViewProps) {
+export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPage, posts, series, tabDataError }: UserProfileViewProps) {
   const router = useRouter();
   const { isLoggedIn, user } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -244,17 +247,27 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
 
         {/* 포스트 / 시리즈 목록 */}
         <div className="mt-8 min-h-75">
-          {tab === "post" ? (
-            // authorName은 이 페이지의 포스트가 모두 profile(조회 중인 유저)의 글이므로 profile.nickname을 그대로 사용합니다.
-            <PostGrid posts={posts} authorName={profile.nickname} />
+          {tabDataError ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white py-24 text-center">
+              <p className="text-neutral-500">
+                {tab === "post" ? "포스트를 불러오지 못했습니다." : "시리즈를 불러오지 못했습니다."} 잠시 후 다시 시도해주세요.
+              </p>
+            </div>
           ) : (
-            <SeriesList series={series} isOwner={isOwnProfile} />
-          )}
+            <>
+              {tab === "post" ? (
+                // authorName은 이 페이지의 포스트가 모두 profile(조회 중인 유저)의 글이므로 profile.nickname을 그대로 사용합니다.
+                <PostGrid posts={posts} authorName={profile.nickname} />
+              ) : (
+                <SeriesList series={series} isOwner={isOwnProfile} />
+              )}
 
-          {tab === "post" ? (
-            <PostPagination page={page} isLastPage={isLastPostsPage} onPageChange={handlePageChange} />
-          ) : (
-            <SeriesPagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+              {tab === "post" ? (
+                <PostPagination page={page} isLastPage={isLastPostsPage} onPageChange={handlePageChange} />
+              ) : (
+                <SeriesPagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+              )}
+            </>
           )}
         </div>
       </div>
