@@ -56,9 +56,10 @@ interface SearchResultsViewProps {
   postsTotalElements?: number;
   creators: Creator[];
   series: Series[];
+  searchError?: boolean;
 }
 
-export function SearchResultsView({ query, posts, postsTotalElements, creators, series }: SearchResultsViewProps) {
+export function SearchResultsView({ query, posts, postsTotalElements, creators, series, searchError }: SearchResultsViewProps) {
   const [layout, setLayout] = useState<"list" | "grid">("grid");
   const [isMounted, setIsMounted] = useState(false);
   const [accessFilter, setAccessFilter] = useState<"ALL" | "FREE" | "PAID">("ALL");
@@ -124,6 +125,18 @@ export function SearchResultsView({ query, posts, postsTotalElements, creators, 
   };
 
   // 1. 빈 검색어 / 결과 0건 처리 (Empty State)
+  if (searchError) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-neutral-300 bg-white py-32 text-center shadow-sm">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100">
+          <SearchX className="h-10 w-10 text-neutral-400" />
+        </div>
+        <h2 className="mt-6 text-xl font-bold text-neutral-dark">검색에 실패했습니다</h2>
+        <p className="mt-2 text-neutral-meta max-w-sm">잠시 후 다시 시도해 주세요.</p>
+      </div>
+    );
+  }
+
   if (!query.trim() || (posts.length === 0 && creators.length === 0 && series.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-neutral-300 bg-white py-32 text-center shadow-sm">

@@ -1,5 +1,6 @@
     package com.scommit.domain.user.user.service;
 
+    import com.scommit.domain.user.user.dto.UserSearchResponse;
     import com.scommit.domain.user.user.entity.User;
     import com.scommit.domain.user.user.entity.UserRole;
     import com.scommit.domain.user.user.repository.UserRepository;
@@ -486,10 +487,10 @@
 
             given(userRepository.findByNicknameContainingAndDeletedAtIsNull("발코드", pageable)).willReturn(page);
 
-            Page<User> result = userService.searchUsers("발코드", pageable);
+            Page<UserSearchResponse> result = userService.searchUsers("발코드", pageable);
 
             assertThat(result.getTotalElements()).isEqualTo(1);
-            assertThat(result.getContent().get(0).getNickname()).isEqualTo("발코드");
+            assertThat(result.getContent().get(0).nickname()).isEqualTo("발코드");
         }
 
         @Test
@@ -500,7 +501,7 @@
 
             given(userRepository.findByNicknameContainingAndDeletedAtIsNull("없는닉네임", pageable)).willReturn(emptyPage);
 
-            Page<User> result = userService.searchUsers("없는닉네임", pageable);
+            Page<UserSearchResponse> result = userService.searchUsers("없는닉네임", pageable);
 
             assertThat(result.getTotalElements()).isEqualTo(0);
             assertThat(result.getContent()).isEmpty();
