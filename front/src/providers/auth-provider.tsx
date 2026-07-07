@@ -14,7 +14,6 @@ export interface User {
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
-  login: (userType?: "USER" | "ADMIN") => void;
   loginWithCredentials: (email: string, password: string) => Promise<void>;
   signupWithCredentials: (email: string, password: string, nickname: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -51,15 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 기존 mock login (UI 개발용)
-  const login = (userType: "USER" | "ADMIN" = "USER") => {
-    setIsLoggedIn(true);
-    if (userType === "ADMIN") {
-      setUser({ id: 0, email: "admin@scommit.com", nickname: "어드민", role: "ADMIN" });
-    } else {
-      setUser({ id: 1, email: "dev@scommit.com", nickname: "김도현", role: "USER" });
-    }
-  };
 
   // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
   const loginWithCredentials = async (email: string, password: string) => {
@@ -100,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, loginWithCredentials, signupWithCredentials, logout, refreshUser }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, loginWithCredentials, signupWithCredentials, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
