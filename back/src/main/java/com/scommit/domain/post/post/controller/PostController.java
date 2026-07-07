@@ -69,6 +69,19 @@ public class PostController {
         return new RsData<>("200-1", "유저의 게시글 목록입니다.", response);
     }
 
+    // GET /api/posts/search 키워드 검색
+    @Operation(summary = "게시글 검색", description = "제목 또는 본문에 키워드가 포함된 PUBLIC 게시글을 검색합니다.")
+    @GetMapping("/search")
+    public RsData<Page<PostListResponse>> searchPosts(
+            @RequestParam(required = false, defaultValue = "") String keyword,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        if (keyword.isBlank()) {
+            return new RsData<>("200-1", "게시글 검색 결과입니다.", Page.empty(pageable));
+        }
+        Page<PostListResponse> response = postService.searchPosts(keyword, pageable);
+        return new RsData<>("200-1", "게시글 검색 결과입니다.", response);
+    }
+
     // GET /api/posts 홈페이지 전체 조회 - 무한 스크롤
     @Operation(summary = "게시글 전체 조회", description = "전체 게시글 목록을 조회합니다. creatorId 입력 시 특정 유저의 게시글만 조회합니다.")
     @GetMapping

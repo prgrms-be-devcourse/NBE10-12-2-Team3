@@ -53,13 +53,15 @@ interface Post {
 interface SearchResultsViewProps {
   query: string;
   posts: Post[];
+  postsTotalPages?: number;
   creators: Creator[];
   series: Series[];
 }
 
-export function SearchResultsView({ query, posts, creators, series }: SearchResultsViewProps) {
-  const [layout, setLayout] = useState<"list" | "grid">("list");
+export function SearchResultsView({ query, posts, postsTotalPages, creators, series }: SearchResultsViewProps) {
+  const [layout, setLayout] = useState<"list" | "grid">("grid");
   const [isMounted, setIsMounted] = useState(false);
+  const [accessFilter, setAccessFilter] = useState<"ALL" | "FREE" | "PAID">("ALL");
   const searchParams = useSearchParams();
     const {user} = useAuth();
   const activeTab = searchParams?.get("tab") || "all";
@@ -89,6 +91,11 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     if (totalPages <= 1) return null;
 
+    const delta = 2;
+    const start = Math.max(1, currentPage - delta);
+    const end = Math.min(totalPages, currentPage + delta);
+    const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+
     return (
       <div className="mt-12 flex justify-center">
         <div className="flex items-center gap-1.5">
@@ -97,22 +104,14 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
               <ChevronLeft className="h-5 w-5" />
             </Button>
           </Link>
-          
-          {Array.from({ length: totalPages }).map((_, i) => {
-            const pageNum = i + 1;
-            if (pageNum === 1 || pageNum === totalPages || Math.abs(pageNum - currentPage) <= 1) {
-              return (
-                <Link key={pageNum} href={`/search?q=${encodeURIComponent(query)}&tab=${activeTab}&page=${pageNum}`}>
-                  <Button variant="outlined" className={cn("h-10 w-10 rounded-full p-0 font-bold transition-all", currentPage === pageNum ? "border-primary text-primary bg-primary/5 shadow-sm" : "border-transparent text-neutral-600 hover:bg-neutral-100")}>
-                    {pageNum}
-                  </Button>
-                </Link>
-              );
-            }
-            if (pageNum === 2 && currentPage > 3) return <span key={pageNum} className="px-1.5 text-neutral-400 flex items-center justify-center h-10">...</span>;
-            if (pageNum === totalPages - 1 && currentPage < totalPages - 2) return <span key={pageNum} className="px-1.5 text-neutral-400 flex items-center justify-center h-10">...</span>;
-            return null;
-          })}
+
+          {pages.map((pageNum) => (
+            <Link key={pageNum} href={`/search?q=${encodeURIComponent(query)}&tab=${activeTab}&page=${pageNum}`}>
+              <Button variant="outlined" className={cn("h-10 w-10 rounded-full p-0 font-bold transition-all", currentPage === pageNum ? "border-primary text-primary bg-primary/5 shadow-sm" : "border-transparent text-neutral-600 hover:bg-neutral-100")}>
+                {pageNum}
+              </Button>
+            </Link>
+          ))}
 
           <Link href={currentPage < totalPages ? `/search?q=${encodeURIComponent(query)}&tab=${activeTab}&page=${currentPage + 1}` : "#"} className={currentPage >= totalPages ? "pointer-events-none" : ""}>
             <Button variant="outlined" className={cn("h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all", currentPage >= totalPages ? "border-transparent bg-neutral-50 text-neutral-300" : "border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800")} disabled={currentPage >= totalPages}>
@@ -283,32 +282,55 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
       </div>
 
       {/* 1단: 게시글 (리스트 뷰 혹은 그리드 뷰) */}
-      {(activeTab === "all" || activeTab === "posts") && posts.length > 0 && (
-        <section>
-          {activeTab === "all" && (
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-neutral-dark">관련 게시글</h2>
-              {posts.length > 5 && (
-                <Link href={`/search?q=${encodeURIComponent(query)}&tab=posts&page=1`} className="text-sm font-semibold text-neutral-meta hover:text-primary transition-colors">
-                  전체보기
-                </Link>
-              )}
+      {(activeTab === "all" || activeTab === "posts") && posts.length > 0 && (() => {
+        const filteredPosts = activeTab === "posts" && accessFilter !== "ALL"
+          ? posts.filter((p) => p.accessLevel === accessFilter)
+          : posts;
+        const displayedPosts = activeTab === "all"
+          ? filteredPosts.slice(0, 10)
+          : filteredPosts.slice(startIndex, endIndex);
+        const gridClass = cn(layout === "list" ? "flex flex-col gap-4 w-full" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6");
+        return (
+          <section>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-bold text-neutral-dark">
+                {activeTab === "all" ? "관련 게시글" : "게시글"}
+              </h2>
+              <div className="flex items-center gap-3">
+                {activeTab === "posts" && (
+                  <div className="flex overflow-hidden rounded-lg border border-neutral-200">
+                    {(["ALL", "FREE", "PAID"] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setAccessFilter(f)}
+                        className={cn(
+                          "px-4 py-1.5 text-sm font-bold transition-colors",
+                          accessFilter === f ? "bg-primary text-white" : "bg-white text-neutral-meta hover:bg-neutral-50"
+                        )}
+                      >
+                        {f === "ALL" ? "전체" : f === "FREE" ? "무료" : "멤버십"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {activeTab === "all" && posts.length > 10 && (
+                  <Link href={`/search?q=${encodeURIComponent(query)}&tab=posts&page=1`} className="text-sm font-semibold text-neutral-meta hover:text-primary transition-colors">
+                    전체보기
+                  </Link>
+                )}
+              </div>
             </div>
-          )}
-          <div className={cn(
-            layout === "list" ? "flex flex-col gap-4 w-full" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
-          )}>
-            {(activeTab === "all" ? posts.slice(0, 5) : posts.slice(startIndex, endIndex)).map((post) => (
-              layout === "list"
-                ? <ContentListCard key={post.uniqueKey || post.id} {...post} />
-                : <ContentCard key={post.uniqueKey || post.id} {...post} />
-            ))}
-          </div>
-          
-          {/* Pagination (통합 탭에서는 무조건 숨김, 게시글 탭에서만 조건부 노출) */}
-          {activeTab === "posts" && renderPagination(posts.length)}
-        </section>
-      )}
+            <div className={gridClass}>
+              {displayedPosts.map((post) => (
+                layout === "list"
+                  ? <ContentListCard key={post.uniqueKey || post.id} {...post} />
+                  : <ContentCard key={post.uniqueKey || post.id} {...post} />
+              ))}
+            </div>
+            {activeTab === "posts" && renderPagination(postsTotalPages ? postsTotalPages * itemsPerPage : filteredPosts.length)}
+          </section>
+        );
+      })()}
 
       {/* 2단: 시리즈 (리스트 뷰 혹은 그리드 뷰) */}
       {(activeTab === "all" || activeTab === "series") && series.length > 0 && (

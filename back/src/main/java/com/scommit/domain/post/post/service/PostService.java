@@ -147,6 +147,11 @@ public class PostService {
                 .map(PostListResponse::new);
     }
 
+    // 키워드 검색
+    public Page<PostListResponse> searchPosts(String keyword, Pageable pageable) {
+        return postRepository.searchByKeyword(keyword, PublishStatus.PUBLIC, pageable).map(PostListResponse::new);
+    }
+
     // 로그인 유저의 게시글 조회
     public Page<PostListResponse> getMyPosts(User actor, Pageable pageable) {
         return postRepository.findByUserAndDeletedAtIsNull(actor, pageable)

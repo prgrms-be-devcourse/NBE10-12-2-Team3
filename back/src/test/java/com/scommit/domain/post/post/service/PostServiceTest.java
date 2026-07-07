@@ -116,6 +116,40 @@ class PostServiceTest {
     }
 
     @Nested
+    @DisplayName("게시글 검색 테스트")
+    class SearchPosts {
+
+        @Test
+        @DisplayName("성공: 키워드가 제목에 포함된 PUBLIC 게시글을 반환한다.")
+        void searchPosts_Success() {
+            Pageable pageable = PageRequest.of(0, 20);
+            Post post = buildPost(1L, mockUser, null);
+            Page<Post> postPage = new PageImpl<>(List.of(post), pageable, 1);
+
+            when(postRepository.searchByKeyword("테스트", PublishStatus.PUBLIC, pageable)).thenReturn(postPage);
+
+            Page<PostListResponse> result = postService.searchPosts("테스트", pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.getContent().get(0).title()).isEqualTo("테스트 포스트");
+        }
+
+        @Test
+        @DisplayName("성공: 검색 결과가 없으면 빈 페이지를 반환한다.")
+        void searchPosts_Empty() {
+            Pageable pageable = PageRequest.of(0, 20);
+            Page<Post> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+
+            when(postRepository.searchByKeyword("없는키워드", PublishStatus.PUBLIC, pageable)).thenReturn(emptyPage);
+
+            Page<PostListResponse> result = postService.searchPosts("없는키워드", pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(0);
+            assertThat(result.getContent()).isEmpty();
+        }
+    }
+
+    @Nested
     @DisplayName("게시글 목록 조회 테스트")
     class GetPosts {
 

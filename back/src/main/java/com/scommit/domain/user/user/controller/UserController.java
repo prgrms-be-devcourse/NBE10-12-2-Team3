@@ -14,6 +14,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
@@ -203,6 +206,19 @@ public class UserController {
     ) {
         UserMediaResponse response = userMediaService.getMedia(id);
         return new RsData<>("200-1", "프로필 이미지를 조회하였습니다.", response);
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "유저 검색", description = "닉네임에 키워드가 포함된 유저를 검색합니다.")
+    public RsData<Page<UserSearchResponse>> searchUsers(
+            @RequestParam(required = false, defaultValue = "") String keyword,
+            @PageableDefault(size = 10, sort = "id") Pageable pageable) {
+        if (keyword.isBlank()) {
+            return new RsData<>("200-1", "유저 검색 결과입니다.", Page.empty(pageable));
+        }
+        Page<UserSearchResponse> response = userService.searchUsers(keyword, pageable)
+                .map(UserSearchResponse::new);
+        return new RsData<>("200-1", "유저 검색 결과입니다.", response);
     }
 
     @DeleteMapping("/me/medias")

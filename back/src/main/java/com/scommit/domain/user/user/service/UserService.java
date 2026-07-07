@@ -6,6 +6,8 @@ import com.scommit.domain.user.user.repository.UserRepository;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,6 +76,10 @@ public class UserService {
 
     public Optional<User> getUser(Long id) {
         return userRepository.findByIdAndDeletedAtIsNull(id);
+    }
+
+    public Page<User> searchUsers(String keyword, Pageable pageable) {
+        return userRepository.findByNicknameContainingAndDeletedAtIsNull(keyword, pageable);
     }
 
     @Transactional

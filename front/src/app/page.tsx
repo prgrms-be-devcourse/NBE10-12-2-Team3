@@ -55,6 +55,7 @@ export default function Home() {
   const { isLoggedIn } = useAuth();
   const [heroIdx, setHeroIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [recentError, setRecentError] = useState(false);
 
   // 캐러셀 옵저버를 위한 Ref
   const premiumRef = useRef<HTMLDivElement>(null);
@@ -81,7 +82,10 @@ export default function Home() {
         setHasMore(!data.last);
         setRecentPage(1);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        setRecentError(true);
+      });
 
     return () => clearInterval(timer);
   }, []);
@@ -99,22 +103,30 @@ export default function Home() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const isLoadingMoreRef = useRef(false);
 
   const lastPostElementRef = useCallback((node: HTMLDivElement) => {
     if (isLoadingMore) return;
     if (observerRef.current) observerRef.current.disconnect();
 
     observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0].isIntersecting && hasMore && !isLoadingMoreRef.current) {
+        isLoadingMoreRef.current = true;
         setIsLoadingMore(true);
         apiFetch<SliceResponse>(`/api/posts?page=${recentPage}&size=10&sort=id,desc`)
           .then((data) => {
-            setRecentPosts(prev => [...prev, ...data.content]);
+            setRecentPosts(prev => {
+              const existingIds = new Set(prev.map(p => p.id));
+              return [...prev, ...data.content.filter((p: PostItem) => !existingIds.has(p.id))];
+            });
             setHasMore(!data.last);
             setRecentPage(prev => prev + 1);
           })
           .catch(console.error)
-          .finally(() => setIsLoadingMore(false));
+          .finally(() => {
+            isLoadingMoreRef.current = false;
+            setIsLoadingMore(false);
+          });
       }
     });
 
@@ -335,30 +347,42 @@ export default function Home() {
             <Link href="/posts" className="text-sm font-bold text-neutral-meta hover:text-primary">전체보기</Link>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {isLoading ? (
-              Array.from({ length: 10 }).map((_, i) => (
-                <ContentCardSkeleton key={i} />
-              ))
-            ) : (
-              recentPosts.map((post, index) => {
-                if (recentPosts.length === index + 1) {
-                  return (
-                    <div ref={lastPostElementRef} key={post.id} className="w-full">
-                      <ContentCard {...toCardProps(post)} />
-                    </div>
-                  );
-                } else {
-                  return <ContentCard key={post.id} {...toCardProps(post)} />;
-                }
-              })
-            )}
-            {isLoadingMore && (
-              Array.from({ length: 5 }).map((_, i) => (
-                <ContentCardSkeleton key={`loading-${i}`} />
-              ))
-            )}
-          </div>
+          {recentError ? (
+            <div className="flex flex-col items-center justify-center py-16 text-neutral-meta">
+              <p className="text-lg font-medium">게시글을 불러오지 못했습니다.</p>
+              <p className="mt-1 text-sm">잠시 후 다시 시도해 주세요.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {isLoading ? (
+                Array.from({ length: 10 }).map((_, i) => (
+                  <ContentCardSkeleton key={i} />
+                ))
+              ) : recentPosts.length === 0 ? (
+                <div className="col-span-full flex flex-col items-center justify-center py-16 text-neutral-meta">
+                  <p className="text-lg font-medium">아직 게시글이 없습니다.</p>
+                  <p className="mt-1 text-sm">첫 번째 글을 작성해 보세요!</p>
+                </div>
+              ) : (
+                recentPosts.map((post, index) => {
+                  if (recentPosts.length === index + 1) {
+                    return (
+                      <div ref={lastPostElementRef} key={post.id} className="w-full">
+                        <ContentCard {...toCardProps(post)} />
+                      </div>
+                    );
+                  } else {
+                    return <ContentCard key={post.id} {...toCardProps(post)} />;
+                  }
+                })
+              )}
+              {isLoadingMore && (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <ContentCardSkeleton key={`loading-${i}`} />
+                ))
+              )}
+            </div>
+          )}
         </section>
 
         {/* --- 6. Bottom CTA (Full-width Soft Background) --- */}
