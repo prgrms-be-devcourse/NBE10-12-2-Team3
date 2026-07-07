@@ -1,12 +1,7 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import React, {createContext, ReactNode, useContext, useState} from "react";
+import {apiPost} from "@/lib/api";
 
 export interface User {
   id: number;
@@ -67,31 +62,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
     const loginWithCredentials = async (email: string, password: string) => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/users/login`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            credentials: "include",
-            body: JSON.stringify({email, password}),
+        const {user: profile} = await apiPost<{ user: User }>("/api/users/login", {email, password});
+
+        setIsLoggedIn(true);
+        setUser({
+            id: profile.id,
+            email: profile.email,
+            nickname: profile.nickname,
+            role: profile.role,
         });
+  };
 
-        if (!res.ok) {
-            const json = await res.json().catch(() => null);
-            throw new Error(json?.msg || json?.message || "로그인에 실패했습니다.");
-        }
-
-        await refreshUser();
-      } catch (e: any) {
-        console.error("Login failed:", e);
-        throw e;
-      }
-    };
-
-  const logout = async () => {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/users/logout`, {
-          method: "POST",
-          credentials: "include",
-      }).finally(() => {
+  const logout = () => {
+      apiPost("/api/users/logout").catch(() => {}).finally(() => {
           setIsLoggedIn(false);
           setUser(null);
       });

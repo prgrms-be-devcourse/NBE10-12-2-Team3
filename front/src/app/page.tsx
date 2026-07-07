@@ -99,22 +99,30 @@ export default function Home() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const isLoadingMoreRef = useRef(false);
 
   const lastPostElementRef = useCallback((node: HTMLDivElement) => {
     if (isLoadingMore) return;
     if (observerRef.current) observerRef.current.disconnect();
 
     observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0].isIntersecting && hasMore && !isLoadingMoreRef.current) {
+        isLoadingMoreRef.current = true;
         setIsLoadingMore(true);
         apiFetch<SliceResponse>(`/api/posts?page=${recentPage}&size=10&sort=id,desc`)
           .then((data) => {
-            setRecentPosts(prev => [...prev, ...data.content]);
+            setRecentPosts(prev => {
+              const existingIds = new Set(prev.map(p => p.id));
+              return [...prev, ...data.content.filter(p => !existingIds.has(p.id))];
+            });
             setHasMore(!data.last);
             setRecentPage(prev => prev + 1);
           })
           .catch(console.error)
-          .finally(() => setIsLoadingMore(false));
+          .finally(() => {
+            isLoadingMoreRef.current = false;
+            setIsLoadingMore(false);
+          });
       }
     });
 
@@ -223,7 +231,7 @@ export default function Home() {
                 <Zap className="h-6 w-6 text-amber-500 fill-amber-500/20" />
                 실시간 인기 멤버십 
               </h2>
-              <p className="mt-1 text-sm text-neutral-meta">구독자들이 가장 많이 읽고 있는 압도적 퀄리티의 게시글</p>
+              <p className="mt-1 text-sm text-neutral-meta">구독자들이 가장 많이 읽고 있는 압도적 퀄리티의 포스트</p>
             </div>
             {/* 데스크탑 전용 좌우 네비게이션 버튼 (제목 우측 이동) */}
             <div className="hidden md:flex items-center gap-2">
@@ -278,7 +286,7 @@ export default function Home() {
                 <Sparkles className="h-6 w-6 text-emerald-500 fill-emerald-500/20" />
                 0원으로 시작하는 노하우
               </h2>
-              <p className="mt-1 text-sm text-neutral-meta">누구나 조건 없이 바로 읽을 수 있는 무료 공개 콘텐츠</p>
+              <p className="mt-1 text-sm text-neutral-meta">누구나 조건 없이 바로 읽을 수 있는 무료 공개 포스트</p>
             </div>
             {/* 데스크탑 전용 좌우 네비게이션 버튼 (제목 우측 이동) */}
             <div className="hidden md:flex items-center gap-2">
