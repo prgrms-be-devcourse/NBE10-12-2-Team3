@@ -32,22 +32,30 @@ export default function PostsPage() {
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(false);
+    const isLoadingRef = useRef(false);
     const observerRef = useRef<HTMLDivElement | null>(null);
 
     const loadMore = useCallback(async () => {
-        if (isLoading || !hasMore) return;
+        if (isLoadingRef.current || !hasMore) return;
+        isLoadingRef.current = true;
         setIsLoading(true);
         try {
             const data = await apiFetch<SliceResponse>(`/api/posts?page=${page}&size=${PAGE_SIZE}&sort=id,desc`);
-            setPosts((prev) => [...prev, ...data.content]);
+            setPosts((prev) => {
+                const existingIds = new Set(prev.map(p => p.id));
+                return [...prev, ...data.content.filter((p: Post) => !existingIds.has(p.id))];
+            });
             setHasMore(!data.last);
             setPage((prev) => prev + 1);
         } catch (err) {
             console.error(err);
+            setError(true);
         } finally {
+            isLoadingRef.current = false;
             setIsLoading(false);
         }
-    }, [isLoading, hasMore, page]);
+    }, [hasMore, page]);
 
     useEffect(() => {
         loadMore();
@@ -101,43 +109,61 @@ export default function PostsPage() {
                     </div>
                 </div>
 
-                {/* 포스트 목록 */}
-                {viewMode === "grid" ? (
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {posts.map((post) => (
-                            <ContentCard
-                                key={post.id}
-                                id={post.id}
-                                title={post.title}
-                                description=""
-                                accessLevel={post.accessLevel}
-                                thumbnailUrl={undefined}
-                                authorName={post.nickname}
-                                createdAt={post.createdAt}
-                                viewCount={post.viewCount}
-                                likeCount={0}
-                                bookmarkCount={0}
-                            />
-                        ))}
+                {/* 에러 상태 */}
+                {error && (
+                    <div className="flex flex-col items-center justify-center py-24 text-neutral-meta">
+                        <p className="text-lg font-medium">게시글을 불러오지 못했습니다.</p>
+                        <p className="mt-1 text-sm">잠시 후 다시 시도해 주세요.</p>
                     </div>
-                ) : (
-                    <div className="flex flex-col gap-4">
-                        {posts.map((post) => (
-                            <ContentListCard
-                                key={post.id}
-                                id={post.id}
-                                title={post.title}
-                                description=""
-                                accessLevel={post.accessLevel}
-                                thumbnailUrl={undefined}
-                                authorName={post.nickname}
-                                createdAt={post.createdAt}
-                                viewCount={post.viewCount}
-                                likeCount={0}
-                                bookmarkCount={0}
-                            />
-                        ))}
+                )}
+
+                {/* 빈 상태 */}
+                {!error && !isLoading && posts.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-24 text-neutral-meta">
+                        <p className="text-lg font-medium">아직 게시글이 없습니다.</p>
+                        <p className="mt-1 text-sm">첫 번째 글을 작성해 보세요!</p>
                     </div>
+                )}
+
+                {/* 게시글 목록 */}
+                {!error && posts.length > 0 && (
+                    viewMode === "grid" ? (
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {posts.map((post) => (
+                                <ContentCard
+                                    key={post.id}
+                                    id={post.id}
+                                    title={post.title}
+                                    description=""
+                                    accessLevel={post.accessLevel}
+                                    thumbnailUrl={undefined}
+                                    authorName={post.nickname}
+                                    createdAt={post.createdAt}
+                                    viewCount={post.viewCount}
+                                    likeCount={0}
+                                    bookmarkCount={0}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            {posts.map((post) => (
+                                <ContentListCard
+                                    key={post.id}
+                                    id={post.id}
+                                    title={post.title}
+                                    description=""
+                                    accessLevel={post.accessLevel}
+                                    thumbnailUrl={undefined}
+                                    authorName={post.nickname}
+                                    createdAt={post.createdAt}
+                                    viewCount={post.viewCount}
+                                    likeCount={0}
+                                    bookmarkCount={0}
+                                />
+                            ))}
+                        </div>
+                    )
                 )}
 
                 {/* 무한 스크롤 트리거 */}

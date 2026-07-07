@@ -75,6 +75,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 개발
                         .requestMatchers("/h2-console/**").permitAll()
+                        // 모니터링
+                        .requestMatchers("/actuator/**").permitAll()
                         // 정적 리소스
                         .requestMatchers(
                                 "/favicon.ico",
@@ -108,9 +110,11 @@ public class SecurityConfig {
                                 "/api/series/{id:\\d+}/medias",
                                 "/api/series/users/{userId:\\d+}",
                                 "/api/posts",
+                                "/api/posts/search",
                                 "/api/posts/{id:\\d+}",
                                 "/api/posts/{id:\\d+}/comments",
-                                "/api/posts/{id:\\d+}/medias/thumbnail"
+                                "/api/posts/{id:\\d+}/medias/thumbnail",
+                                "/api/users/search"
                         ).permitAll()
                         // 일반 인증 필요 경로
                         .requestMatchers("/api/**").authenticated()

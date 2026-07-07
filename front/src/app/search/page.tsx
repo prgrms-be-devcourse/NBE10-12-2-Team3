@@ -1,8 +1,27 @@
 import React from "react";
 import {Search} from "lucide-react";
-import {MOCK_CREATORS, MOCK_POSTS} from "@/lib/mock-data";
 import {SearchResultsView} from "./search-results-view";
 import {searchSeries} from "@/lib/series-api";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
+async function searchPosts(keyword: string, page: number = 0) {
+    const res = await fetch(`${BASE_URL}/api/posts/search?keyword=${encodeURIComponent(keyword)}&size=10&page=${page}&sort=id,desc`, { cache: "no-store" });
+    if (!res.ok) throw new Error("posts search failed");
+    const json = await res.json();
+    return {
+        content: json.data?.content ?? [],
+        totalPages: json.data?.totalPages ?? 0,
+        totalElements: json.data?.totalElements ?? 0,
+    };
+}
+
+async function searchUsers(keyword: string) {
+    const res = await fetch(`${BASE_URL}/api/users/search?keyword=${encodeURIComponent(keyword)}&size=20`, { cache: "no-store" });
+    if (!res.ok) throw new Error("users search failed");
+    const json = await res.json();
+    return json.data?.content ?? [];
+}
 
 export default async function SearchPage({
   searchParams,
@@ -10,56 +29,70 @@ export default async function SearchPage({
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const resolvedParams = await searchParams;
-
   const rawQuery = resolvedParams.q || "";
   const query = decodeURIComponent(rawQuery).trim();
+  const currentPage = Math.max(1, parseInt(resolvedParams.page || "1", 10));
+  const backendPage = currentPage - 1;
 
-    // 포스트 모의 데이터 필터링 (Post 도메인 연동 전)
-    const posts = query
-        ? MOCK_POSTS.filter(
-            (p) => p.title.includes(query) || p.description.includes(query)
-        )
-    : [];
+  let searchError = false;
+  let postsResult = { content: [], totalPages: 0, totalElements: 0 };
+  let rawUsers: { id: number; nickname: string; introduction?: string }[] = [];
 
-    // 창작자 모의 데이터 필터링 (User 도메인 연동 전)
-  const creators = query
-      ? MOCK_CREATORS.filter((c) => c.nickname.includes(query))
-    : [];
+  try {
+    [postsResult, rawUsers] = await Promise.all([
+      query ? searchPosts(query, backendPage) : Promise.resolve({ content: [], totalPages: 0, totalElements: 0 }),
+      query ? searchUsers(query) : Promise.resolve([]),
+    ]);
+  } catch {
+    searchError = true;
+  }
 
-    // 시리즈 실제 API 검색
-    let series: Array<{
-        id: number;
-        userId: number;
-        title: string;
-        body: string;
-        postCount: number;
-        authorName: string;
-        lastUpdatedAt: string;
-        thumbnailUrl?: string;
-    }> = [];
+  const posts = postsResult.content.map((p: {
+    id: number; title: string; body?: string; accessLevel: "FREE" | "PAID";
+    nickname: string; createdAt: string; viewCount: number;
+  }) => ({
+    id: p.id,
+    title: p.title,
+    description: p.body ? p.body.replace(/<[^>]*>/g, "").slice(0, 100) : "",
+    accessLevel: p.accessLevel,
+    authorName: p.nickname,
+    createdAt: p.createdAt ? p.createdAt.split("T")[0] : "",
+    viewCount: p.viewCount ?? 0,
+  }));
 
-    if (query) {
-        try {
-            const data = await searchSeries(query, 0);
-            series = data.content.map((s) => ({
-                id: s.id,
-                userId: s.userId,
-                title: s.title,
-                body: s.body ?? "",
-                postCount: s.postCount ?? 0,
-                authorName: s.nickname,
-                lastUpdatedAt: s.updatedAt ? s.updatedAt.split("T")[0] : "",
-                thumbnailUrl: s.thumbnailUrl ?? undefined,
-            }));
-        } catch {
-            series = [];
-        }
+  const creators = rawUsers.map((u: { id: number; nickname: string; introduction?: string }) => ({
+    id: u.id,
+    nickname: u.nickname,
+    subscriberCount: 0,
+    introduction: u.introduction,
+  }));
+
+  let series: Array<{
+    id: number; userId: number; title: string; body: string;
+    postCount: number; authorName: string; lastUpdatedAt: string; thumbnailUrl?: string;
+  }> = [];
+
+  if (query) {
+    try {
+      const data = await searchSeries(query, 0);
+      series = data.content.map((s) => ({
+        id: s.id,
+        userId: s.userId,
+        title: s.title,
+        body: s.body ?? "",
+        postCount: s.postCount ?? 0,
+        authorName: s.nickname,
+        lastUpdatedAt: s.updatedAt ? s.updatedAt.split("T")[0] : "",
+        thumbnailUrl: s.thumbnailUrl ?? undefined,
+      }));
+    } catch {
+      series = [];
     }
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-20 pt-20">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-12">
-        {/* 헤더 섹션 */}
         <div className="mb-10">
           <h1 className="text-3xl font-extrabold tracking-tight text-neutral-dark flex items-center gap-3">
             <Search className="h-8 w-8 text-primary" />
@@ -72,7 +105,7 @@ export default async function SearchPage({
             )}
             {query && (
               <span className="ml-2 rounded-full bg-neutral-200/50 px-3 py-1 text-sm font-bold text-neutral-500">
-                총 {posts.length + creators.length + series.length}건
+                총 {postsResult.totalElements + creators.length + series.length}건
               </span>
             )}
           </h1>
@@ -81,11 +114,13 @@ export default async function SearchPage({
           </p>
         </div>
 
-          <SearchResultsView
-              query={query}
-              posts={posts}
-              creators={creators}
-              series={series}
+        <SearchResultsView
+          query={query}
+          posts={posts}
+          postsTotalElements={postsResult.totalElements}
+          creators={creators}
+          series={series}
+          searchError={searchError}
         />
       </div>
     </div>

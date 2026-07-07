@@ -3,6 +3,8 @@ package com.scommit.domain.post.post.service;
 import com.scommit.domain.notification.notification.dto.NotificationResponse;
 import com.scommit.domain.notification.notification.dto.NotificationType;
 import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
+import com.scommit.domain.post.bookmark.repository.BookmarkRepository;
+import com.scommit.domain.post.like.repository.LikeRepository;
 import com.scommit.domain.post.post.dto.PostListResponse;
 import com.scommit.domain.post.post.dto.PostResponse;
 import com.scommit.domain.post.post.entity.Post;
@@ -36,6 +38,8 @@ public class PostService {
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final SseEmitterRepository sseEmitterRepository;
+    private final LikeRepository likeRepository;
+    private final BookmarkRepository bookmarkRepository;
 
     // 게시글 생성
     @Transactional
@@ -64,26 +68,23 @@ public class PostService {
     }
 
     // 홈페이지 전체 조회 - 무한 스크롤
-    public Slice<PostListResponse> getPosts(Long creatorId, Pageable pageable) {
+    public Slice<PostListResponse> getPosts(Long creatorId, User actor, Pageable pageable) {
         if (creatorId != null) {
             User creator = userRepository.findByIdAndDeletedAtIsNull(creatorId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
             return postRepository.findSliceByUserAndDeletedAtIsNull(creator, pageable)
-                    .map(PostListResponse::new);
+                    .map(post -> new PostListResponse(post, isLiked(post.getId(), actor), isBookmarked(post.getId(), actor)));
         }
         return postRepository.findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable)
-                .map(PostListResponse::new);
+                .map(post -> new PostListResponse(post, isLiked(post.getId(), actor), isBookmarked(post.getId(), actor)));
     }
 
 
     // 게시글 상세 조회
     @Transactional
     public PostResponse getPost(Long id, User actor) {
-        Post post = postRepository.findById(id)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         boolean isOwner = actor != null && post.getUser().getId().equals(actor.getId());
 
@@ -101,23 +102,19 @@ public class PostService {
                     .map(sub -> sub.getTier() == SubscriptionTier.MEMBERSHIP)
                     .orElse(false);
             if (!isMember) {
-                return new PostResponse(post, true);
+                return new PostResponse(post, true, isLiked(id, actor), isBookmarked(id, actor));
             }
         }
 
-        return new PostResponse(post);
+        return new PostResponse(post, false, isLiked(id, actor), isBookmarked(id, actor));
     }
 
     // 게시글 수정
     @Transactional
     public PostResponse updatePost(User actor, Long id, String title, String body,
                                    PublishStatus publishStatus, PostAccessLevel accessLevel, Long seriesId) {
-        Post post = postRepository.findById(id)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         if (!post.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
@@ -134,18 +131,14 @@ public class PostService {
             sendSse(post);
         }
 
-        return new PostResponse(post);
+        return new PostResponse(post, false, isLiked(id, actor), isBookmarked(id, actor));
     }
 
     // 게시글 삭제
     @Transactional
     public void deletePost(User actor, Long id) {
-        Post post = postRepository.findById(id)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         if (!post.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
@@ -155,27 +148,30 @@ public class PostService {
     }
 
     // 특정 유저의 게시글 조회 - 번호 페이지네이션 (프로필 화면)
-    public Page<PostListResponse> getUserPosts(Long userId, Pageable pageable) {
+    public Page<PostListResponse> getUserPosts(Long userId, User actor, Pageable pageable) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
         return postRepository.findByUserAndDeletedAtIsNull(user, pageable)
-                .map(PostListResponse::new);
+                .map(post -> new PostListResponse(post, isLiked(post.getId(), actor), isBookmarked(post.getId(), actor)));
+    }
+
+    // 키워드 검색
+    public Page<PostListResponse> searchPosts(String keyword, Pageable pageable) {
+        return postRepository.searchByKeyword(keyword, PublishStatus.PUBLIC, pageable)
+                .map(post -> new PostListResponse(post, false, false));
     }
 
     // 로그인 유저의 게시글 조회
     public Page<PostListResponse> getMyPosts(User actor, Pageable pageable) {
         return postRepository.findByUserAndDeletedAtIsNull(actor, pageable)
-                .map(PostListResponse::new);
+                .map(post -> new PostListResponse(post, isLiked(post.getId(), actor), isBookmarked(post.getId(), actor)));
     }
 
     // 시리즈에 포스트 추가
     @Transactional
     public void addPostToSeries(Long postId, Long seriesId, User actor) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
         if (!post.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
@@ -192,11 +188,8 @@ public class PostService {
     // 시리즈에서 포스트 제거
     @Transactional
     public void removePostFromSeries(Long postId, Long seriesId, User actor) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
-        if (post.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
-        }
 
         Series series = post.getSeries();
         if (series == null || !series.getId().equals(seriesId)) {
@@ -210,9 +203,9 @@ public class PostService {
     }
 
     // 시리즈 내 게시글 조회
-    public List<PostListResponse> getPostsBySeriesId(Long seriesId) {
+    public List<PostListResponse> getPostsBySeriesId(Long seriesId, User actor) {
         return postRepository.findBySeriesIdAndDeletedAtIsNull(seriesId).stream()
-                .map(PostListResponse::new)
+                .map(post -> new PostListResponse(post, isLiked(post.getId(), actor), isBookmarked(post.getId(), actor)))
                 .toList();
     }
 
@@ -239,5 +232,13 @@ public class PostService {
                     post.getId()
             ));
         }
+    }
+
+    private boolean isLiked(Long postId, User actor) {
+        return actor != null && likeRepository.existsByPostIdAndUserId(postId, actor.getId());
+    }
+
+    private boolean isBookmarked(Long postId, User actor) {
+        return actor != null && bookmarkRepository.existsByPostIdAndUserId(postId, actor.getId());
     }
 }

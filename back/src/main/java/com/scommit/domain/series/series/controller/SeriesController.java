@@ -103,7 +103,8 @@ public class SeriesController {
     public RsData<List<PostListResponse>> getSeriesPosts(
             @PathVariable long id
     ) {
-        List<PostListResponse> response = postService.getPostsBySeriesId(id);
+        User actor = securityHelper.getActor();
+        List<PostListResponse> response = postService.getPostsBySeriesId(id, actor);
         return new RsData<>("200-1", "시리즈 게시글 목록입니다.", response);
     }
 
