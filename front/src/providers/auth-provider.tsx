@@ -32,13 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/users/me");
       if (res.ok) {
         const data = await res.json();
-        const userData = data.data.user;
+        const userData = data.data;
         setUser({
           id: userData.id,
           email: userData.email,
-          nickname: userData.nickname,
+          nickname: userData.profile?.nickname,
           role: userData.role,
-          avatarUrl: data.data.profileImageUrl,
+          avatarUrl: userData.profile?.profileImageUrl,
         });
         setIsLoggedIn(true);
       } else {
