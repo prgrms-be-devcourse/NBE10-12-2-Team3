@@ -53,11 +53,12 @@ jobs:
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          MYSQL_EXPORTER_PASSWORD: ${{ secrets.MYSQL_EXPORTER_PASSWORD }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: JWT_SECRET_KEY,DB_NAME,DB_USERNAME,DB_PASSWORD,DB_ROOT_PASSWORD,CLOUDINARY_CLOUD_NAME,CLOUDINARY_API_KEY,CLOUDINARY_API_SECRET,GHCR_TOKEN
+          envs: JWT_SECRET_KEY,DB_NAME,DB_USERNAME,DB_PASSWORD,DB_ROOT_PASSWORD,CLOUDINARY_CLOUD_NAME,CLOUDINARY_API_KEY,CLOUDINARY_API_SECRET,GHCR_TOKEN,MYSQL_EXPORTER_PASSWORD
           script: |
             set -e
             mkdir -p ~/app
@@ -74,6 +75,7 @@ jobs:
               printf "CLOUDINARY_API_KEY=%s\n" "${CLOUDINARY_API_KEY}"
               printf "CLOUDINARY_API_SECRET=%s\n" "${CLOUDINARY_API_SECRET}"
               printf "CORS_ALLOWED_ORIGIN=https://*.scommit.store,https://scommit.store\n"
+              printf "MYSQL_EXPORTER_PASSWORD=%s\n" "${MYSQL_EXPORTER_PASSWORD}"
             } > .env
             docker compose pull back
             docker compose up -d
