@@ -1,6 +1,8 @@
 package com.scommit.domain.post.post.service;
 
 import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
+import com.scommit.domain.post.bookmark.repository.BookmarkRepository;
+import com.scommit.domain.post.like.repository.LikeRepository;
 import com.scommit.domain.post.post.dto.PostListResponse;
 import com.scommit.domain.post.post.dto.PostResponse;
 import com.scommit.domain.post.post.entity.Post;
@@ -28,7 +30,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,6 +60,12 @@ class PostServiceTest {
 
     @Mock
     private SseEmitterRepository sseEmitterRepository;
+
+    @Mock
+    private LikeRepository likeRepository;
+
+    @Mock
+    private BookmarkRepository bookmarkRepository;
 
     @InjectMocks
     private PostService postService;
@@ -99,13 +106,6 @@ class PostServiceTest {
         return post;
     }
 
-    // softDelete된 게시글 생성 (deletedAt이 null이 아닌 상태)
-    private Post buildDeletedPost(Long id, User user) {
-        Post post = buildPost(id, user, null);
-        ReflectionTestUtils.setField(post, "deletedAt", LocalDateTime.now());
-        return post;
-    }
-
     private Series buildSeries(Long id, User owner) {
         Series series = Series.builder()
                 .user(owner)
@@ -131,7 +131,7 @@ class PostServiceTest {
             when(postRepository.findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable))
                     .thenReturn(slice);
 
-            var result = postService.getPosts(null, pageable);
+            var result = postService.getPosts(null, null, pageable);
 
             assertThat(result.getContent()).hasSize(1);
             verify(postRepository).findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable);
@@ -148,7 +148,7 @@ class PostServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
             when(postRepository.findSliceByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(slice);
 
-            var result = postService.getPosts(1L, pageable);
+            var result = postService.getPosts(1L, null, pageable);
 
             assertThat(result.getContent()).hasSize(1);
         }
@@ -160,9 +160,59 @@ class PostServiceTest {
             Pageable pageable = PageRequest.of(0, 8);
             when(userRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> postService.getPosts(999L, pageable))
+            assertThatThrownBy(() -> postService.getPosts(999L, null, pageable))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("성공: 로그인한 유저가 좋아요한 게시글이면 isLiked=true를 반환한다.")
+        void getPosts_withActor_isLiked() {
+            Pageable pageable = PageRequest.of(0, 8);
+            Post post = buildPost(1L, otherUser, null);
+            SliceImpl<Post> slice = new SliceImpl<>(List.of(post), pageable, false);
+
+            when(postRepository.findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable))
+                    .thenReturn(slice);
+            when(likeRepository.existsByPostIdAndUserId(1L, mockUser.getId())).thenReturn(true);
+
+            var result = postService.getPosts(null, mockUser, pageable);
+
+            assertThat(result.getContent().get(0).isLiked()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공: 로그인한 유저가 북마크한 게시글이면 isBookmarked=true를 반환한다.")
+        void getPosts_withActor_isBookmarked() {
+            Pageable pageable = PageRequest.of(0, 8);
+            Post post = buildPost(1L, otherUser, null);
+            SliceImpl<Post> slice = new SliceImpl<>(List.of(post), pageable, false);
+
+            when(postRepository.findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable))
+                    .thenReturn(slice);
+            when(bookmarkRepository.existsByPostIdAndUserId(1L, mockUser.getId())).thenReturn(true);
+
+            var result = postService.getPosts(null, mockUser, pageable);
+
+            assertThat(result.getContent().get(0).isBookmarked()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공: 비로그인 사용자는 isLiked=false, isBookmarked=false를 반환한다.")
+        void getPosts_anonymous_isLikedAndBookmarkedFalse() {
+            Pageable pageable = PageRequest.of(0, 8);
+            Post post = buildPost(1L, otherUser, null);
+            SliceImpl<Post> slice = new SliceImpl<>(List.of(post), pageable, false);
+
+            when(postRepository.findAllByDeletedAtIsNullAndPublishStatus(PublishStatus.PUBLIC, pageable))
+                    .thenReturn(slice);
+
+            var result = postService.getPosts(null, null, pageable);
+
+            assertThat(result.getContent().get(0).isLiked()).isFalse();
+            assertThat(result.getContent().get(0).isBookmarked()).isFalse();
+            verify(likeRepository, never()).existsByPostIdAndUserId(any(), any());
+            verify(bookmarkRepository, never()).existsByPostIdAndUserId(any(), any());
         }
     }
 
@@ -181,7 +231,7 @@ class PostServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
             when(postRepository.findByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(postPage);
 
-            Page<PostListResponse> result = postService.getUserPosts(1L, pageable);
+            Page<PostListResponse> result = postService.getUserPosts(1L, null, pageable);
 
             assertThat(result.getTotalElements()).isEqualTo(1);
             assertThat(result.getContent().get(0).title()).isEqualTo("테스트 포스트");
@@ -194,7 +244,7 @@ class PostServiceTest {
             Pageable pageable = PageRequest.of(0, 10);
             when(userRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> postService.getUserPosts(999L, pageable))
+            assertThatThrownBy(() -> postService.getUserPosts(999L, null, pageable))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
         }
@@ -209,10 +259,26 @@ class PostServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
             when(postRepository.findByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(emptyPage);
 
-            Page<PostListResponse> result = postService.getUserPosts(1L, pageable);
+            Page<PostListResponse> result = postService.getUserPosts(1L, null, pageable);
 
             assertThat(result.getTotalElements()).isEqualTo(0);
             assertThat(result.getContent()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("성공: 로그인한 유저가 좋아요한 게시글이면 isLiked=true를 반환한다.")
+        void getUserPosts_withActor_isLiked() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Post post = buildPost(1L, mockUser, null);
+            Page<Post> postPage = new PageImpl<>(List.of(post), pageable, 1);
+
+            when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(mockUser));
+            when(postRepository.findByUserAndDeletedAtIsNull(mockUser, pageable)).thenReturn(postPage);
+            when(likeRepository.existsByPostIdAndUserId(1L, otherUser.getId())).thenReturn(true);
+
+            Page<PostListResponse> result = postService.getUserPosts(1L, otherUser, pageable);
+
+            assertThat(result.getContent().get(0).isLiked()).isTrue();
         }
     }
 
@@ -312,7 +378,7 @@ class PostServiceTest {
         @DisplayName("성공: 본인 게시글을 수정한다.")
         void update_Success() {
             Post post = buildPost(1L, mockUser, null);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
 
             PostResponse response = postService.updatePost(mockUser, 1L, "수정제목", "수정내용",
                     PublishStatus.DRAFT, PostAccessLevel.FREE, null);
@@ -330,7 +396,7 @@ class PostServiceTest {
                     .creator(mockUser)
                     .tier(SubscriptionTier.FOLLOW)
                     .build();
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
             when(subscriptionRepository.findByCreatorIdAndDeletedAtIsNull(1L)).thenReturn(List.of(sub));
 
             postService.updatePost(mockUser, 1L, "제목", "내용", PublishStatus.PUBLIC, PostAccessLevel.FREE, null);
@@ -342,7 +408,7 @@ class PostServiceTest {
         @DisplayName("성공: 이미 PUBLIC인 게시글 수정 시 SSE 알림을 다시 전송하지 않는다.")
         void update_AlreadyPublic_NoSse() {
             Post post = buildPost(1L, mockUser, null);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
 
             postService.updatePost(mockUser, 1L, "수정제목", "수정내용", PublishStatus.PUBLIC, PostAccessLevel.FREE, null);
 
@@ -353,22 +419,9 @@ class PostServiceTest {
         @Test
         @DisplayName("실패: 존재하지 않는 게시글이면 POST_NOT_FOUND 예외를 던진다.")
         void update_PostNotFound() {
-            when(postRepository.findById(999L)).thenReturn(Optional.empty());
+            when(postRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> postService.updatePost(mockUser, 999L, "제목", "내용",
-                    PublishStatus.PUBLIC, PostAccessLevel.FREE, null))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
-        }
-
-        // softDelete된 게시글은 없는 것과 동일하게 처리
-        @Test
-        @DisplayName("실패: 삭제된 게시글이면 POST_NOT_FOUND 예외를 던진다.")
-        void update_PostDeleted() {
-            Post deletedPost = buildDeletedPost(1L, mockUser);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(deletedPost));
-
-            assertThatThrownBy(() -> postService.updatePost(mockUser, 1L, "제목", "내용",
                     PublishStatus.PUBLIC, PostAccessLevel.FREE, null))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
@@ -379,7 +432,7 @@ class PostServiceTest {
         @DisplayName("실패: 다른 유저의 게시글을 수정하면 ACCESS_DENIED 예외를 던진다.")
         void update_NotOwner() {
             Post post = buildPost(1L, otherUser, null);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
 
             assertThatThrownBy(() -> postService.updatePost(mockUser, 1L, "제목", "내용",
                     PublishStatus.PUBLIC, PostAccessLevel.FREE, null))
@@ -397,7 +450,7 @@ class PostServiceTest {
         @DisplayName("성공: 본인 게시글을 삭제한다.")
         void delete_Success() {
             Post post = buildPost(1L, mockUser, null);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
 
             postService.deletePost(mockUser, 1L);
 
@@ -408,21 +461,9 @@ class PostServiceTest {
         @Test
         @DisplayName("실패: 존재하지 않는 게시글이면 POST_NOT_FOUND 예외를 던진다.")
         void delete_PostNotFound() {
-            when(postRepository.findById(999L)).thenReturn(Optional.empty());
+            when(postRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> postService.deletePost(mockUser, 999L))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
-        }
-
-        // 이미 삭제된 게시글 재삭제 시도 → 멱등성 보장이 아닌 에러 반환 방식
-        @Test
-        @DisplayName("실패: 이미 삭제된 게시글이면 POST_NOT_FOUND 예외를 던진다.")
-        void delete_AlreadyDeleted() {
-            Post deletedPost = buildDeletedPost(1L, mockUser);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(deletedPost));
-
-            assertThatThrownBy(() -> postService.deletePost(mockUser, 1L))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
         }
@@ -432,7 +473,7 @@ class PostServiceTest {
         @DisplayName("실패: 다른 유저의 게시글을 삭제하면 ACCESS_DENIED 예외를 던진다.")
         void delete_NotOwner() {
             Post post = buildPost(1L, otherUser, null);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
 
             assertThatThrownBy(() -> postService.deletePost(mockUser, 1L))
                     .isInstanceOf(BusinessException.class)
@@ -449,7 +490,7 @@ class PostServiceTest {
         @DisplayName("성공: 게시글 조회 시 조회수가 1 증가한다.")
         void getPost_Success_ViewCountIncreased() {
             Post post = buildPost(1L, mockUser, null);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
 
             postService.getPost(1L, mockUser);
 
@@ -460,21 +501,9 @@ class PostServiceTest {
         @Test
         @DisplayName("실패: 존재하지 않는 게시글이면 POST_NOT_FOUND 예외를 던진다.")
         void getPost_NotFound() {
-            when(postRepository.findById(999L)).thenReturn(Optional.empty());
+            when(postRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> postService.getPost(999L, null))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
-        }
-
-        // softDelete된 게시글은 조회 불가
-        @Test
-        @DisplayName("실패: 삭제된 게시글이면 POST_NOT_FOUND 예외를 던진다.")
-        void getPost_Deleted() {
-            Post deletedPost = buildDeletedPost(1L, mockUser);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(deletedPost));
-
-            assertThatThrownBy(() -> postService.getPost(1L, null))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
         }
@@ -485,7 +514,7 @@ class PostServiceTest {
         void getPost_Private_NotOwner() {
             Post post = buildPost(1L, mockUser, null);
             ReflectionTestUtils.setField(post, "publishStatus", PublishStatus.PRIVATE);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
 
             assertThatThrownBy(() -> postService.getPost(1L, otherUser))
                     .isInstanceOf(BusinessException.class)
@@ -498,7 +527,7 @@ class PostServiceTest {
         void getPost_Private_Anonymous() {
             Post post = buildPost(1L, mockUser, null);
             ReflectionTestUtils.setField(post, "publishStatus", PublishStatus.PRIVATE);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
 
             assertThatThrownBy(() -> postService.getPost(1L, null))
                     .isInstanceOf(BusinessException.class)
@@ -511,7 +540,7 @@ class PostServiceTest {
         void getPost_Paid_NotMember_IsLocked() {
             Post post = buildPost(1L, mockUser, null);
             ReflectionTestUtils.setField(post, "accessLevel", PostAccessLevel.PAID);
-            when(postRepository.findById(1L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
             when(subscriptionRepository.findByUserIdAndCreatorId(otherUser.getId(), mockUser.getId()))
                     .thenReturn(Optional.empty());
 
@@ -519,6 +548,46 @@ class PostServiceTest {
 
             assertThat(response.isLocked()).isTrue();
             assertThat(response.body()).isNull();
+        }
+
+        @Test
+        @DisplayName("성공: 로그인한 유저가 좋아요한 게시글 조회 시 isLiked=true를 반환한다.")
+        void getPost_withActor_isLiked() {
+            Post post = buildPost(1L, otherUser, null);
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
+            when(likeRepository.existsByPostIdAndUserId(1L, mockUser.getId())).thenReturn(true);
+
+            PostResponse response = postService.getPost(1L, mockUser);
+
+            assertThat(response.isLiked()).isTrue();
+            assertThat(response.isBookmarked()).isFalse();
+        }
+
+        @Test
+        @DisplayName("성공: 로그인한 유저가 북마크한 게시글 조회 시 isBookmarked=true를 반환한다.")
+        void getPost_withActor_isBookmarked() {
+            Post post = buildPost(1L, otherUser, null);
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
+            when(bookmarkRepository.existsByPostIdAndUserId(1L, mockUser.getId())).thenReturn(true);
+
+            PostResponse response = postService.getPost(1L, mockUser);
+
+            assertThat(response.isBookmarked()).isTrue();
+            assertThat(response.isLiked()).isFalse();
+        }
+
+        @Test
+        @DisplayName("성공: 비로그인 사용자가 조회하면 isLiked=false, isBookmarked=false를 반환한다.")
+        void getPost_anonymous_isLikedAndBookmarkedFalse() {
+            Post post = buildPost(1L, mockUser, null);
+            when(postRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(post));
+
+            PostResponse response = postService.getPost(1L, null);
+
+            assertThat(response.isLiked()).isFalse();
+            assertThat(response.isBookmarked()).isFalse();
+            verify(likeRepository, never()).existsByPostIdAndUserId(any(), any());
+            verify(bookmarkRepository, never()).existsByPostIdAndUserId(any(), any());
         }
     }
 
@@ -532,7 +601,7 @@ class PostServiceTest {
             Series series = buildSeries(5L, mockUser);
             Post post = buildPost(10L, mockUser, null);
 
-            when(postRepository.findById(10L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
             when(seriesRepository.findByIdAndDeletedAtIsNull(5L)).thenReturn(Optional.of(series));
 
             postService.addPostToSeries(10L, 5L, mockUser);
@@ -544,7 +613,7 @@ class PostServiceTest {
         @Test
         @DisplayName("실패: 존재하지 않는 포스트면 POST_NOT_FOUND 예외를 던진다.")
         void add_PostNotFound() {
-            when(postRepository.findById(999L)).thenReturn(Optional.empty());
+            when(postRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> postService.addPostToSeries(999L, 5L, mockUser))
                     .isInstanceOf(BusinessException.class)
@@ -553,23 +622,12 @@ class PostServiceTest {
             verify(seriesRepository, never()).findByIdAndDeletedAtIsNull(any());
         }
 
-        @Test
-        @DisplayName("실패: 삭제된 포스트면 POST_NOT_FOUND 예외를 던진다.")
-        void add_PostDeleted() {
-            Post deletedPost = buildDeletedPost(10L, mockUser);
-            when(postRepository.findById(10L)).thenReturn(Optional.of(deletedPost));
-
-            assertThatThrownBy(() -> postService.addPostToSeries(10L, 5L, mockUser))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
-        }
-
         // 포스트 주인이 아니면 시리즈 조회 전에 차단해야 함
         @Test
         @DisplayName("실패: 포스트 주인이 아니면 ACCESS_DENIED 예외를 던진다.")
         void add_PostNotOwned() {
             Post post = buildPost(10L, otherUser, null);
-            when(postRepository.findById(10L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
 
             assertThatThrownBy(() -> postService.addPostToSeries(10L, 5L, mockUser))
                     .isInstanceOf(BusinessException.class)
@@ -582,7 +640,7 @@ class PostServiceTest {
         @DisplayName("실패: 존재하지 않는 시리즈면 RESOURCE_NOT_FOUND 예외를 던진다.")
         void add_SeriesNotFound() {
             Post post = buildPost(10L, mockUser, null);
-            when(postRepository.findById(10L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
             when(seriesRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> postService.addPostToSeries(10L, 999L, mockUser))
@@ -596,7 +654,7 @@ class PostServiceTest {
             Series series = buildSeries(5L, otherUser);
             Post post = buildPost(10L, mockUser, null);
 
-            when(postRepository.findById(10L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
             when(seriesRepository.findByIdAndDeletedAtIsNull(5L)).thenReturn(Optional.of(series));
 
             assertThatThrownBy(() -> postService.addPostToSeries(10L, 5L, mockUser))
@@ -615,7 +673,7 @@ class PostServiceTest {
             Series series = buildSeries(5L, mockUser);
             Post post = buildPost(10L, mockUser, series);
 
-            when(postRepository.findById(10L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
 
             postService.removePostFromSeries(10L, 5L, mockUser);
 
@@ -625,20 +683,9 @@ class PostServiceTest {
         @Test
         @DisplayName("실패: 존재하지 않는 포스트면 POST_NOT_FOUND 예외를 던진다.")
         void remove_PostNotFound() {
-            when(postRepository.findById(999L)).thenReturn(Optional.empty());
+            when(postRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> postService.removePostFromSeries(999L, 5L, mockUser))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
-        }
-
-        @Test
-        @DisplayName("실패: 삭제된 포스트면 POST_NOT_FOUND 예외를 던진다.")
-        void remove_PostDeleted() {
-            Post deletedPost = buildDeletedPost(10L, mockUser);
-            when(postRepository.findById(10L)).thenReturn(Optional.of(deletedPost));
-
-            assertThatThrownBy(() -> postService.removePostFromSeries(10L, 5L, mockUser))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
         }
@@ -648,7 +695,7 @@ class PostServiceTest {
         @DisplayName("실패: 포스트가 어떤 시리즈에도 속하지 않으면 RESOURCE_NOT_FOUND 예외를 던진다.")
         void remove_PostHasNoSeries() {
             Post post = buildPost(10L, mockUser, null);
-            when(postRepository.findById(10L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
 
             assertThatThrownBy(() -> postService.removePostFromSeries(10L, 5L, mockUser))
                     .isInstanceOf(BusinessException.class)
@@ -661,7 +708,7 @@ class PostServiceTest {
         void remove_PostBelongsToDifferentSeries() {
             Series otherSeries = buildSeries(99L, mockUser);
             Post post = buildPost(10L, mockUser, otherSeries);
-            when(postRepository.findById(10L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
 
             assertThatThrownBy(() -> postService.removePostFromSeries(10L, 5L, mockUser))
                     .isInstanceOf(BusinessException.class)
@@ -673,11 +720,70 @@ class PostServiceTest {
         void remove_SeriesNotOwned() {
             Series series = buildSeries(5L, otherUser);
             Post post = buildPost(10L, mockUser, series);
-            when(postRepository.findById(10L)).thenReturn(Optional.of(post));
+            when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
 
             assertThatThrownBy(() -> postService.removePostFromSeries(10L, 5L, mockUser))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    @Nested
+    @DisplayName("시리즈 내 게시글 목록 조회 테스트")
+    class GetPostsBySeriesId {
+
+        @Test
+        @DisplayName("성공: 시리즈에 속한 게시글 목록을 반환한다.")
+        void getPostsBySeriesId_success() {
+            Series series = buildSeries(5L, mockUser);
+            Post post = buildPost(1L, mockUser, series);
+
+            when(postRepository.findBySeriesIdAndDeletedAtIsNull(5L)).thenReturn(List.of(post));
+
+            var result = postService.getPostsBySeriesId(5L, null);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).seriesId()).isEqualTo(5L);
+        }
+
+        @Test
+        @DisplayName("성공: 시리즈 게시글이 없으면 빈 목록을 반환한다.")
+        void getPostsBySeriesId_empty() {
+            when(postRepository.findBySeriesIdAndDeletedAtIsNull(5L)).thenReturn(List.of());
+
+            var result = postService.getPostsBySeriesId(5L, null);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("성공: 로그인한 유저가 좋아요한 게시글이면 isLiked=true를 반환한다.")
+        void getPostsBySeriesId_withActor_isLiked() {
+            Series series = buildSeries(5L, otherUser);
+            Post post = buildPost(1L, otherUser, series);
+
+            when(postRepository.findBySeriesIdAndDeletedAtIsNull(5L)).thenReturn(List.of(post));
+            when(likeRepository.existsByPostIdAndUserId(1L, mockUser.getId())).thenReturn(true);
+
+            var result = postService.getPostsBySeriesId(5L, mockUser);
+
+            assertThat(result.get(0).isLiked()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공: 비로그인 사용자는 isLiked=false, isBookmarked=false를 반환한다.")
+        void getPostsBySeriesId_anonymous_isLikedAndBookmarkedFalse() {
+            Series series = buildSeries(5L, mockUser);
+            Post post = buildPost(1L, mockUser, series);
+
+            when(postRepository.findBySeriesIdAndDeletedAtIsNull(5L)).thenReturn(List.of(post));
+
+            var result = postService.getPostsBySeriesId(5L, null);
+
+            assertThat(result.get(0).isLiked()).isFalse();
+            assertThat(result.get(0).isBookmarked()).isFalse();
+            verify(likeRepository, never()).existsByPostIdAndUserId(any(), any());
+            verify(bookmarkRepository, never()).existsByPostIdAndUserId(any(), any());
         }
     }
 }

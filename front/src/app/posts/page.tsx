@@ -71,7 +71,7 @@ export default function PostsPage() {
                 {/* 헤더 */}
                 <div className="mb-8 flex items-center justify-between">
                     <h1 className="text-3xl font-extrabold tracking-tight text-neutral-dark">
-                        게시글
+                        포스트
                     </h1>
                     <div className="flex items-center gap-1 rounded-lg border border-neutral-border bg-white p-1">
                         <button
@@ -101,7 +101,7 @@ export default function PostsPage() {
                     </div>
                 </div>
 
-                {/* 게시글 목록 */}
+                {/* 포스트 목록 */}
                 {viewMode === "grid" ? (
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {posts.map((post) => (
@@ -148,7 +148,7 @@ export default function PostsPage() {
                     </div>
                 )}
                 {!hasMore && posts.length > 0 && (
-                    <p className="text-center text-sm text-neutral-meta py-4">모든 게시글을 불러왔습니다.</p>
+                    <p className="text-center text-sm text-neutral-meta py-4">모든 포스트를 불러왔습니다.</p>
                 )}
             </div>
         </div>

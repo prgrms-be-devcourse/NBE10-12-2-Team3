@@ -174,10 +174,10 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
           </div>
         </div>
 
-        {/* 게시글 스켈레톤 */}
+        {/* 포스트 스켈레톤 */}
         <section>
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-neutral-dark">관련 게시글</h2>
+            <h2 className="text-xl font-bold text-neutral-dark">관련 포스트</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             <ContentCardSkeleton />
@@ -245,7 +245,7 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
                 )}
               >
                 {tab === "all" && "통합 검색"}
-                {tab === "posts" && `게시글 (${posts.length})`}
+                {tab === "posts" && `포스트 (${posts.length})`}
                 {tab === "series" && `시리즈 (${series.length})`}
                 {tab === "creators" && `창작자 (${creators.length})`}
                 {activeTab === tab && !isDisabled && (
@@ -282,12 +282,12 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
         )}
       </div>
 
-      {/* 1단: 게시글 (리스트 뷰 혹은 그리드 뷰) */}
+      {/* 1단: 포스트 (리스트 뷰 혹은 그리드 뷰) */}
       {(activeTab === "all" || activeTab === "posts") && posts.length > 0 && (
         <section>
           {activeTab === "all" && (
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-neutral-dark">관련 게시글</h2>
+              <h2 className="text-xl font-bold text-neutral-dark">관련 포스트</h2>
               {posts.length > 5 && (
                 <Link href={`/search?q=${encodeURIComponent(query)}&tab=posts&page=1`} className="text-sm font-semibold text-neutral-meta hover:text-primary transition-colors">
                   전체보기
@@ -305,7 +305,7 @@ export function SearchResultsView({ query, posts, creators, series }: SearchResu
             ))}
           </div>
           
-          {/* Pagination (통합 탭에서는 무조건 숨김, 게시글 탭에서만 조건부 노출) */}
+          {/* Pagination (통합 탭에서는 무조건 숨김, 포스트 탭에서만 조건부 노출) */}
           {activeTab === "posts" && renderPagination(posts.length)}
         </section>
       )}

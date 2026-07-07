@@ -65,7 +65,8 @@ public class PostController {
     public RsData<Page<PostListResponse>> getUserPosts(
             @PathVariable Long userId,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<PostListResponse> response = postService.getUserPosts(userId, pageable);
+        User actor = securityHelper.getActor();
+        Page<PostListResponse> response = postService.getUserPosts(userId, actor, pageable);
         return new RsData<>("200-1", "유저의 게시글 목록입니다.", response);
     }
 
@@ -75,7 +76,8 @@ public class PostController {
     public RsData<Slice<PostListResponse>> getPosts(
             @RequestParam(required = false) Long creatorId,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        Slice<PostListResponse> response = postService.getPosts(creatorId, pageable);
+        User actor = securityHelper.getActor();
+        Slice<PostListResponse> response = postService.getPosts(creatorId, actor, pageable);
         return new RsData<>("200-1", "게시글 목록입니다.", response);
     }
 

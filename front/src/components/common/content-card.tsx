@@ -9,7 +9,7 @@ import { AccessBadge } from "@/components/common/access-badge";
 interface ContentCardProps {
   id: string | number;
   title: string;
-  description: string;
+  description?: string;
   accessLevel: "FREE" | "PAID";
   thumbnailUrl?: string;
   authorName: string;
@@ -51,7 +51,7 @@ export function ContentCard({
       className={cn(
         "group flex flex-col overflow-hidden rounded-[16px] bg-white transition-all duration-300 ease-out",
         "border border-neutral-border hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5",
-        // 유료 콘텐츠일 경우 미세한 프리미엄 테두리 및 그림자 효과 추가
+        // 유료 포스트일 경우 미세한 프리미엄 테두리 및 그림자 효과 추가
         isPaid && "border-primary/10 hover:border-primary/30",
         className
       )}
