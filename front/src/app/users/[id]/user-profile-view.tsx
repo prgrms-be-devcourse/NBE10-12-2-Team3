@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tab, type TabItem } from "@/components/ui/tab";
@@ -10,10 +12,16 @@ import { PostPagination } from "@/components/common/post-pagination";
 import { SeriesList } from "@/components/common/series-list";
 import { SeriesPagination } from "@/components/common/series-pagination";
 import { ConfirmModal } from "@/components/common/confirm-modal";
+import { CancelMembershipModal } from "@/components/common/cancel-membership-modal";
 import { useAuth } from "@/providers/auth-provider";
 import { useHasMounted } from "@/hooks/use-has-mounted";
 import { apiFetch, apiPost, apiDelete } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { UserProfileResponse, PostListResponse, SeriesListResponse } from "./page";
+
+// 팔로우 버튼 폭이 "팔로우"↔"팔로잉" 텍스트 길이 변화에 맞춰 부드럽게 늘어나도록,
+// layout 애니메이션을 쓸 수 있는 motion 버전의 Button을 만듭니다.
+const MotionButton = motion(Button);
 
 // page.tsx의 UserProfileResponse를 그대로 재사용해서, API 응답 형태가 바뀌면
 // 컴파일 타임에 바로 잡히도록 합니다. 이 파일에서 별도 Profile 타입을 정의하지 않습니다.
@@ -53,6 +61,8 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
   const { isLoggedIn, user } = useAuth();
   const hasMounted = useHasMounted();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  // mypage(FollowButton)의 멤버십 해지 확인 팝업과 동일한 UX를 여기서도 제공합니다.
+  const [showCancelMembershipModal, setShowCancelMembershipModal] = useState(false);
   // 로그인한 사용자의 초기 isFollowing/isMember 상태는 프로필 응답(UserProfileResponse)에 없어,
   // 아래 useEffect에서 GET /api/subscriptions/status/{creatorId} 단건 조회로 판단합니다.
   const [isFollowing, setIsFollowing] = useState(false);
@@ -156,6 +166,12 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
       setShowLoginModal(true);
       return;
     }
+    // 해지는 되돌리기 번거로운 동작이라, mypage(FollowButton)와 동일하게 확인 팝업을 먼저 띄웁니다.
+    // 가입은 기존과 동일하게 바로 진행합니다.
+    if (isMember) {
+      setShowCancelMembershipModal(true);
+      return;
+    }
     handleMembership();
   };
 
@@ -198,16 +214,33 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
 
           {!isOwnProfile && (
             <div className="flex items-end gap-2 pb-2">
-              <Button
+              <MotionButton
+                layout
+                transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
                 size="sm"
                 variant="outlined"
-                className="rounded-full px-6"
+                className={cn(
+                  "rounded-full px-6 overflow-hidden transition-colors",
+                  isFollowing && "border-primary bg-primary/5 text-primary"
+                )}
                 onClick={handleFollowClick}
                 disabled={isFollowSubmitting || isMember}
                 title={isMember ? "멤버십 해지 후 언팔로우할 수 있습니다." : undefined}
               >
-                {isFollowing ? "팔로잉" : "팔로우"}
-              </Button>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={isFollowing ? "following" : "follow"}
+                    initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.9 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="flex items-center gap-1.5"
+                  >
+                    {isFollowing && <Check className="h-3.5 w-3.5" />}
+                    {isFollowing ? "팔로잉" : "팔로우"}
+                  </motion.span>
+                </AnimatePresence>
+              </MotionButton>
               {profile.offersMembership && (
                 <Button
                   size="sm"
@@ -288,6 +321,16 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
           onCancel={closeLoginModal}
         />
       )}
+
+      {/* mypage(FollowButton)와 완전히 동일한 문구/디자인의 멤버십 해지 확인 팝업입니다. */}
+      <CancelMembershipModal
+        open={showCancelMembershipModal}
+        onConfirm={() => {
+          setShowCancelMembershipModal(false);
+          handleMembership();
+        }}
+        onCancel={() => setShowCancelMembershipModal(false)}
+      />
     </>
   );
 }

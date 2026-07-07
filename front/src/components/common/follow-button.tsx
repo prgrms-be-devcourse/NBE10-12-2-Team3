@@ -1,13 +1,13 @@
 "use client";
 
-import { createPortal } from "react-dom";
-
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, Check, Plus, Loader2, Ban, X, AlertTriangle } from "lucide-react";
+import { Star, Check, Plus, Loader2, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import { apiFetch } from "@/lib/api";
+import { ModalOverlay } from "@/components/common/modal-overlay";
+import { CancelMembershipModal } from "@/components/common/cancel-membership-modal";
 
 export type FollowTier = "NONE" | "FOLLOW" | "MEMBERSHIP";
 
@@ -255,85 +255,11 @@ export function FollowButton({
       </AnimatePresence>
 
       {/* Cancel Membership Modal */}
-      <AnimatePresence>
-        {isCancelModalOpen && (
-          <ModalOverlay onClose={() => setIsCancelModalOpen(false)}>
-            <div className="p-6">
-              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-4 mx-auto">
-                <AlertTriangle className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-bold text-center text-neutral-900 mb-2">멤버십을 해지하시겠습니까?</h3>
-              <p className="text-center text-neutral-500 text-sm mb-6">
-                해지 시 일반 팔로워로 전환되며, 현재 누리고 계신 모든 독점 혜택이 즉시 사라집니다. 그래도 진행하시겠습니까?
-              </p>
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setIsCancelModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-neutral-200 font-semibold text-neutral-600 hover:bg-neutral-50 transition-colors"
-                >
-                  유지하기
-                </button>
-                <button
-                  onClick={() => executeAction("CANCEL_MEMBERSHIP")}
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors shadow-md"
-                >
-                  해지하기
-                </button>
-              </div>
-            </div>
-          </ModalOverlay>
-        )}
-      </AnimatePresence>
+      <CancelMembershipModal
+        open={isCancelModalOpen}
+        onCancel={() => setIsCancelModalOpen(false)}
+        onConfirm={() => executeAction("CANCEL_MEMBERSHIP")}
+      />
     </div>
-  );
-}
-
-// 간단한 모달 배경 오버레이 컴포넌트
-function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  const [mounted, setMounted] = useState(false);
-
-  // 모달이 열려있을 때 바디 스크롤 방지 및 Portal 마운트 확인
-  useEffect(() => {
-    function mount() {
-      setMounted(true);
-      document.body.style.overflow = "hidden";
-    }
-    mount();
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, []);
-
-  if (!mounted) return null;
-
-  return createPortal(
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClose();
-      }}
-    >
-      <motion.div
-        initial={{ scale: 0.95, y: 10, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.95, y: 10, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden relative cursor-default"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-neutral-400 hover:bg-neutral-100 rounded-full transition-colors"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        {children}
-      </motion.div>
-    </motion.div>,
-    document.body
   );
 }
