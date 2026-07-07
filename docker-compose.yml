@@ -44,5 +44,26 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  mysql-exporter:
+    image: prom/mysqld-exporter
+    container_name: scommit-mysql-exporter
+    restart: unless-stopped
+    ports:
+      - "9104:9104"
+    environment:
+      DATA_SOURCE_NAME: "exporter:${MYSQL_EXPORTER_PASSWORD}@tcp(db:3306)/"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: scommit-promtail
+    restart: unless-stopped
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+
 volumes:
   mysql_data:
