@@ -216,8 +216,7 @@ public class UserController {
         if (keyword.isBlank()) {
             return new RsData<>("200-1", "유저 검색 결과입니다.", Page.empty(pageable));
         }
-        Page<UserSearchResponse> response = userService.searchUsers(keyword, pageable)
-                .map(UserSearchResponse::new);
+        Page<UserSearchResponse> response = userService.searchUsers(keyword, pageable);
         return new RsData<>("200-1", "유저 검색 결과입니다.", response);
     }
 

@@ -1,5 +1,6 @@
 package com.scommit.domain.user.user.service;
 
+import com.scommit.domain.user.user.dto.UserSearchResponse;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
@@ -78,8 +79,9 @@ public class UserService {
         return userRepository.findByIdAndDeletedAtIsNull(id);
     }
 
-    public Page<User> searchUsers(String keyword, Pageable pageable) {
-        return userRepository.findByNicknameContainingAndDeletedAtIsNull(keyword, pageable);
+    public Page<UserSearchResponse> searchUsers(String keyword, Pageable pageable) {
+        return userRepository.findByNicknameContainingAndDeletedAtIsNull(keyword, pageable)
+                .map(UserSearchResponse::new);
     }
 
     @Transactional
