@@ -157,7 +157,8 @@ public class PostService {
 
     // 키워드 검색
     public Page<PostListResponse> searchPosts(String keyword, Pageable pageable) {
-        return postRepository.searchByKeyword(keyword, PublishStatus.PUBLIC, pageable).map(PostListResponse::new);
+        return postRepository.searchByKeyword(keyword, PublishStatus.PUBLIC, pageable)
+                .map(post -> new PostListResponse(post, false, false));
     }
 
     // 로그인 유저의 게시글 조회
