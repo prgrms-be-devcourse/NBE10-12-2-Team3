@@ -1,5 +1,6 @@
     package com.scommit.domain.user.user.service;
 
+    import com.scommit.domain.user.user.dto.UserSearchResponse;
     import com.scommit.domain.user.user.entity.User;
     import com.scommit.domain.user.user.entity.UserRole;
     import com.scommit.domain.user.user.repository.UserRepository;
@@ -12,8 +13,13 @@
     import org.mockito.InjectMocks;
     import org.mockito.Mock;
     import org.mockito.junit.jupiter.MockitoExtension;
+    import org.springframework.data.domain.Page;
+    import org.springframework.data.domain.PageImpl;
+    import org.springframework.data.domain.PageRequest;
+    import org.springframework.data.domain.Pageable;
     import org.springframework.security.crypto.password.PasswordEncoder;
 
+    import java.util.List;
     import java.util.Optional;
 
     import static org.assertj.core.api.Assertions.assertThat;
@@ -467,4 +473,38 @@
                         .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
             }
         }
+
+    @Nested
+    @DisplayName("유저 검색 테스트")
+    class SearchUsers {
+
+        @Test
+        @DisplayName("성공: 닉네임 키워드로 유저 목록을 반환한다.")
+        void searchUsers_Success() {
+            Pageable pageable = PageRequest.of(0, 10);
+            User user = User.builder().email("a@a.com").nickname("발코드").role(UserRole.USER).build();
+            Page<User> page = new PageImpl<>(List.of(user), pageable, 1);
+
+            given(userRepository.findByNicknameContainingAndDeletedAtIsNull("발코드", pageable)).willReturn(page);
+
+            Page<UserSearchResponse> result = userService.searchUsers("발코드", pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.getContent().get(0).nickname()).isEqualTo("발코드");
+        }
+
+        @Test
+        @DisplayName("성공: 검색 결과가 없으면 빈 페이지를 반환한다.")
+        void searchUsers_Empty() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<User> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+
+            given(userRepository.findByNicknameContainingAndDeletedAtIsNull("없는닉네임", pageable)).willReturn(emptyPage);
+
+            Page<UserSearchResponse> result = userService.searchUsers("없는닉네임", pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(0);
+            assertThat(result.getContent()).isEmpty();
+        }
     }
+}
