@@ -19,7 +19,7 @@ export const options = {
 };
 
 // 환경 변수 기반 유연한 BASE_URL 처리 (기본값 localhost)
-// 실행 예시: k6 run -e BASE_URL=http://54.252.83.173:8080 performance_test.js
+// 실행 예시: k6 run -e BASE_URL=http://'백엔드 도메인 주소' k6/performance_test.js
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const MAX_RECORD_ID = 10000; // DB 더미 데이터 최대치에 맞게 조절하세요
 
