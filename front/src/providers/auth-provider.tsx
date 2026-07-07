@@ -1,6 +1,6 @@
 "use client";
 
-import React, {createContext, ReactNode, useContext, useState} from "react";
+import React, {createContext, ReactNode, useContext, useState, useEffect} from "react";
 import {apiPost} from "@/lib/api";
 
 export interface User {
@@ -61,10 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-    // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
-    const loginWithCredentials = async (email: string, password: string) => {
-        const {user: profile} = await apiPost<{ user: User }>("/api/users/login", {email, password});
-
+  // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
+  const loginWithCredentials = async (email: string, password: string) => {
+    try {
+      await apiPost<{ user: User }>("/api/users/login", { email, password });
       // 로그인 성공 시 쿠키가 세팅되므로, refreshUser를 호출하여 최신 유저 정보를 가져옵니다.
       await refreshUser();
     } catch (e: any) {
@@ -73,18 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-      apiPost("/api/users/logout").catch(() => {}).finally(() => {
-          setIsLoggedIn(false);
-          setUser(null);
-      });
-
-      if (!res.ok) {
-        const json = await res.json().catch(() => null);
-        throw new Error(json?.msg || json?.message || "회원가입에 실패했습니다.");
-      }
-      
-      // 회원가입 성공 시 추가 로직은 사용하는 컴포넌트(page)에서 진행합니다.
+  // 회원가입 요청
+  const signupWithCredentials = async (email: string, password: string, nickname: string) => {
+    try {
+      await apiPost("/api/users/signup", { email, password, nickname });
     } catch (e: any) {
       console.error("Signup failed:", e);
       throw e;
@@ -93,12 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/users/logout", { method: "POST" });
+      await apiPost("/api/users/logout");
     } catch (e) {
-      console.error(e);
+      console.error("Logout failed:", e);
+    } finally {
+      setIsLoggedIn(false);
+      setUser(null);
     }
-    setIsLoggedIn(false);
-    setUser(null);
   };
 
   // 앱 로드 시 한 번 내 정보 불러오기 시도
