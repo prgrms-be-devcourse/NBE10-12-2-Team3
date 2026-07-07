@@ -1,5 +1,6 @@
 package com.scommit.domain.user.user.controller;
 
+import com.scommit.domain.subscription.subscription.service.SubscriptionService;
 import com.scommit.domain.user.user.dto.*;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.service.UserService;
@@ -31,6 +32,7 @@ public class UserController {
     private final JwtProvider jwtProvider;
     private final SecurityHelper securityHelper;
     private final UserMediaService userMediaService;
+    private final SubscriptionService subscriptionService;
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
@@ -176,11 +178,12 @@ public class UserController {
         User user = userService.getUser(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         UserMediaResponse media = userMediaService.getMedia(id);
+        int followerCount = (int) subscriptionService.getFollowerCount(id);
         String profileImageUrl = media != null ? media.url() : null;
         return new RsData<>(
                 "200-1",
                 "유저 정보를 조회하였습니다.",
-                new UserProfileResponse(user, profileImageUrl)
+                new UserProfileResponse(user, followerCount, profileImageUrl)
         );
     }
 
