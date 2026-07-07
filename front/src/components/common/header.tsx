@@ -140,7 +140,7 @@ export function Header() {
           {/* ERD 기반 GNB */}
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">🌟 창작자</Link>
-            <Link href="/posts" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">✍️ 게시글</Link>
+            <Link href="/posts" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">✍️ 포스트</Link>
             <Link href="/series" className="text-[15px] font-bold text-neutral-dark hover:text-primary transition-colors">📚 시리즈</Link>
           </nav>
         </div>

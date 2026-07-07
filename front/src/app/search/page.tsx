@@ -14,7 +14,7 @@ export default async function SearchPage({
   const rawQuery = resolvedParams.q || "";
   const query = decodeURIComponent(rawQuery).trim();
 
-    // 게시글 모의 데이터 필터링 (Post 도메인 연동 전)
+    // 포스트 모의 데이터 필터링 (Post 도메인 연동 전)
     const posts = query
         ? MOCK_POSTS.filter(
             (p) => p.title.includes(query) || p.description.includes(query)
@@ -68,7 +68,7 @@ export default async function SearchPage({
                 <span className="text-primary">&quot;{query}&quot;</span> 통합 검색 결과
               </span>
             ) : (
-              <span>콘텐츠 탐색</span>
+              <span>탐색</span>
             )}
             {query && (
               <span className="ml-2 rounded-full bg-neutral-200/50 px-3 py-1 text-sm font-bold text-neutral-500">
