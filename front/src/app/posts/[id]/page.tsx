@@ -1,16 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { notFound } from "next/navigation";
+import React, {useEffect, useState} from "react";
+import {notFound, useRouter} from "next/navigation";
 import Link from "next/link";
-import { Eye, Heart, Bookmark, Calendar, Pencil, Trash2, BookOpen } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
-import { BlurPaywall } from "@/components/common/blur-paywall";
-import { useAuth } from "@/providers/auth-provider";
-import { cn } from "@/lib/utils";
-import { CommentList } from "@/components/comment/comment-list";
-import { useRouter } from "next/navigation";
-import { apiFetch, apiDelete } from "@/lib/api";
+import {Bookmark, BookOpen, Calendar, Eye, Heart, Pencil, Trash2} from "lucide-react";
+import {Avatar} from "@/components/ui/avatar";
+import {BlurPaywall} from "@/components/common/blur-paywall";
+import {useAuth} from "@/providers/auth-provider";
+import {cn} from "@/lib/utils";
+import {CommentList} from "@/components/comment/comment-list";
+import {apiDelete, apiFetch, apiPost} from "@/lib/api";
 
 interface Post {
     id: number;
@@ -22,7 +21,11 @@ interface Post {
     publishStatus: "PUBLIC" | "PRIVATE" | "DRAFT";
     accessLevel: "FREE" | "PAID";
     viewCount: number;
+    likeCount: number;
+    bookmarkCount: number;
     isLocked: boolean;
+    isLiked: boolean;
+    isBookmarked: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -35,10 +38,18 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     const [loading, setLoading] = useState(true);
     const [liked, setLiked] = useState(false);
     const [bookmarked, setBookmarked] = useState(false);
+    const [likeCount, setLikeCount] = useState(0);
+    const [bookmarkCount, setBookmarkCount] = useState(0);
 
     useEffect(() => {
         apiFetch<Post>(`/api/posts/${id}`)
-            .then(setPost)
+            .then((data) => {
+                setPost(data);
+                setLiked(data.isLiked);
+                setBookmarked(data.isBookmarked);
+                setLikeCount(data.likeCount);
+                setBookmarkCount(data.bookmarkCount);
+            })
             .catch(() => setPost(null))
             .finally(() => setLoading(false));
     }, [id]);
@@ -55,6 +66,40 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
             router.push("/posts");
         } catch (err) {
             alert(err instanceof Error ? err.message : "삭제에 실패했습니다.");
+        }
+    };
+
+    const handleLike = async () => {
+        if (!isLoggedIn) return;
+        try {
+            if (liked) {
+                await apiDelete(`/api/posts/${id}/likes`);
+                setLiked(false);
+                setLikeCount((prev) => prev - 1);
+            } else {
+                await apiPost(`/api/posts/${id}/likes`);
+                setLiked(true);
+                setLikeCount((prev) => prev + 1);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleBookmark = async () => {
+        if (!isLoggedIn) return;
+        try {
+            if (bookmarked) {
+                await apiDelete(`/api/posts/${id}/bookmarks`);
+                setBookmarked(false);
+                setBookmarkCount((prev) => prev - 1);
+            } else {
+                await apiPost(`/api/posts/${id}/bookmarks`);
+                setBookmarked(true);
+                setBookmarkCount((prev) => prev + 1);
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -92,16 +137,26 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                             {post.viewCount.toLocaleString()}
                         </div>
                         <button
-                            onClick={() => setLiked(!liked)}
-                            className={cn("flex items-center gap-1 text-sm transition-colors", liked ? "text-red-500" : "hover:text-red-400")}
+                            onClick={handleLike}
+                            className={cn(
+                                "flex items-center gap-1 text-sm transition-colors",
+                                liked ? "text-red-500" : "hover:text-red-400",
+                                !isLoggedIn && "cursor-default opacity-60"
+                            )}
                         >
                             <Heart className={cn("h-4 w-4", liked && "fill-red-500")} />
+                            <span>{likeCount.toLocaleString()}</span>
                         </button>
                         <button
-                            onClick={() => setBookmarked(!bookmarked)}
-                            className={cn("flex items-center gap-1 text-sm transition-colors", bookmarked ? "text-primary" : "hover:text-primary")}
+                            onClick={handleBookmark}
+                            className={cn(
+                                "flex items-center gap-1 text-sm transition-colors",
+                                bookmarked ? "text-primary" : "hover:text-primary",
+                                !isLoggedIn && "cursor-default opacity-60"
+                            )}
                         >
                             <Bookmark className={cn("h-4 w-4", bookmarked && "fill-primary")} />
+                            <span>{bookmarkCount.toLocaleString()}</span>
                         </button>
                     </div>
                 </div>

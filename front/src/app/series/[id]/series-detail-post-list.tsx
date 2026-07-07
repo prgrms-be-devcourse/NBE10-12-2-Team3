@@ -16,6 +16,8 @@ interface Post {
   authorName: string;
   createdAt: string;
   viewCount: number;
+    likeCount?: number;
+    bookmarkCount?: number;
   thumbnailUrl?: string;
 }
 

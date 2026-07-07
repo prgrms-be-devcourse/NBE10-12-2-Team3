@@ -36,6 +36,8 @@ export default async function SeriesDetailPage({
         authorName: series.nickname,
         createdAt: p.createdAt ? p.createdAt.split("T")[0] : "",
         viewCount: p.viewCount,
+        likeCount: p.likeCount,
+        bookmarkCount: p.bookmarkCount,
     }));
 
   return (

@@ -57,6 +57,10 @@ export interface PostListItem {
     publishStatus: string;
     accessLevel: string;
     viewCount: number;
+    likeCount: number;
+    bookmarkCount: number;
+    isLiked: boolean;
+    isBookmarked: boolean;
     createdAt: string;
 }
 
