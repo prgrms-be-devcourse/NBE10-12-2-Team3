@@ -6,7 +6,7 @@ import {ChevronDown, LogIn, LogOut, Settings, Shield, User} from "lucide-react";
 import {cn} from "@/lib/utils";
 
 export function DevTools() {
-    const {isLoggedIn, user, login, loginWithCredentials, logout} = useAuth();
+    const {isLoggedIn, user, loginWithCredentials, logout} = useAuth();
   const [isOpen, setIsOpen] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -83,22 +83,6 @@ export function DevTools() {
                       </button>
                   </form>
 
-                  {/* Mock 로그인 */}
-                  <p className="px-3 pb-1 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Mock 로그인</p>
-                <button
-                  onClick={() => login("USER")}
-                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
-                >
-                  <User className="h-4 w-4" />
-                  일반 유저 모의 로그인
-                </button>
-                <button
-                  onClick={() => login("ADMIN")}
-                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-amber-600 transition-colors hover:bg-amber-50 hover:text-amber-700"
-                >
-                  <Shield className="h-4 w-4" />
-                  어드민 모의 로그인
-                </button>
               </>
             ) : (
               <button
