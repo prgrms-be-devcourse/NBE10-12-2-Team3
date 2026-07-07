@@ -4,6 +4,7 @@ import com.scommit.domain.notification.notification.dto.NotificationResponse;
 import com.scommit.domain.notification.notification.dto.NotificationType;
 import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
 import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 import com.scommit.domain.subscription.subscription.entity.Subscription;
 import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
 import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
@@ -19,11 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Optional;
-import java.util.List;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
-import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +33,7 @@ public class SubscriptionService {
     @Transactional
     public void follow(Long userId, Long creatorId) {
         if (userId.equals(creatorId)) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(ErrorCode.SELF_SUBSCRIPTION_NOT_ALLOWED);
         }
 
         User user = userRepository.findById(userId)
@@ -78,14 +74,14 @@ public class SubscriptionService {
     @Transactional
     public void unfollow(Long userId, Long creatorId) {
         Subscription subscription = subscriptionRepository.findByUserIdAndCreatorId(userId, creatorId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND)); 
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND));
 
         if (subscription.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND);
         }
 
         if (subscription.getTier() == SubscriptionTier.MEMBERSHIP) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE); // "멤버십 해지를 먼저 진행해주세요"
+            throw new BusinessException(ErrorCode.MEMBERSHIP_ACTIVE_CANCEL_REQUIRED);
         }
 
         subscription.softDelete();
@@ -94,7 +90,7 @@ public class SubscriptionService {
     @Transactional
     public void joinMembership(Long userId, Long creatorId) {
         if (userId.equals(creatorId)) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(ErrorCode.SELF_SUBSCRIPTION_NOT_ALLOWED);
         }
 
         Optional<Subscription> subscriptionOpt = subscriptionRepository.findByUserIdAndCreatorId(userId, creatorId);
@@ -136,7 +132,7 @@ public class SubscriptionService {
         }
 
         if (subscription.getTier() == SubscriptionTier.MEMBERSHIP) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE); // "이미 멤버십에 가입되어 있습니다"
+            throw new BusinessException(ErrorCode.ALREADY_JOINED_MEMBERSHIP);
         }
 
         subscription.upgradeToMembership();
@@ -150,14 +146,14 @@ public class SubscriptionService {
     @Transactional
     public void cancelMembership(Long userId, Long creatorId) {
         Subscription subscription = subscriptionRepository.findByUserIdAndCreatorId(userId, creatorId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND));
 
         if (subscription.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND);
         }
 
         if (subscription.getTier() != SubscriptionTier.MEMBERSHIP) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE); // "멤버십 가입자가 아닙니다"
+            throw new BusinessException(ErrorCode.NOT_MEMBERSHIP_SUBSCRIBER);
         }
 
         subscription.downgradeToFollow();

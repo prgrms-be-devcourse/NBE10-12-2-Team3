@@ -37,7 +37,7 @@ public class CloudinaryMediaService implements MediaService {
     @Override
     public Media uploadMedia(MultipartFile file, String category) {
         if (file == null || file.isEmpty()) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(ErrorCode.EMPTY_FILE);
         }
 
         MediaType mediaType = resolveMediaType(file.getContentType());
@@ -67,7 +67,7 @@ public class CloudinaryMediaService implements MediaService {
     @Override
     public void deleteMedia(Long mediaId) {
         Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_NOT_FOUND));
         mediaRepository.delete(media);
         try {
             // Cloudinary URL 경로에서 resource_type 판별
@@ -81,10 +81,10 @@ public class CloudinaryMediaService implements MediaService {
 
     // MIME 타입(multipart Content-Type)으로 MediaType 열거형 변환
     private MediaType resolveMediaType(String contentType) {
-        if (contentType == null) throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        if (contentType == null) throw new BusinessException(ErrorCode.UNSUPPORTED_FILE_TYPE);
         if (contentType.startsWith("image/")) return MediaType.IMAGE;
         if (contentType.startsWith("video/")) return MediaType.VIDEO;
-        throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        throw new BusinessException(ErrorCode.UNSUPPORTED_FILE_TYPE);
     }
 
     /**

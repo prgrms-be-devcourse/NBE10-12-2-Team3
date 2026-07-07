@@ -26,7 +26,7 @@ public class SeriesMediaService {
     @Transactional
     public SeriesMediaResponse uploadMedia(Long seriesId, MultipartFile file, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(seriesId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SERIES_NOT_FOUND));
 
         if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
@@ -52,7 +52,7 @@ public class SeriesMediaService {
     @Transactional(readOnly = true)
     public SeriesMediaResponse getMedia(Long seriesId) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(seriesId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SERIES_NOT_FOUND));
 
         SeriesMedia seriesMedia = seriesMediaRepository.findBySeries(series).orElse(null);
         if (seriesMedia == null) {
@@ -65,14 +65,14 @@ public class SeriesMediaService {
     @Transactional
     public void deleteMedia(Long seriesId, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(seriesId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SERIES_NOT_FOUND));
 
         if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
         SeriesMedia seriesMedia = seriesMediaRepository.findBySeries(series)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_NOT_FOUND));
 
         Long mediaId = seriesMedia.getMedia().getId();
         seriesMediaRepository.delete(seriesMedia);
