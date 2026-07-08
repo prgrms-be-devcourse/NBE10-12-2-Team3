@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { MOCK_CREATORS, MOCK_POSTS } from "@/lib/mock-data";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, resolveMediaUrl } from "@/lib/api";
 import { UserProfileView } from "./user-profile-view";
 
 export const dynamic = "force-dynamic";
@@ -133,7 +133,7 @@ export default async function UserProfilePage({
     id: apiProfile.id,
     nickname: apiProfile.profile.nickname,
     introduction: apiProfile.profile.introduction,
-    profileImageUrl: apiProfile.profile.profileImageUrl,
+    profileImageUrl: apiProfile.profile.profileImageUrl ? resolveMediaUrl(apiProfile.profile.profileImageUrl) : undefined,
     postCount: mockPostCount,
     subscriberCount: mockCreator.subscriberCount,
     subscribingCount: mockCreator.subscribingCount,
@@ -148,45 +148,36 @@ export default async function UserProfilePage({
   const postPage = requestedPage;
   // 시리즈 탭: 번호식 페이지네이션 기준 페이지 (totalPages를 받은 뒤 클램핑)
   let page = requestedPage;
+  // 창작자 프로필(apiProfile)은 이미 정상적으로 불러온 상태이므로, 포스트/시리즈 탭 조회가
+  // 실패하더라도 페이지 전체를 에러 화면으로 대체하지 않고 탭 영역에만 실패를 표시합니다.
+  let tabDataError = false;
 
   if (tab === "post") {
-    let data: SlicePostListResponse;
     try {
       // page/size는 개별 쿼리 파라미터로 전달합니다 (Pageable을 nested 객체로 보내지 않음)
-      data = await apiFetch<SlicePostListResponse>(
+      const data = await apiFetch<SlicePostListResponse>(
         `/api/posts?creatorId=${id}&page=${requestedPage - 1}&size=${PAGE_SIZE}`,
         { cache: "no-store", headers: authHeaders }
       );
+      pagedPosts = data.content;
+      isLastPostsPage = data.last;
     } catch {
-      // TODO: [백엔드 확인 필요] 401/403 등 상태별 세분화된 에러 처리는 아직 없음 — 최소한의 에러 메시지만 노출합니다.
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-          <p className="text-neutral-500">포스트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>
-        </div>
-      );
+      // TODO: [백엔드 확인 필요] 401/403 등 상태별 세분화된 에러 처리는 아직 없음 — 최소한의 에러 표시만 노출합니다.
+      tabDataError = true;
     }
-
-    pagedPosts = data.content;
-    isLastPostsPage = data.last;
   } else {
-    let data: PageResponseSeriesListResponse;
     try {
-      data = await apiFetch<PageResponseSeriesListResponse>(
+      const data = await apiFetch<PageResponseSeriesListResponse>(
         `/api/series/users/${id}?page=${requestedPage - 1}&size=${PAGE_SIZE}`,
         { cache: "no-store", headers: authHeaders }
       );
+      pagedSeries = data.content;
+      totalPages = data.totalPages;
+      page = Math.min(Math.max(requestedPage, 1), totalPages);
     } catch {
-      // TODO: [백엔드 확인 필요] 401/403 등 상태별 세분화된 에러 처리는 아직 없음 — 최소한의 에러 메시지만 노출합니다.
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-          <p className="text-neutral-500">시리즈를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>
-        </div>
-      );
+      // TODO: [백엔드 확인 필요] 401/403 등 상태별 세분화된 에러 처리는 아직 없음 — 최소한의 에러 표시만 노출합니다.
+      tabDataError = true;
     }
-
-    pagedSeries = data.content;
-    totalPages = data.totalPages;
-    page = Math.min(Math.max(requestedPage, 1), totalPages);
   }
 
   return (
@@ -204,6 +195,7 @@ export default async function UserProfilePage({
         isLastPostsPage={isLastPostsPage}
         posts={pagedPosts}
         series={pagedSeries}
+        tabDataError={tabDataError}
       />
     </div>
   );

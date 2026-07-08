@@ -1,28 +1,15 @@
 "use client";
 
-import React, {KeyboardEvent, useEffect, useRef, useState} from "react";
+import React, { KeyboardEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
-import {
-    Bell,
-    ChevronDown,
-    Clock,
-    CreditCard,
-    History,
-    LogOut,
-    Menu,
-    Pencil,
-    Search,
-    Settings,
-    User,
-    X
-} from "lucide-react";
-import {Button} from "@/components/ui/button";
-import {Avatar} from "@/components/ui/avatar";
-import {useAuth} from "@/providers/auth-provider";
-import {AnimatePresence, motion} from "framer-motion";
-import {useRecentSearches} from "@/hooks/use-recent-searches";
-import {cn} from "@/lib/utils";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Bell, Bookmark, ChevronDown, Clock, CreditCard, History, LogOut, Menu, Pencil, Search, Settings, User, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
+import { useAuth } from "@/providers/auth-provider";
+import { AnimatePresence, motion } from "framer-motion";
+import { useRecentSearches } from "@/hooks/use-recent-searches";
+import { cn } from "@/lib/utils";
 
 // --- Custom Hook for Click Outside ---
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
@@ -70,6 +57,9 @@ export function Header() {
     return () => clearTimeout(timer);
   }, [pathname, searchParams]);
   const [isMounted, setIsMounted] = useState(false);
+  // isMounted 가드: 서버는 로그인 여부를 알 수 없어 항상 비로그인 상태로 렌더링하므로,
+  // 하이드레이션 이전(첫 클라이언트 렌더)에도 isLoggedIn을 그대로 쓰면 서버 HTML과
+  // 달라져 hydration mismatch가 납니다. 마운트 후에만 실제 로그인 상태를 반영합니다.
   const isAuthReady = isMounted && isLoggedIn;
 
   const searchContainerRef = useRef<HTMLFormElement>(null);
@@ -242,8 +232,8 @@ export function Header() {
                   </Button>
                 </Link>
                   <button className="p-1.5 hover:bg-neutral-100 rounded-full transition-colors">
-                  <Bell className="h-5 w-5" />
-                </button>
+                    <Bell className="h-5 w-5" />
+                  </button>
               </>
             )}
           </div>
@@ -276,7 +266,7 @@ export function Header() {
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center justify-center relative active:scale-[0.98] transition-transform outline-none ring-primary focus-visible:ring-2 rounded-full"
                 >
-                  <Avatar name={user?.nickname || "User"} className="h-9 w-9 border border-neutral-200" />
+                  <Avatar src={user?.avatarUrl} name={user?.nickname || "User"} className="h-9 w-9 border border-neutral-200" />
                 </button>
 
                 {/* Framer Motion Premium Dropdown */}
@@ -297,25 +287,30 @@ export function Header() {
 
                       {/* Menu List */}
                       <div className="flex flex-col gap-0.5">
-                        <button onClick={(e) => handleDummyClick(e, "마이페이지")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
+                        <Link href="/mypage" onClick={() => setIsDropdownOpen(false)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
                           <User className="h-4 w-4" /> 마이페이지
-                        </button>
-                          <button
-                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
+                        </Link>
+                        <Link
+                          href="/bookmarks"
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                        >
+                          <Bookmark className="h-4 w-4" /> 내 북마크
+                        </Link>
+                        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
                           <CreditCard className="h-4 w-4" /> 결제 내역
                         </button>
 
                         <div className="my-1 h-px w-full bg-neutral-100" />
 
-                          <button
-                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
+                        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
                           <Settings className="h-4 w-4" /> 설정
                         </button>
-                          <button
+                        <button
                           onClick={() => {
                             logout();
                             setIsDropdownOpen(false);
-                          }} 
+                          }}
                           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
                         >
                           <LogOut className="h-4 w-4" /> 로그아웃

@@ -38,7 +38,7 @@ public class LocalMediaService implements MediaService {
 
 
         if(file == null || file.isEmpty()) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(ErrorCode.EMPTY_FILE);
         }
 
         String mediaUrl = category + "/" + addUUID(file.getOriginalFilename());
@@ -58,7 +58,7 @@ public class LocalMediaService implements MediaService {
     @Transactional
     public void deleteMedia(Long mediaId) {
         Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_NOT_FOUND));
 
         mediaRepository.delete(media);
 
@@ -68,7 +68,7 @@ public class LocalMediaService implements MediaService {
     // 미디어가 올바른 형식인지 검사하는 메서드
     private MediaType getMediaType(String mediaType) {
         if (mediaType == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(ErrorCode.UNSUPPORTED_FILE_TYPE);
         }
         else if (mediaType.startsWith("image/")) {
             return MediaType.IMAGE;
@@ -77,7 +77,7 @@ public class LocalMediaService implements MediaService {
             return MediaType.VIDEO;
         }
         else {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(ErrorCode.UNSUPPORTED_FILE_TYPE);
         }
     }
 

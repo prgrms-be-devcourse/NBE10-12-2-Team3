@@ -5,6 +5,7 @@ import Link from "next/link";
 import {PenSquare} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {useAuth} from "@/providers/auth-provider";
+import {useHasMounted} from "@/hooks/use-has-mounted";
 
 interface SeriesHeroActionsProps {
     seriesId: string;
@@ -13,7 +14,10 @@ interface SeriesHeroActionsProps {
 
 export function SeriesHeroActions({seriesId, seriesUserId}: SeriesHeroActionsProps) {
     const {user} = useAuth();
-    const isMySeries = !!user && user.id === seriesUserId;
+    const hasMounted = useHasMounted();
+    // hasMounted 가드: 서버는 로그인한 유저를 몰라 항상 null을 렌더링하므로,
+    // 하이드레이션 이전엔 user를 그대로 쓰면 서버 HTML과 어긋납니다.
+    const isMySeries = hasMounted && !!user && user.id === seriesUserId;
 
     if (!isMySeries) return null;
 

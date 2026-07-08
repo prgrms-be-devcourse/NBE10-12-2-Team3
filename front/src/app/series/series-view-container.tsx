@@ -8,6 +8,7 @@ import {SeriesCard} from "@/components/common/series-card";
 import {SeriesListCard} from "@/components/common/series-list-card";
 import {cn} from "@/lib/utils";
 import {useAuth} from "@/providers/auth-provider";
+import {useHasMounted} from "@/hooks/use-has-mounted";
 import {getSeriesList} from "@/lib/series-api";
 import {resolveMediaUrl} from "@/lib/api";
 
@@ -29,6 +30,7 @@ interface SeriesViewContainerProps {
 
 export function SeriesViewContainer({initialSeries, initialHasNext}: SeriesViewContainerProps) {
     const {user} = useAuth();
+    const hasMounted = useHasMounted();
     const [seriesList, setSeriesList] = useState<Series[]>(initialSeries);
     const [hasNext, setHasNext] = useState(initialHasNext);
     const [nextPage, setNextPage] = useState(1);
@@ -133,7 +135,9 @@ export function SeriesViewContainer({initialSeries, initialHasNext}: SeriesViewC
           <p className="text-neutral-500 max-w-sm mb-8">
             당신의 특별한 지식과 경험을 첫 시리즈로 만들어 보세요.
           </p>
-            {user && (
+            {/* hasMounted 가드: 서버는 로그인한 유저를 몰라 항상 null을 렌더링하므로,
+                하이드레이션 이전엔 user를 그대로 쓰면 서버 HTML과 어긋납니다. */}
+            {hasMounted && user && (
                 <Link href="/series/new" prefetch={false}>
                     <Button
                         className="rounded-full px-8 py-6 font-bold bg-primary text-white shadow-md hover:bg-primary/90 hover:scale-105 transition-all text-base">
@@ -150,7 +154,9 @@ export function SeriesViewContainer({initialSeries, initialHasNext}: SeriesViewC
               : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
           )}>
               {seriesList.map((series) => {
-                  const isOwner = !!user && user.id === series.userId;
+                  // hasMounted 가드: 서버는 로그인한 유저를 몰라 항상 false를 렌더링하므로,
+                  // 하이드레이션 이전엔 user를 그대로 쓰면 서버 HTML과 어긋납니다.
+                  const isOwner = hasMounted && !!user && user.id === series.userId;
                   const handleDelete = () => setSeriesList(prev => prev.filter(s => s.id !== series.id));
               return layout === "list"
                   ? <SeriesListCard key={series.id} {...series} isOwner={isOwner} onDelete={handleDelete}/>

@@ -72,10 +72,10 @@ public class CommentService {
     @Transactional
     public CommentResponse updateComment(User actor, Long id, String body) {
         Comment comment = commentRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMMENT_NOT_FOUND));
 
         if (comment.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.COMMENT_NOT_FOUND);
         }
 
         if (!comment.getUser().getId().equals(actor.getId())) {
@@ -90,10 +90,10 @@ public class CommentService {
     @Transactional
     public void deleteComment(User actor, Long id) {
         Comment comment = commentRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMMENT_NOT_FOUND));
 
         if (comment.getDeletedAt() != null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.COMMENT_NOT_FOUND);
         }
 
         if (!comment.getUser().getId().equals(actor.getId())) {

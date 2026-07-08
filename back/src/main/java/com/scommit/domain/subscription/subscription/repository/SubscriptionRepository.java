@@ -26,4 +26,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     // 5. 새 포스트 알림용: 창작자의 멤버십 구독자만 조회 (다건)
     List<Subscription> findByCreatorIdAndTierAndDeletedAtIsNull(Long creatorId, SubscriptionTier tier);
+
+    // 6. 내 팔로워 수 통계 조회용
+    long countByCreatorIdAndDeletedAtIsNull(Long creatorId);
 }

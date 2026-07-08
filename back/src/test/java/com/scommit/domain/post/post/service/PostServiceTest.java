@@ -189,14 +189,14 @@ class PostServiceTest {
 
         // 존재하지 않는 creatorId로 조회 시 예외
         @Test
-        @DisplayName("실패: 존재하지 않는 creatorId면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 존재하지 않는 creatorId면 USER_NOT_FOUND 예외를 던진다.")
         void getPosts_CreatorNotFound() {
             Pageable pageable = PageRequest.of(0, 8);
             when(userRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> postService.getPosts(999L, null, pageable))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
         }
 
         @Test
@@ -273,14 +273,14 @@ class PostServiceTest {
 
         // 존재하지 않는 유저 조회 시 예외
         @Test
-        @DisplayName("실패: 존재하지 않는 유저면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 존재하지 않는 유저면 USER_NOT_FOUND 예외를 던진다.")
         void getUserPosts_UserNotFound() {
             Pageable pageable = PageRequest.of(0, 10);
             when(userRepository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> postService.getUserPosts(999L, null, pageable))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
         }
 
         // 게시글이 없는 유저도 빈 페이지를 반환해야 함
@@ -392,14 +392,14 @@ class PostServiceTest {
 
         // 없는 시리즈 ID를 넘기면 저장 전에 예외가 발생해야 함
         @Test
-        @DisplayName("실패: 존재하지 않는 시리즈 ID면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 존재하지 않는 시리즈 ID면 SERIES_NOT_FOUND 예외를 던진다.")
         void create_SeriesNotFound() {
             when(seriesRepository.findById(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> postService.createPost(mockUser, "제목", "내용",
                     PublishStatus.PUBLIC, PostAccessLevel.FREE, 999L))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SERIES_NOT_FOUND);
         }
     }
 
@@ -671,7 +671,7 @@ class PostServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 존재하지 않는 시리즈면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 존재하지 않는 시리즈면 SERIES_NOT_FOUND 예외를 던진다.")
         void add_SeriesNotFound() {
             Post post = buildPost(10L, mockUser, null);
             when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
@@ -679,7 +679,7 @@ class PostServiceTest {
 
             assertThatThrownBy(() -> postService.addPostToSeries(10L, 999L, mockUser))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SERIES_NOT_FOUND);
         }
 
         @Test
@@ -726,19 +726,19 @@ class PostServiceTest {
 
         // 시리즈에 속하지 않은 포스트를 특정 시리즈에서 제거하려는 경우
         @Test
-        @DisplayName("실패: 포스트가 어떤 시리즈에도 속하지 않으면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 포스트가 어떤 시리즈에도 속하지 않으면 SERIES_NOT_FOUND 예외를 던진다.")
         void remove_PostHasNoSeries() {
             Post post = buildPost(10L, mockUser, null);
             when(postRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(post));
 
             assertThatThrownBy(() -> postService.removePostFromSeries(10L, 5L, mockUser))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SERIES_NOT_FOUND);
         }
 
         // 다른 시리즈에 속한 포스트를 잘못된 시리즈 ID로 제거 시도
         @Test
-        @DisplayName("실패: 포스트가 다른 시리즈에 속하면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 포스트가 다른 시리즈에 속하면 SERIES_NOT_FOUND 예외를 던진다.")
         void remove_PostBelongsToDifferentSeries() {
             Series otherSeries = buildSeries(99L, mockUser);
             Post post = buildPost(10L, mockUser, otherSeries);
@@ -746,7 +746,7 @@ class PostServiceTest {
 
             assertThatThrownBy(() -> postService.removePostFromSeries(10L, 5L, mockUser))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SERIES_NOT_FOUND);
         }
 
         @Test

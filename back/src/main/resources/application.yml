@@ -3,6 +3,23 @@ spring:
     active: dev
   application:
     name: back
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    enable:
+      hikaricp: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
 jwt:
   secret-key: ${JWT_SECRET_KEY}
   token:

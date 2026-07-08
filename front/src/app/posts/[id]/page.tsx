@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { notFound } from "next/navigation";
+import React, {useEffect, useState} from "react";
+import {notFound, useRouter} from "next/navigation";
 import Link from "next/link";
 import { Eye, Heart, Bookmark, Calendar, Pencil, Trash2, BookOpen } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { BlurPaywall } from "@/components/common/blur-paywall";
 import { useAuth } from "@/providers/auth-provider";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { cn } from "@/lib/utils";
 import { CommentList } from "@/components/comment/comment-list";
-import { useRouter } from "next/navigation";
-import { apiFetch, apiDelete } from "@/lib/api";
+import { apiFetch, apiPost, apiDelete } from "@/lib/api";
 
 interface Post {
     id: number;
@@ -22,7 +22,11 @@ interface Post {
     publishStatus: "PUBLIC" | "PRIVATE" | "DRAFT";
     accessLevel: "FREE" | "PAID";
     viewCount: number;
+    likeCount: number;
+    bookmarkCount: number;
     isLocked: boolean;
+    isLiked: boolean;
+    isBookmarked: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -30,15 +34,24 @@ interface Post {
 export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params);
     const { isLoggedIn, user } = useAuth();
+    const hasMounted = useHasMounted();
     const router = useRouter();
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
     const [liked, setLiked] = useState(false);
     const [bookmarked, setBookmarked] = useState(false);
+    const [likeCount, setLikeCount] = useState(0);
+    const [bookmarkCount, setBookmarkCount] = useState(0);
 
     useEffect(() => {
         apiFetch<Post>(`/api/posts/${id}`)
-            .then(setPost)
+            .then((data) => {
+                setPost(data);
+                setLiked(data.isLiked);
+                setBookmarked(data.isBookmarked);
+                setLikeCount(data.likeCount);
+                setBookmarkCount(data.bookmarkCount);
+            })
             .catch(() => setPost(null))
             .finally(() => setLoading(false));
     }, [id]);
@@ -46,7 +59,9 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     if (loading) return <div className="min-h-screen bg-neutral-50 pt-20 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mt-20" /></div>;
     if (!post) return notFound();
 
-    const isAuthor = isLoggedIn && user?.id === post.userId;
+    // hasMounted 가드: 서버는 로그인 여부를 몰라 항상 비로그인으로 렌더링하므로,
+    // 하이드레이션 이전엔 isLoggedIn을 그대로 쓰면 서버 HTML과 어긋납니다.
+    const isAuthor = hasMounted && isLoggedIn && user?.id === post.userId;
 
     const handleDelete = async () => {
         if (!confirm("게시글을 삭제할까요?")) return;
@@ -55,6 +70,40 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
             router.push("/posts");
         } catch (err) {
             alert(err instanceof Error ? err.message : "삭제에 실패했습니다.");
+        }
+    };
+
+    const handleLike = async () => {
+        if (!isLoggedIn) return;
+        try {
+            if (liked) {
+                await apiDelete(`/api/posts/${id}/likes`);
+                setLiked(false);
+                setLikeCount((prev) => prev - 1);
+            } else {
+                await apiPost(`/api/posts/${id}/likes`);
+                setLiked(true);
+                setLikeCount((prev) => prev + 1);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleBookmark = async () => {
+        if (!isLoggedIn) return;
+        try {
+            if (bookmarked) {
+                await apiDelete(`/api/posts/${id}/bookmarks`);
+                setBookmarked(false);
+                setBookmarkCount((prev) => prev - 1);
+            } else {
+                await apiPost(`/api/posts/${id}/bookmarks`);
+                setBookmarked(true);
+                setBookmarkCount((prev) => prev + 1);
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -92,23 +141,33 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                             {post.viewCount.toLocaleString()}
                         </div>
                         <button
-                            onClick={() => setLiked(!liked)}
-                            className={cn("flex items-center gap-1 text-sm transition-colors", liked ? "text-red-500" : "hover:text-red-400")}
+                            onClick={handleLike}
+                            className={cn(
+                                "flex items-center gap-1 text-sm transition-colors",
+                                liked ? "text-red-500" : "hover:text-red-400",
+                                !isLoggedIn && "cursor-default opacity-60"
+                            )}
                         >
                             <Heart className={cn("h-4 w-4", liked && "fill-red-500")} />
+                            <span>{likeCount.toLocaleString()}</span>
                         </button>
                         <button
-                            onClick={() => setBookmarked(!bookmarked)}
-                            className={cn("flex items-center gap-1 text-sm transition-colors", bookmarked ? "text-primary" : "hover:text-primary")}
+                            onClick={handleBookmark}
+                            className={cn(
+                                "flex items-center gap-1 text-sm transition-colors",
+                                bookmarked ? "text-primary" : "hover:text-primary",
+                                !isLoggedIn && "cursor-default opacity-60"
+                            )}
                         >
                             <Bookmark className={cn("h-4 w-4", bookmarked && "fill-primary")} />
+                            <span>{bookmarkCount.toLocaleString()}</span>
                         </button>
                     </div>
                 </div>
 
                 {/* 본문 */}
                 {post.isLocked ? (
-                    <BlurPaywall isLoggedIn={isLoggedIn} />
+                    <BlurPaywall isLoggedIn={hasMounted && isLoggedIn} />
                 ) : (
                     <div className="prose max-w-none text-neutral-dark">
                         <div dangerouslySetInnerHTML={{ __html: post.body ?? "" }} />

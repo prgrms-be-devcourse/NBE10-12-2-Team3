@@ -28,7 +28,7 @@ public class UserService {
         }
 
         if (userRepository.existsByNickname(nickname)) {
-            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL); // TODO: ErrorCode 모은 후 DUPLICATE_NICKNAME 등으로 수정
+            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
         }
 
         String encodedPassword = passwordEncoder.encode(password);
@@ -49,10 +49,10 @@ public class UserService {
     public User login(String email, String password) {
         Optional<User> user = userRepository.findByEmailAndDeletedAtIsNull(email);
         if (user.isEmpty()) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND); // TODO: ErrorCode 모은 후 401 INVALID_CREDENTIALS 등으로 수정
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
         if (!passwordEncoder.matches(password, user.get().getPassword())) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED); // TODO: ErrorCode 모은 후 401 INVALID_CREDENTIALS 등으로 수정
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
         return user.get();
     }
@@ -69,7 +69,7 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(ErrorCode.INVALID_PASSWORD);
         }
         user.resetRefreshToken();
         user.softDelete();
@@ -89,7 +89,9 @@ public class UserService {
         User user = userRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         if (user.getNickname().equals(nickname)) {nickname = null;}
-        if (nickname != null && userRepository.existsByNickname(nickname)) {throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);} // TODO: ErrorCode 모은 후 DUPLICATE_NICKNAME 등으로 수정
+        if (nickname != null && userRepository.existsByNickname(nickname)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+        }
         user.update(nickname, introduction);
         return user;
     }
@@ -99,7 +101,7 @@ public class UserService {
         User user = userRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED); // TODO: INVALID_PASSWORD 등으로 수정
+            throw new BusinessException(ErrorCode.INVALID_PASSWORD);
         }
         String encodedPassword = passwordEncoder.encode(newPassword);
         user.updatePassword(encodedPassword);

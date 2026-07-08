@@ -59,7 +59,7 @@ public class SeriesService {
     @Transactional(readOnly = true)
     public SeriesResponse getSeries(long id) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SERIES_NOT_FOUND));
 
         return new SeriesResponse(series);
     }
@@ -67,7 +67,7 @@ public class SeriesService {
     @Transactional
     public SeriesResponse updateSeries(long id, String title, String body, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SERIES_NOT_FOUND));
 
         if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
@@ -81,7 +81,7 @@ public class SeriesService {
     @Transactional
     public void deleteSeries(long id, Long actorId, UserRole actorRole) {
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SERIES_NOT_FOUND));
 
         if (actorRole != UserRole.ADMIN && !series.getUser().getId().equals(actorId)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);

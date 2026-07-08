@@ -1,10 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { Avatar } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { Heart, Eye, Bookmark } from "lucide-react";
-import { formatCompact } from "@/lib/format";
-import { AccessBadge } from "@/components/common/access-badge";
+import {Avatar} from "@/components/ui/avatar";
+import {cn} from "@/lib/utils";
+import {Bookmark, Eye, Heart} from "lucide-react";
+import {formatCompact} from "@/lib/format";
+import {AccessBadge} from "@/components/common/access-badge";
 
 interface ContentCardProps {
   id: string | number;
@@ -17,7 +17,11 @@ interface ContentCardProps {
   viewCount: number;
   likeCount?: number;
   bookmarkCount?: number;
-  membershipPrice?: number; // Added to support YouTube Membership style pricing
+    isLiked?: boolean;
+    isBookmarked?: boolean;
+    onLike?: () => void;
+    onBookmark?: () => void;
+    membershipPrice?: number;
   className?: string;
   href?: string;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
@@ -34,6 +38,10 @@ export function ContentCard({
   viewCount,
   likeCount = 0,
   bookmarkCount = 0,
+                                isLiked = false,
+                                isBookmarked = false,
+                                onLike,
+                                onBookmark,
   className,
   href,
   onClick,
@@ -72,8 +80,6 @@ export function ContentCard({
             className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 brightness-[0.85]"
           />
         )}
-        
-
 
         {/* Hover Overlay */}
         <div className="absolute inset-0 z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-black/10 pointer-events-none" />
@@ -96,7 +102,7 @@ export function ContentCard({
         <h3 className="mb-2 line-clamp-2 text-base font-bold leading-snug tracking-tight text-neutral-dark group-hover:text-primary transition-colors">
           {title}
         </h3>
-        
+
         <p className="line-clamp-2 text-[13px] leading-relaxed text-neutral-meta flex-1">
           {description}
         </p>
@@ -105,14 +111,34 @@ export function ContentCard({
         <div className="mt-5 flex items-center justify-between border-t border-neutral-100 pt-4">
           <span className="text-[11px] font-medium text-neutral-meta">{createdAt}</span>
           <div className="flex items-center gap-3">
-             <div className="flex items-center gap-1 text-neutral-meta">
-                <Bookmark className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-bold">{formattedBookmarks}</span>
-             </div>
-             <div className="flex items-center gap-1 text-neutral-meta">
-                <Heart className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-bold">{formattedLikes}</span>
-             </div>
+              <button
+                  onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onBookmark?.();
+                  }}
+                  className={cn(
+                      "flex items-center gap-1 transition-colors",
+                      isBookmarked ? "text-primary" : "text-neutral-meta hover:text-primary"
+                  )}
+              >
+                  <Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-primary")}/>
+                  <span className="text-[11px] font-bold">{formattedBookmarks}</span>
+              </button>
+              <button
+                  onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onLike?.();
+                  }}
+                  className={cn(
+                      "flex items-center gap-1 transition-colors",
+                      isLiked ? "text-red-500" : "text-neutral-meta hover:text-red-400"
+                  )}
+              >
+                  <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-red-500")}/>
+                  <span className="text-[11px] font-bold">{formattedLikes}</span>
+              </button>
              <div className="flex items-center gap-1 text-neutral-meta">
                 <Eye className="h-3.5 w-3.5" />
                 <span className="text-[11px] font-bold">{formattedViews}</span>
