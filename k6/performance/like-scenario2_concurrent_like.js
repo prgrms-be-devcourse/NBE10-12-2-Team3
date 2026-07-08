@@ -18,7 +18,7 @@
  */
 
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 
 const BASE_URL = __ENV.BASE_URL || 'https://api.scommit.store';
 const POST_ID = '52';
@@ -108,6 +108,5 @@ export default function (data) {
     'like 201 or 400': (r) => r.status === 201 || r.status === 400,
   });
 
-  // sleep을 넣지 않는 이유:
-  // 동시 쓰기 경합을 극대화하기 위해 대기 없이 즉시 다음 요청을 보냄
+  sleep(Math.random() * 1.5 + 0.5);
 }
