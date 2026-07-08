@@ -1,4 +1,4 @@
-"use client";
+  "use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -42,8 +42,8 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setErrorMsg("비밀번호는 최소 8자 이상이어야 합니다.");
+    if (password.length < 6) {
+      setErrorMsg("비밀번호는 최소 6자 이상이어야 합니다.");
       return;
     }
 
@@ -200,7 +200,7 @@ export default function SignupPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="최소 8자 이상"
+                placeholder="최소 6자 이상"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-12 rounded-xl border-neutral-200 bg-neutral-50 px-4 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
