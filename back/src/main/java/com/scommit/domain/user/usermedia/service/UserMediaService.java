@@ -63,7 +63,7 @@ public class UserMediaService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         UserMedia userMedia = userMediaRepository.findByUser(user)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_NOT_FOUND));
 
         Long mediaId = userMedia.getMedia().getId();
         userMediaRepository.delete(userMedia);

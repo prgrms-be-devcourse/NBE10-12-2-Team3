@@ -88,10 +88,10 @@ public class PostMediaService {
     @Transactional
     public void deleteMedia(Long postId, Long postMediaId) {
         PostMedia postMedia = postMediaRepository.findById(postMediaId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_NOT_FOUND));
 
         if (!postMedia.getPost().getId().equals(postId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.MEDIA_NOT_FOUND);
         }
 
         if (postMedia.getPost().getDeletedAt() != null) {

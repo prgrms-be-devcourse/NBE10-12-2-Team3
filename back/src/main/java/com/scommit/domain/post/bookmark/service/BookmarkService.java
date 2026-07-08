@@ -49,7 +49,7 @@ public class BookmarkService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
         Bookmark bookmark = bookmarkRepository.findByPostIdAndUserId(postId, actor.getId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.BOOKMARK_NOT_FOUND));
         bookmarkRepository.delete(bookmark);
         post.decreaseBookmarkCount();
     }

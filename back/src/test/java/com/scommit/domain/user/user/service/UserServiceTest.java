@@ -174,7 +174,7 @@
             }
 
             @Test
-            @DisplayName("실패: 존재하지 않는 이메일이면 USER_NOT_FOUND 예외를 던진다.")
+            @DisplayName("실패: 존재하지 않는 이메일이면 INVALID_CREDENTIALS 예외를 던진다.")
             void login_EmailNotFound() {
                 // Given
                 given(userRepository.findByEmailAndDeletedAtIsNull(EMAIL)).willReturn(Optional.empty());
@@ -182,11 +182,11 @@
                 // When & Then
                 assertThatThrownBy(() -> userService.login(EMAIL, PASSWORD))
                         .isInstanceOf(BusinessException.class)
-                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CREDENTIALS);
             }
 
             @Test
-            @DisplayName("실패: 비밀번호가 일치하지 않으면 UNAUTHORIZED 예외를 던진다.")
+            @DisplayName("실패: 비밀번호가 일치하지 않으면 INVALID_CREDENTIALS 예외를 던진다.")
             void login_WrongPassword() {
                 // Given
                 User user = buildUser();
@@ -196,7 +196,7 @@
                 // When & Then
                 assertThatThrownBy(() -> userService.login(EMAIL, WRONG_PASSWORD))
                         .isInstanceOf(BusinessException.class)
-                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CREDENTIALS);
             }
         }
 
@@ -277,7 +277,7 @@
                 // When & Then
                 assertThatThrownBy(() -> userService.updateUser(USER_ID, NEW_NICKNAME, NEW_INTRODUCTION))
                         .isInstanceOf(BusinessException.class)
-                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DUPLICATE_EMAIL);
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DUPLICATE_NICKNAME);
 
                 assertThat(user.getNickname()).isEqualTo(NICKNAME);
             }
@@ -335,7 +335,7 @@
             }
 
             @Test
-            @DisplayName("실패: 현재 비밀번호가 일치하지 않으면 UNAUTHORIZED 예외를 던지고 변경하지 않는다.")
+            @DisplayName("실패: 현재 비밀번호가 일치하지 않으면 INVALID_PASSWORD 예외를 던지고 변경하지 않는다.")
             void updatePassword_WrongCurrentPassword() {
                 // Given
                 User user = buildUser();
@@ -345,7 +345,7 @@
                 // When & Then
                 assertThatThrownBy(() -> userService.updatePassword(USER_ID, WRONG_PASSWORD, NEW_PASSWORD))
                         .isInstanceOf(BusinessException.class)
-                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
 
                 assertThat(user.getPassword()).isEqualTo(ENCODED_CURRENT_PASSWORD);
                 verify(passwordEncoder, never()).encode(anyString());
@@ -399,7 +399,7 @@
             }
 
             @Test
-            @DisplayName("실패: 비밀번호가 일치하지 않으면 UNAUTHORIZED 예외를 던지고 탈퇴하지 않는다.")
+            @DisplayName("실패: 비밀번호가 일치하지 않으면 INVALID_PASSWORD 예외를 던지고 탈퇴하지 않는다.")
             void deleteUser_WrongPassword() {
                 // Given
                 User user = buildUser();
@@ -409,7 +409,7 @@
                 // When & Then
                 assertThatThrownBy(() -> userService.deleteUser(USER_ID, WRONG_PASSWORD))
                         .isInstanceOf(BusinessException.class)
-                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+                        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
 
                 assertThat(user.getDeletedAt()).isNull();
             }

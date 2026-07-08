@@ -2,11 +2,10 @@ package com.scommit.domain.subscription.subscription.service;
 
 import com.scommit.domain.notification.notification.repository.SseEmitterRepository;
 import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 import com.scommit.domain.subscription.subscription.entity.Subscription;
 import com.scommit.domain.subscription.subscription.entity.SubscriptionTier;
 import com.scommit.domain.subscription.subscription.repository.SubscriptionRepository;
-import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
-import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.repository.UserRepository;
@@ -103,7 +102,7 @@ class SubscriptionServiceTest {
             assertThatThrownBy(() -> subscriptionService.follow(1L, 1L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(com.scommit.global.exception.ErrorCode.INVALID_INPUT_VALUE);
+                    .isEqualTo(com.scommit.global.exception.ErrorCode.SELF_SUBSCRIPTION_NOT_ALLOWED);
             verify(subscriptionRepository, never()).save(any());
         }
 
@@ -150,7 +149,7 @@ class SubscriptionServiceTest {
             assertThatThrownBy(() -> subscriptionService.unfollow(1L, 2L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(com.scommit.global.exception.ErrorCode.INVALID_INPUT_VALUE);
+                    .isEqualTo(com.scommit.global.exception.ErrorCode.MEMBERSHIP_ACTIVE_CANCEL_REQUIRED);
         }
     }
 

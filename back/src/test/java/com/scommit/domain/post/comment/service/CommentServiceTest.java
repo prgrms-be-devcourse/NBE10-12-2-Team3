@@ -238,25 +238,25 @@ class CommentServiceTest {
 
         // 없는 댓글 수정 시도
         @Test
-        @DisplayName("실패: 존재하지 않는 댓글이면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 존재하지 않는 댓글이면 COMMENT_NOT_FOUND 예외를 던진다.")
         void update_CommentNotFound() {
             when(commentRepository.findById(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> commentService.updateComment(mockUser, 999L, "수정"))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.COMMENT_NOT_FOUND);
         }
 
         // softDelete된 댓글은 없는 것과 동일하게 처리
         @Test
-        @DisplayName("실패: 삭제된 댓글이면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 삭제된 댓글이면 COMMENT_NOT_FOUND 예외를 던진다.")
         void update_CommentDeleted() {
             Comment deleted = buildDeletedComment(1L, mockUser, mockPost);
             when(commentRepository.findById(1L)).thenReturn(Optional.of(deleted));
 
             assertThatThrownBy(() -> commentService.updateComment(mockUser, 1L, "수정"))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.COMMENT_NOT_FOUND);
         }
 
         // 타인의 댓글 수정 시도 → 본인 확인 로직에서 차단
@@ -290,25 +290,25 @@ class CommentServiceTest {
 
         // 없는 댓글 삭제 시도
         @Test
-        @DisplayName("실패: 존재하지 않는 댓글이면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 존재하지 않는 댓글이면 COMMENT_NOT_FOUND 예외를 던진다.")
         void delete_CommentNotFound() {
             when(commentRepository.findById(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> commentService.deleteComment(mockUser, 999L))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.COMMENT_NOT_FOUND);
         }
 
         // 이미 삭제된 댓글 재삭제 시도 → 멱등성 보장이 아닌 에러 반환 방식
         @Test
-        @DisplayName("실패: 이미 삭제된 댓글이면 RESOURCE_NOT_FOUND 예외를 던진다.")
+        @DisplayName("실패: 이미 삭제된 댓글이면 COMMENT_NOT_FOUND 예외를 던진다.")
         void delete_AlreadyDeleted() {
             Comment deleted = buildDeletedComment(1L, mockUser, mockPost);
             when(commentRepository.findById(1L)).thenReturn(Optional.of(deleted));
 
             assertThatThrownBy(() -> commentService.deleteComment(mockUser, 1L))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.COMMENT_NOT_FOUND);
         }
 
         // 타인 댓글 삭제 시도 → 본인 확인 로직에서 차단
