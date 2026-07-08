@@ -39,6 +39,11 @@ export function setup() {
         headers: { "Content-Type": "application/json" },
       }
     );
+
+    if (res.status !== 200) {
+      throw new Error(`Login failed for ${users[i].email}: HTTP ${res.status} ${res.body}`);
+    }
+
     cookiesList.push(res.cookies);
   }
   
