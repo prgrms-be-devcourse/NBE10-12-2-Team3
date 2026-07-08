@@ -3,14 +3,14 @@
 import React, {useEffect, useState} from "react";
 import {notFound, useRouter} from "next/navigation";
 import Link from "next/link";
-import { Eye, Heart, Bookmark, Calendar, Pencil, Trash2, BookOpen } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
-import { BlurPaywall } from "@/components/common/blur-paywall";
-import { useAuth } from "@/providers/auth-provider";
-import { useHasMounted } from "@/hooks/use-has-mounted";
-import { cn } from "@/lib/utils";
-import { CommentList } from "@/components/comment/comment-list";
-import { apiFetch, apiPost, apiDelete } from "@/lib/api";
+import {Bookmark, BookOpen, Calendar, Eye, Heart, Pencil, Trash2} from "lucide-react";
+import {Avatar} from "@/components/ui/avatar";
+import {BlurPaywall} from "@/components/common/blur-paywall";
+import {useAuth} from "@/providers/auth-provider";
+import {useHasMounted} from "@/hooks/use-has-mounted";
+import {cn} from "@/lib/utils";
+import {CommentList} from "@/components/comment/comment-list";
+import {apiDelete, apiFetch, apiPost, resolveMediaUrl} from "@/lib/api";
 
 interface Post {
     id: number;
@@ -19,6 +19,7 @@ interface Post {
     seriesId: number | null;
     title: string;
     body: string | null;
+    thumbnailUrl?: string;
     publishStatus: "PUBLIC" | "PRIVATE" | "DRAFT";
     accessLevel: "FREE" | "PAID";
     viewCount: number;
@@ -110,6 +111,14 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     return (
         <div className="min-h-screen bg-neutral-50 pb-20 pt-20">
             <div className="mx-auto max-w-[800px] px-4 sm:px-6">
+                {/* 썸네일 */}
+                {post.thumbnailUrl && (
+                    <div className="mb-6 overflow-hidden rounded-xl">
+                        <img src={resolveMediaUrl(post.thumbnailUrl)} alt="썸네일"
+                             className="w-full max-h-[400px] object-cover"/>
+                    </div>
+                )}
+
                 {/* 시리즈 정보 */}
                 {post.seriesId && (
                     <Link href={`/series/${post.seriesId}`} className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold hover:bg-primary/20 transition-colors">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, {useState} from "react";
 
 export function useThumbnail(initial: string | null = null) {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(initial);
@@ -32,6 +32,7 @@ export function useThumbnail(initial: string | null = null) {
 
   return {
     thumbnailPreview,
+      setThumbnailPreview,
     thumbnailFile,
     isDragging,
     setIsDragging,
