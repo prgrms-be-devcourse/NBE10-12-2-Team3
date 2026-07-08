@@ -1,15 +1,30 @@
 "use client";
 
-import React, { KeyboardEvent, useEffect, useRef, useState } from "react";
+import React, {KeyboardEvent, useEffect, useRef, useState} from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Bell, Bookmark, ChevronDown, Clock, CreditCard, History, LogOut, Menu, Pencil, Search, Settings, User, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar } from "@/components/ui/avatar";
-import { useAuth } from "@/providers/auth-provider";
-import { AnimatePresence, motion } from "framer-motion";
-import { useRecentSearches } from "@/hooks/use-recent-searches";
-import { cn } from "@/lib/utils";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {
+    Bell,
+    Bookmark,
+    ChevronDown,
+    Clock,
+    CreditCard,
+    History,
+    LogOut,
+    Menu,
+    Pencil,
+    Search,
+    Settings,
+    User,
+    X
+} from "lucide-react";
+import {useNotifications} from "@/providers/notification-provider";
+import {Button} from "@/components/ui/button";
+import {Avatar} from "@/components/ui/avatar";
+import {useAuth} from "@/providers/auth-provider";
+import {AnimatePresence, motion} from "framer-motion";
+import {useRecentSearches} from "@/hooks/use-recent-searches";
+import {cn} from "@/lib/utils";
 
 // --- Custom Hook for Click Outside ---
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
@@ -34,6 +49,7 @@ export function Header() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isLoggedIn, user, logout } = useAuth();
+    const {toasts} = useNotifications();
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
@@ -231,9 +247,12 @@ export function Header() {
                     글쓰기
                   </Button>
                 </Link>
-                  <button className="p-1.5 hover:bg-neutral-100 rounded-full transition-colors">
-                    <Bell className="h-5 w-5" />
-                  </button>
+                  <div className="relative">
+                      <Bell className="h-5 w-5 text-neutral-600"/>
+                      {toasts.length > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500"/>
+                      )}
+                  </div>
               </>
             )}
           </div>
