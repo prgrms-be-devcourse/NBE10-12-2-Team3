@@ -1,8 +1,9 @@
 import React from "react";
 import {notFound} from "next/navigation";
-import {BookOpen, Calendar, ChevronRight, UserPlus} from "lucide-react";
+import {BookOpen, Calendar, ChevronRight} from "lucide-react";
 import {SeriesDetailPostList} from "./series-detail-post-list";
 import {SeriesHeroActions} from "./series-hero-actions";
+import {SeriesFollowActions} from "./series-follow-actions";
 import {getSeries, getSeriesMedia, getSeriesPosts} from "@/lib/series-api";
 import {resolveMediaUrl} from "@/lib/api";
 
@@ -67,10 +68,7 @@ export default async function SeriesDetailPage({
               {series.title}
             </h1>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-xs md:text-sm font-medium text-neutral-300 mb-6">
-              <button className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full border border-white/5 shadow-sm hover:bg-white/20 transition-colors group">
-                  <span className="text-white font-bold">{series.nickname}</span>
-                <UserPlus className="h-3.5 w-3.5 ml-1 opacity-70 group-hover:opacity-100 transition-opacity" />
-              </button>
+              <SeriesFollowActions creatorId={series.userId} nickname={series.nickname} />
               <span className="flex items-center gap-1.5 opacity-80">
                 <Calendar className="h-4 w-4" />
                 업데이트: {series.updatedAt ? series.updatedAt.split("T")[0] : ""}
