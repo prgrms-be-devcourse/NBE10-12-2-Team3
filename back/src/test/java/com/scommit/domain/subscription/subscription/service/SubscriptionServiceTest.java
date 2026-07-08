@@ -212,6 +212,10 @@ class SubscriptionServiceTest {
             Pageable pageable = PageRequest.of(0, 10);
             Page<Subscription> page = new PageImpl<>(List.of(followSubscription));
             given(subscriptionRepository.findMySubscriptions(1L, pageable)).willReturn(page);
+            Object[] resultRow = new Object[]{2L, 150L};
+            List<Object[]> mockResult = java.util.Collections.singletonList(resultRow);
+            given(subscriptionRepository.countFollowersGroupedByCreatorIds(List.of(2L)))
+                    .willReturn(mockResult);
 
             // when
             Page<SubscriptionInfo> infos = subscriptionService.getMySubscriptions(1L, pageable);
@@ -220,6 +224,24 @@ class SubscriptionServiceTest {
             assertThat(infos.getContent()).hasSize(1);
             assertThat(infos.getContent().get(0).creatorId()).isEqualTo(2L);
             assertThat(infos.getContent().get(0).tier()).isEqualTo(SubscriptionTier.FOLLOW);
+            assertThat(infos.getContent().get(0).followerCount()).isEqualTo(150L);
+        }
+    }
+
+    @Nested
+    @DisplayName("API 6: 내 구독 총 수 조회 테스트")
+    class GetMySubscriptionCountTest {
+        @Test
+        @DisplayName("성공: 내가 구독 중인 총 창작자 수를 반환한다")
+        void getMySubscriptionCountSuccess() {
+            // given
+            given(subscriptionRepository.countByUserIdAndDeletedAtIsNull(1L)).willReturn(42L);
+
+            // when
+            long count = subscriptionService.getMySubscriptionCount(1L);
+
+            // then
+            assertThat(count).isEqualTo(42L);
         }
     }
 

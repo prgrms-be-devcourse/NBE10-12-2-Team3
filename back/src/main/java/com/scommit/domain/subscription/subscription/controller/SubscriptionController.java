@@ -96,7 +96,17 @@ public class SubscriptionController {
     }
 
     /**
-     * API 6: 단건 구독 상태 확인
+     * API 6: 내 구독 총 수 조회 (전용 가벼운 API)
+     */
+    @Operation(summary = "내 구독 총 수 조회", description = "내가 현재 구독(팔로우/멤버십) 중인 총 창작자 수를 반환합니다.")
+    @GetMapping("/count")
+    public RsData<Long> getMySubscriptionCount(@AuthenticationPrincipal SecurityUser user) {
+        long count = subscriptionService.getMySubscriptionCount(user.getId());
+        return new RsData<>("200-1", "구독 수 조회 성공", count);
+    }
+
+    /**
+     * API 7: 단건 구독 상태 확인
      */
     @Operation(summary = "구독 상태 확인", description = "특정 창작자에 대한 현재 로그인 사용자의 구독 상태(NONE, FOLLOW, MEMBERSHIP)를 조회합니다.")
     @GetMapping("/status/{creatorId}")

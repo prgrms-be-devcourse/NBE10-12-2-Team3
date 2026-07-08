@@ -19,6 +19,7 @@ public class SubscriptionResponse {
     private SubscriptionTier tier;
     private LocalDate startedAt;
     private LocalDate expiredAt;
+    private Long followerCount;
 
     public static SubscriptionResponse from(SubscriptionInfo info) {
         return SubscriptionResponse.builder()
@@ -28,6 +29,7 @@ public class SubscriptionResponse {
                 .tier(info.tier())
                 .startedAt(info.startedAt())
                 .expiredAt(info.expiredAt())
+                .followerCount(info.followerCount())
                 .build();
     }
 }
