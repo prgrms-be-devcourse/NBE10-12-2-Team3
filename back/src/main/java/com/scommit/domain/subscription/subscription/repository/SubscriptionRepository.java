@@ -34,4 +34,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     // 7. 내 구독 총 개수 전용 API용
     @Query("SELECT COUNT(s) FROM Subscription s WHERE s.user.id = :userId AND s.deletedAt IS NULL")
     long countByUserIdAndDeletedAtIsNull(@Param("userId") Long userId);
+  
+    // 8. 내 팔로워 수 통계 조회용
+    long countByCreatorIdAndDeletedAtIsNull(Long creatorId);
 }

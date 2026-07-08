@@ -50,8 +50,9 @@ services:
     restart: unless-stopped
     ports:
       - "9104:9104"
-    environment:
-      DATA_SOURCE_NAME: "exporter:${MYSQL_EXPORTER_PASSWORD}@tcp(db:3306)/"
+    volumes:
+      - ./mysql-exporter.cnf:/tmp/my.cnf
+    command: --config.my-cnf=/tmp/my.cnf
     depends_on:
       db:
         condition: service_healthy
@@ -59,6 +60,7 @@ services:
   promtail:
     image: grafana/promtail:latest
     container_name: scommit-promtail
+    user: root
     restart: unless-stopped
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro

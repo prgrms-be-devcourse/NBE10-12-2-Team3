@@ -145,7 +145,7 @@ class BookmarkServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 북마크가 없는 경우 RESOURCE_NOT_FOUND 예외를 던진다")
+        @DisplayName("실패: 북마크가 없는 경우 BOOKMARK_NOT_FOUND 예외를 던진다")
         void deleteBookmark_bookmarkNotFound() {
             // given
             given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
@@ -154,7 +154,7 @@ class BookmarkServiceTest {
             // when & then
             assertThatThrownBy(() -> bookmarkService.deleteBookmark(10L, actor))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKMARK_NOT_FOUND);
 
             verify(bookmarkRepository, never()).delete(any());
         }

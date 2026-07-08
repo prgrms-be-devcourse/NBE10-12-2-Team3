@@ -46,7 +46,7 @@ public class PostService {
     public PostResponse createPost(User actor, String title, String body,
                                    PublishStatus publishStatus, PostAccessLevel accessLevel, Long seriesId) {
         Series series = seriesId != null
-                ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
+                ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.SERIES_NOT_FOUND))
                 : null;
 
         Post post = Post.builder()
@@ -71,7 +71,7 @@ public class PostService {
     public Slice<PostListResponse> getPosts(Long creatorId, User actor, Pageable pageable) {
         if (creatorId != null) {
             User creator = userRepository.findByIdAndDeletedAtIsNull(creatorId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
             return postRepository.findSliceByUserAndDeletedAtIsNull(creator, pageable)
                     .map(post -> new PostListResponse(post, isLiked(post.getId(), actor), isBookmarked(post.getId(), actor)));
         }
@@ -121,7 +121,7 @@ public class PostService {
         }
 
         Series series = seriesId != null
-                ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND))
+                ? seriesRepository.findById(seriesId).orElseThrow(() -> new BusinessException(ErrorCode.SERIES_NOT_FOUND))
                 : null;
 
         PublishStatus oldStatus = post.getPublishStatus();
@@ -150,7 +150,7 @@ public class PostService {
     // 특정 유저의 게시글 조회 - 번호 페이지네이션 (프로필 화면)
     public Page<PostListResponse> getUserPosts(Long userId, User actor, Pageable pageable) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         return postRepository.findByUserAndDeletedAtIsNull(user, pageable)
                 .map(post -> new PostListResponse(post, isLiked(post.getId(), actor), isBookmarked(post.getId(), actor)));
     }
@@ -177,7 +177,7 @@ public class PostService {
         }
 
         Series series = seriesRepository.findByIdAndDeletedAtIsNull(seriesId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SERIES_NOT_FOUND));
         if (!series.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
@@ -193,7 +193,7 @@ public class PostService {
 
         Series series = post.getSeries();
         if (series == null || !series.getId().equals(seriesId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.SERIES_NOT_FOUND);
         }
         if (!series.getUser().getId().equals(actor.getId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);

@@ -134,7 +134,7 @@ class LikeServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 좋아요가 없는 경우 RESOURCE_NOT_FOUND 예외를 던진다")
+        @DisplayName("실패: 좋아요가 없는 경우 LIKE_NOT_FOUND 예외를 던진다")
         void deleteLike_likeNotFound() {
             // given
             given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
@@ -143,7 +143,7 @@ class LikeServiceTest {
             // when & then
             assertThatThrownBy(() -> likeService.deleteLike(10L, actor))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESOURCE_NOT_FOUND);
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.LIKE_NOT_FOUND);
 
             verify(likeRepository, never()).delete(any());
         }
