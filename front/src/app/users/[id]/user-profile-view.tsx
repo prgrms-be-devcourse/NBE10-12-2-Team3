@@ -2,17 +2,26 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tab, type TabItem } from "@/components/ui/tab";
-import { ContentCard } from "@/components/common/content-card";
-import { SeriesListRow } from "@/components/common/series-list-row";
+import { PostGrid } from "@/components/common/post-grid";
+import { PostPagination } from "@/components/common/post-pagination";
+import { SeriesList } from "@/components/common/series-list";
+import { SeriesPagination } from "@/components/common/series-pagination";
 import { ConfirmModal } from "@/components/common/confirm-modal";
+import { CancelMembershipModal } from "@/components/common/cancel-membership-modal";
 import { useAuth } from "@/providers/auth-provider";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { apiFetch, apiPost, apiDelete } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { UserProfileResponse, PostListResponse, SeriesListResponse } from "./page";
+
+// 팔로우 버튼 폭이 "팔로우"↔"팔로잉" 텍스트 길이 변화에 맞춰 부드럽게 늘어나도록,
+// layout 애니메이션을 쓸 수 있는 motion 버전의 Button을 만듭니다.
+const MotionButton = motion(Button);
 
 // page.tsx의 UserProfileResponse를 그대로 재사용해서, API 응답 형태가 바뀌면
 // 컴파일 타임에 바로 잡히도록 합니다. 이 파일에서 별도 Profile 타입을 정의하지 않습니다.
@@ -37,6 +46,9 @@ interface UserProfileViewProps {
   isLastPostsPage: boolean;
   posts: PostItem[];
   series: SeriesItem[];
+  // 현재 탭(포스트/시리즈)의 목록 조회가 실패했는지 여부. 프로필 자체는 이미 불러온 상태이므로,
+  // 이 경우에도 프로필 헤더는 그대로 보여주고 탭 영역에만 에러를 표시합니다.
+  tabDataError: boolean;
 }
 
 const TABS: TabItem[] = [
@@ -44,10 +56,13 @@ const TABS: TabItem[] = [
   { id: "series", label: "시리즈" },
 ];
 
-export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPage, posts, series }: UserProfileViewProps) {
+export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPage, posts, series, tabDataError }: UserProfileViewProps) {
   const router = useRouter();
   const { isLoggedIn, user } = useAuth();
+  const hasMounted = useHasMounted();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  // mypage(FollowButton)의 멤버십 해지 확인 팝업과 동일한 UX를 여기서도 제공합니다.
+  const [showCancelMembershipModal, setShowCancelMembershipModal] = useState(false);
   // 로그인한 사용자의 초기 isFollowing/isMember 상태는 프로필 응답(UserProfileResponse)에 없어,
   // 아래 useEffect에서 GET /api/subscriptions/status/{creatorId} 단건 조회로 판단합니다.
   const [isFollowing, setIsFollowing] = useState(false);
@@ -56,7 +71,9 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
   const [isMembershipSubmitting, setIsMembershipSubmitting] = useState(false);
 
   // useAuth().user.id(number)와 프로필 id를 비교해 본인 프로필 여부를 판단합니다.
-  const isOwnProfile = isLoggedIn && user?.id === profile.id;
+  // hasMounted 가드: 서버는 로그인 여부를 몰라 항상 비로그인으로 렌더링하므로,
+  // 하이드레이션 이전엔 isLoggedIn을 그대로 쓰면 서버 HTML과 어긋납니다.
+  const isOwnProfile = hasMounted && isLoggedIn && user?.id === profile.id;
 
   const isFirstRender = useRef(true);
   useEffect(() => {
@@ -149,6 +166,12 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
       setShowLoginModal(true);
       return;
     }
+    // 해지는 되돌리기 번거로운 동작이라, mypage(FollowButton)와 동일하게 확인 팝업을 먼저 띄웁니다.
+    // 가입은 기존과 동일하게 바로 진행합니다.
+    if (isMember) {
+      setShowCancelMembershipModal(true);
+      return;
+    }
     handleMembership();
   };
 
@@ -169,87 +192,6 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
     { label: "구독자", value: profile.subscriberCount.toLocaleString("ko-KR") },
     { label: "구독 중", value: profile.subscribingCount.toLocaleString("ko-KR") },
   ];
-
-  // 시리즈 탭: Page 응답(totalPages/isLast 보유) 기반 번호식 페이지네이션
-  const renderSeriesPagination = () => {
-    if (totalPages <= 1) return null;
-
-    return (
-      <div className="mt-12 flex justify-center">
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outlined"
-            aria-label="이전 페이지"
-            className={cn("h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all", page <= 1 ? "border-transparent bg-neutral-50 text-neutral-300" : "border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800")}
-            disabled={page <= 1}
-            onClick={() => handlePageChange(page - 1)}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-
-          {Array.from({ length: totalPages }).map((_, i) => {
-            const pageNum = i + 1;
-            if (pageNum === 1 || pageNum === totalPages || Math.abs(pageNum - page) <= 1) {
-              return (
-                <Button
-                  key={pageNum}
-                  variant="outlined"
-                  className={cn("h-10 w-10 rounded-full p-0 font-bold transition-all", page === pageNum ? "border-primary text-primary bg-primary/5 shadow-sm" : "border-transparent text-neutral-600 hover:bg-neutral-100")}
-                  onClick={() => handlePageChange(pageNum)}
-                >
-                  {pageNum}
-                </Button>
-              );
-            }
-            if (pageNum === 2 && page > 3) return <span key={pageNum} className="px-1.5 text-neutral-400 flex items-center justify-center h-10">...</span>;
-            if (pageNum === totalPages - 1 && page < totalPages - 2) return <span key={pageNum} className="px-1.5 text-neutral-400 flex items-center justify-center h-10">...</span>;
-            return null;
-          })}
-
-          <Button
-            variant="outlined"
-            aria-label="다음 페이지"
-            className={cn("h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all", page >= totalPages ? "border-transparent bg-neutral-50 text-neutral-300" : "border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800")}
-            disabled={page >= totalPages}
-            onClick={() => handlePageChange(page + 1)}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  // 포스트 탭: Slice 응답이라 totalPages/totalElements가 없음 → "이전/다음" 버튼만 노출.
-  // "다음"은 last === true일 때 비활성화하고, "이전"은 프론트가 직접 추적하는 page 번호로 판단합니다.
-  const renderPostPagination = () => {
-    if (page <= 1 && isLastPostsPage) return null;
-
-    return (
-      <div className="mt-12 flex justify-center">
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outlined"
-            aria-label="이전 페이지"
-            className={cn("h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all", page <= 1 ? "border-transparent bg-neutral-50 text-neutral-300" : "border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800")}
-            disabled={page <= 1}
-            onClick={() => handlePageChange(page - 1)}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="outlined"
-            aria-label="다음 페이지"
-            className={cn("h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all", isLastPostsPage ? "border-transparent bg-neutral-50 text-neutral-300" : "border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800")}
-            disabled={isLastPostsPage}
-            onClick={() => handlePageChange(page + 1)}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <>
@@ -272,16 +214,33 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
 
           {!isOwnProfile && (
             <div className="flex items-end gap-2 pb-2">
-              <Button
+              <MotionButton
+                layout
+                transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
                 size="sm"
                 variant="outlined"
-                className="rounded-full px-6"
+                className={cn(
+                  "rounded-full px-6 overflow-hidden transition-colors",
+                  isFollowing && "border-primary bg-primary/5 text-primary"
+                )}
                 onClick={handleFollowClick}
                 disabled={isFollowSubmitting || isMember}
                 title={isMember ? "멤버십 해지 후 언팔로우할 수 있습니다." : undefined}
               >
-                {isFollowing ? "팔로잉" : "팔로우"}
-              </Button>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={isFollowing ? "following" : "follow"}
+                    initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.9 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="flex items-center gap-1.5"
+                  >
+                    {isFollowing && <Check className="h-3.5 w-3.5" />}
+                    {isFollowing ? "팔로잉" : "팔로우"}
+                  </motion.span>
+                </AnimatePresence>
+              </MotionButton>
               {profile.offersMembership && (
                 <Button
                   size="sm"
@@ -325,54 +284,28 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
 
         {/* 포스트 / 시리즈 목록 */}
         <div className="mt-8 min-h-75">
-          {tab === "post" ? (
-            posts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white py-24 text-center">
-                <p className="text-neutral-500">아직 작성한 포스트가 없습니다.</p>
-              </div>
-            ) : (
-              // TODO: 썸네일 API 미제공 — PostListResponse에 thumbnailUrl 필드가 없어 ContentCard가 기본 썸네일로 대체합니다.
-              // TODO: 포스트 설명은 PostListResponse에 없어 ContentCard에 전달하지 않습니다
-              // (description은 optional이라 비워두면 빈 값으로 렌더링됩니다).
-              // authorName은 이 페이지의 포스트가 모두 profile(조회 중인 유저)의 글이므로 profile.nickname을 그대로 사용합니다.
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {posts.map((post) => (
-                  <ContentCard
-                    key={post.id}
-                    id={post.id}
-                    title={post.title}
-                    accessLevel={post.accessLevel}
-                    authorName={profile.nickname}
-                    createdAt={post.createdAt.split("T")[0]}
-                    viewCount={post.viewCount}
-                  />
-                ))}
-              </div>
-            )
-          ) : series.length === 0 ? (
+          {tabDataError ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white py-24 text-center">
-              <p className="text-neutral-500">아직 작성한 시리즈가 없습니다.</p>
+              <p className="text-neutral-500">
+                {tab === "post" ? "포스트를 불러오지 못했습니다." : "시리즈를 불러오지 못했습니다."} 잠시 후 다시 시도해주세요.
+              </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-6">
-              {series.map((s) => (
-                <SeriesListRow
-                  key={s.id}
-                  id={s.id}
-                  title={s.title}
-                  description={s.body}
-                  // TODO: [백엔드 확인 필요] SeriesListResponse에 공개/멤버십 필드가 추가되면 교체
-                  accessLevel="PUBLIC"
-                  updatedAt={s.updatedAt.split("T")[0]}
-                  postCount={s.postCount}
-                  thumbnailUrl={s.thumbnailUrl}
-                  isOwner={isOwnProfile}
-                />
-              ))}
-            </div>
-          )}
+            <>
+              {tab === "post" ? (
+                // authorName은 이 페이지의 포스트가 모두 profile(조회 중인 유저)의 글이므로 profile.nickname을 그대로 사용합니다.
+                <PostGrid posts={posts} authorName={profile.nickname} />
+              ) : (
+                <SeriesList series={series} isOwner={isOwnProfile} />
+              )}
 
-          {tab === "post" ? renderPostPagination() : renderSeriesPagination()}
+              {tab === "post" ? (
+                <PostPagination page={page} isLastPage={isLastPostsPage} onPageChange={handlePageChange} />
+              ) : (
+                <SeriesPagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -388,6 +321,16 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
           onCancel={closeLoginModal}
         />
       )}
+
+      {/* mypage(FollowButton)와 완전히 동일한 문구/디자인의 멤버십 해지 확인 팝업입니다. */}
+      <CancelMembershipModal
+        open={showCancelMembershipModal}
+        onConfirm={() => {
+          setShowCancelMembershipModal(false);
+          handleMembership();
+        }}
+        onCancel={() => setShowCancelMembershipModal(false)}
+      />
     </>
   );
 }

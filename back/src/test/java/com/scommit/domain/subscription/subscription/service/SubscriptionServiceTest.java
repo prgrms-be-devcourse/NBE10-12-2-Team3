@@ -276,4 +276,21 @@ class SubscriptionServiceTest {
             verify(subscriptionRepository, never()).findByUserIdAndCreatorId(any(), any());
         }
     }
+
+    @Nested
+    @DisplayName("API 7: 팔로워 수 통계 조회 테스트")
+    class GetFollowerCountTest {
+        @Test
+        @DisplayName("성공: 특정 창작자를 팔로우하는 활성 구독자 수를 반환한다")
+        void getFollowerCountSuccess() {
+            // given
+            given(subscriptionRepository.countByCreatorIdAndDeletedAtIsNull(2L)).willReturn(42L);
+
+            // when
+            long count = subscriptionService.getFollowerCount(2L);
+
+            // then
+            assertThat(count).isEqualTo(42L);
+        }
+    }
 }

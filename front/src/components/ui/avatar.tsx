@@ -19,7 +19,12 @@ const bgColorPresets = [
 
 export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
   ({ className, src, name, size = "md", ...props }, ref) => {
-    const [hasError, setHasError] = React.useState(false);
+    // hasError를 src와 무관한 불리언으로 두면, 한 번 로드에 실패한 뒤 src가 새 값으로
+    // 바뀌어도(예: 프로필 사진 재업로드) 계속 깨진 상태로 고정되는 문제가 있었습니다.
+    // 그 대신 "어떤 src에서 에러가 났었는지"를 기억해서, 현재 src와 다르면 자동으로
+    // 초기화된 것처럼 동작하도록 만듭니다 (별도 useEffect 없이 렌더링 중 계산).
+    const [erroredSrc, setErroredSrc] = React.useState<string | null>(null);
+    const hasError = src !== undefined && src === erroredSrc;
     const initial = name ? name.trim().charAt(0).toUpperCase() : "";
 
     // 유저 이니셜 문자열 코드를 기반으로 항상 동일한 파스텔 배경 선택
@@ -50,7 +55,7 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
             src={src}
             alt={name}
             className="h-full w-full object-cover"
-            onError={() => setHasError(true)}
+            onError={() => setErroredSrc(src ?? null)}
           />
         ) : (
           <span>{initial}</span>
