@@ -13,6 +13,7 @@ interface SeriesListCardProps {
   title: string;
   body?: string;
   postCount?: number;
+  userId?: number | string;
   authorName?: string;
   lastUpdatedAt: string;
   thumbnailUrl?: string;
@@ -28,6 +29,7 @@ export function SeriesListCard({
                                  title,
                                  body,
                                  postCount = 0,
+                                 userId,
                                  authorName,
                                  lastUpdatedAt,
                                  thumbnailUrl,
@@ -71,6 +73,13 @@ export function SeriesListCard({
     } catch {
       alert("삭제에 실패했습니다.");
     }
+  };
+
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    if (!userId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/users/${userId}`);
   };
 
   return (
@@ -174,7 +183,13 @@ export function SeriesListCard({
             </p>
             
             <div className="flex items-center gap-3 text-[12px] font-medium text-neutral-400">
-              <span className="font-bold text-neutral-600 truncate max-w-[120px]">
+              <span
+                className={cn(
+                  "font-bold text-neutral-600 truncate max-w-[120px]",
+                  userId && "hover:text-primary hover:underline transition-colors"
+                )}
+                onClick={handleAuthorClick}
+              >
                 {authorName || "알 수 없는 사용자"}
               </span>
             </div>

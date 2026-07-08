@@ -125,7 +125,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
 
                 {/* 작성자 & 메타 정보 */}
                 <div className="mb-8 flex items-center justify-between border-b border-neutral-border pb-6">
-                    <div className="flex items-center gap-3">
+                    <Link href={`/users/${post.userId}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                         <Avatar name={post.nickname} size="md" />
                         <div>
                             <p className="font-bold text-neutral-dark">{post.nickname}</p>
@@ -134,7 +134,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                                 {post.createdAt}
                             </div>
                         </div>
-                    </div>
+                    </Link>
                     <div className="flex items-center gap-4 text-neutral-meta">
                         <div className="flex items-center gap-1 text-sm">
                             <Eye className="h-4 w-4" />

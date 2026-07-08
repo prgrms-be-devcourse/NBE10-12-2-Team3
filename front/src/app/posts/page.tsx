@@ -192,6 +192,7 @@ export default function PostsPage() {
                                     description=""
                                     accessLevel={post.accessLevel}
                                     thumbnailUrl={undefined}
+                                    authorId={post.userId}
                                     authorName={post.nickname}
                                     createdAt={post.createdAt.split("T")[0]}
                                     viewCount={post.viewCount}
@@ -214,6 +215,7 @@ export default function PostsPage() {
                                     description=""
                                     accessLevel={post.accessLevel}
                                     thumbnailUrl={undefined}
+                                    authorId={post.userId}
                                     authorName={post.nickname}
                                     createdAt={post.createdAt.split("T")[0]}
                                     viewCount={post.viewCount}

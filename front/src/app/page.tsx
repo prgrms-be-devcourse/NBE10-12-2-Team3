@@ -41,6 +41,7 @@ function toCardProps(post: PostItem) {
     title: post.title,
     description: "",
     accessLevel: post.accessLevel,
+    authorId: post.userId,
     authorName: post.nickname,
     createdAt: post.createdAt.split("T")[0],
     viewCount: post.viewCount,

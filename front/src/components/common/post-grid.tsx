@@ -28,6 +28,7 @@ export function PostGrid({ posts, authorName, emptyMessage = "아직 작성한 �
           id={post.id}
           title={post.title}
           accessLevel={post.accessLevel}
+          authorId={post.userId}
           authorName={authorName}
           createdAt={post.createdAt.split("T")[0]}
           viewCount={post.viewCount}

@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
 import {Avatar} from "@/components/ui/avatar";
 import {cn} from "@/lib/utils";
 import {Bookmark, Eye, Heart} from "lucide-react";
@@ -12,6 +15,7 @@ interface ContentListCardProps {
   description: string;
   accessLevel: "FREE" | "PAID";
   thumbnailUrl?: string;
+  authorId?: number | string;
   authorName: string;
   createdAt: string;
   viewCount: number;
@@ -30,6 +34,7 @@ export function ContentListCard({
   description,
   accessLevel,
   thumbnailUrl,
+  authorId,
   authorName,
   createdAt,
   viewCount,
@@ -41,6 +46,15 @@ export function ContentListCard({
                                     onBookmark,
   className,
 }: ContentListCardProps) {
+  const router = useRouter();
+
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    if (!authorId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/users/${authorId}`);
+  };
+
   const formattedViews = formatCompact(viewCount);
   const formattedLikes = formatCompact(likeCount);
   const formattedBookmarks = formatCompact(bookmarkCount);
@@ -85,7 +99,10 @@ export function ContentListCard({
       {/* Content Area */}
       <div className="flex flex-1 flex-col p-5 sm:p-6 md:p-8 justify-between gap-4">
         <div>
-          <div className="mb-3 flex items-center gap-2">
+          <div
+             className={cn("mb-3 flex items-center gap-2 w-fit", authorId && "hover:opacity-70 transition-opacity")}
+             onClick={handleAuthorClick}
+          >
              <Avatar name={authorName} className="h-5 w-5" />
              <span className="text-xs font-bold text-neutral-dark truncate">{authorName}</span>
           </div>

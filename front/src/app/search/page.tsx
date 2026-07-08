@@ -48,13 +48,14 @@ export default async function SearchPage({
   }
 
   const posts = postsResult.content.map((p: {
-    id: number; title: string; body?: string; accessLevel: "FREE" | "PAID";
+    id: number; userId?: number; title: string; body?: string; accessLevel: "FREE" | "PAID";
     nickname: string; createdAt: string; viewCount: number;
   }) => ({
     id: p.id,
     title: p.title,
     description: p.body ? p.body.replace(/<[^>]*>/g, "").slice(0, 100) : "",
     accessLevel: p.accessLevel,
+    authorId: p.userId,
     authorName: p.nickname,
     createdAt: p.createdAt ? p.createdAt.split("T")[0] : "",
     viewCount: p.viewCount ?? 0,

@@ -33,6 +33,7 @@ export default async function SeriesDetailPage({
         title: p.title,
         description: "",
         accessLevel: p.accessLevel as "FREE" | "PAID",
+        authorId: series.userId,
         authorName: series.nickname,
         createdAt: p.createdAt ? p.createdAt.split("T")[0] : "",
         viewCount: p.viewCount,
