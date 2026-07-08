@@ -15,7 +15,7 @@ interface ContentListCardProps {
   description: string;
   accessLevel: "FREE" | "PAID";
   thumbnailUrl?: string;
-  authorId?: number | string;
+  authorId?: number;
   authorName: string;
   createdAt: string;
   viewCount: number;

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { UserPlus, Check, Star, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -128,9 +129,12 @@ export function SeriesFollowActions({ creatorId, nickname }: SeriesFollowActions
 
   if (isOwnSeries) {
     return (
-      <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full border border-white/5 shadow-sm">
+      <Link
+        href={`/users/${creatorId}`}
+        className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full border border-white/5 shadow-sm transition-colors"
+      >
         <span className="text-white font-bold">{nickname}</span>
-      </span>
+      </Link>
     );
   }
 
@@ -141,7 +145,7 @@ export function SeriesFollowActions({ creatorId, nickname }: SeriesFollowActions
         onClick={handleMainClick}
         disabled={isLoading}
         className={cn(
-          "flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm transition-colors group",
+          "flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm transition-all group",
           tier === "MEMBERSHIP" && "bg-membership hover:bg-membership/90 border-white/5 text-white",
           // mypage 구독 목록(FollowButton)의 팔로우 상태 색상을 그대로 가져옵니다.
           tier === "FOLLOW" && "bg-neutral-50 hover:bg-neutral-100 border-neutral-200 text-neutral-600",
@@ -151,9 +155,9 @@ export function SeriesFollowActions({ creatorId, nickname }: SeriesFollowActions
       >
         <span className="font-bold">{nickname}</span>
         {tier === "FOLLOW" ? (
-          <Check className="h-3.5 w-3.5 ml-1 opacity-70 group-hover:opacity-100 transition-opacity" />
+          <Check className="h-3.5 w-3.5 ml-1 opacity-70 group-hover:opacity-100" />
         ) : (
-          <UserPlus className="h-3.5 w-3.5 ml-1 opacity-70 group-hover:opacity-100 transition-opacity" />
+          <UserPlus className="h-3.5 w-3.5 ml-1 opacity-70 group-hover:opacity-100" />
         )}
       </button>
 

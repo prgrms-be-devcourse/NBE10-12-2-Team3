@@ -13,7 +13,7 @@ interface SeriesCardProps {
   title: string;
   body?: string;
   postCount?: number;
-  userId?: number | string;
+  userId?: number;
   authorName?: string;
   lastUpdatedAt: string;
   thumbnailUrl?: string;
