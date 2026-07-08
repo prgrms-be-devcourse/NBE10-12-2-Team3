@@ -2,6 +2,7 @@
 
 import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from "react";
 import {useAuth} from "@/providers/auth-provider";
+import {BASE_URL} from "@/lib/api";
 
 export type NotificationType = "NEW_POST" | "COMMENT" | "FOLLOW" | "MEMBERSHIP";
 
@@ -46,22 +47,27 @@ export function NotificationProvider({children}: { children: React.ReactNode }) 
     const playSound = useCallback(() => {
         const ctx = audioCtxRef.current;
         if (!ctx) return;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = 880;
-        osc.type = "sine";
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.4);
+        // 높은 음 → 낮은 음 순서로 짧게 — 차임 느낌
+        [1046, 784].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            osc.type = "sine";
+            const t = ctx.currentTime + i * 0.13;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.07, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+            osc.start(t);
+            osc.stop(t + 0.28);
+        });
     }, []);
 
     useEffect(() => {
         if (!isLoggedIn) return;
 
-        const es = new EventSource("/api/notifications/subscribe", {withCredentials: true});
+        const es = new EventSource(`${BASE_URL}/api/notifications/subscribe`, {withCredentials: true});
 
         // onmessage가 아닌 addEventListener — 백엔드가 .name("notification")으로 보내기 때문
         es.addEventListener("notification", (e: MessageEvent) => {
