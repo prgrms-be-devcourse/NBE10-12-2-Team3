@@ -112,6 +112,7 @@ public class SecurityConfig {
                                 "/api/series/users/{userId:\\d+}",
                                 "/api/posts",
                                 "/api/posts/search",
+                                "/api/posts/users/{userId:\\d+}",
                                 "/api/posts/{id:\\d+}",
                                 "/api/posts/{id:\\d+}/comments",
                                 "/api/posts/{id:\\d+}/medias/thumbnail",
