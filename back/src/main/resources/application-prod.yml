@@ -22,7 +22,7 @@ cors:
   allowed-origins: ${CORS_ALLOWED_ORIGIN}
 
 cookie:
-  domain: .scommit.store
+  domain: scommit.store
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME}
