@@ -1,5 +1,6 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
+import { SharedArray } from "k6/data";
 
 /**
  * [시나리오 3: 1~100번 게시글 순차 조회 (로그인 유저)]
@@ -22,17 +23,27 @@ export const options = {
 // 실행 예시: k6 run -e BASE_URL=http://'백엔드 도메인 주소' k6/performance/scenario3_sequential_user.js
 const BASE_URL = __ENV.BASE_URL || "http://localhost:8080";
 
-// [사전 준비] 테스트 시작 전 단 1번만 실행되어 로그인 수행
+const users = new SharedArray("users", function () {
+  return JSON.parse(open("../users.json"));
+});
+
+// [사전 준비] 테스트 시작 전 단 1번만 실행되어 다수의 유저 로그인 수행
 export function setup() {
-  const res = http.post(
-    `${BASE_URL}/api/users/login`,
-    JSON.stringify({ email: "user1@test.com", password: "123456" }),
-    {
-      headers: { "Content-Type": "application/json" },
-    },
-  );
-  // 받아온 쿠키(JWT 토큰)를 반환하여 유저들에게 나누어 줌
-  return { cookies: res.cookies };
+  const cookiesList = [];
+  
+  for (let i = 0; i < users.length; i++) {
+    const res = http.post(
+      `${BASE_URL}/api/users/login`,
+      JSON.stringify(users[i]),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+    cookiesList.push(res.cookies);
+  }
+  
+  // 받아온 여러 계정의 쿠키(JWT 토큰) 배열을 반환하여 VU들에게 나누어 줌
+  return { cookiesList };
 }
 
 // [반복 부하] setup()에서 넘겨준 data를 받아와서 사용
@@ -40,8 +51,10 @@ export default function (data) {
   // 순차 조회: 1번부터 100번까지 차례대로 순회
   const targetPostId = (__ITER % 100) + 1;
 
-  // 로그인 토큰(쿠키) 장착
-  const reqOptions = { cookies: data.cookies };
+  // VU별로 고유한 유저 쿠키 할당 (데이터 수가 부족하면 다시 처음부터 순환)
+  // __VU는 1부터 시작하므로 -1 처리
+  const userIndex = (__VU - 1) % data.cookiesList.length;
+  const reqOptions = { cookies: data.cookiesList[userIndex] };
 
   // 로그인 상태로 조회
   const res = http.get(`${BASE_URL}/api/posts/${targetPostId}`, reqOptions);
