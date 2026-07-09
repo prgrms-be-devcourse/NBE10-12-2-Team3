@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
 import {Avatar} from "@/components/ui/avatar";
 import {cn} from "@/lib/utils";
 import {Bookmark, Eye, Heart} from "lucide-react";
@@ -12,6 +15,7 @@ interface ContentCardProps {
   description?: string;
   accessLevel: "FREE" | "PAID";
   thumbnailUrl?: string;
+  authorId?: number;
   authorName: string;
   createdAt: string;
   viewCount: number;
@@ -33,6 +37,7 @@ export function ContentCard({
   description,
   accessLevel,
   thumbnailUrl,
+  authorId,
   authorName,
   createdAt,
   viewCount,
@@ -46,6 +51,15 @@ export function ContentCard({
   href,
   onClick,
 }: ContentCardProps) {
+  const router = useRouter();
+
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    if (!authorId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/users/${authorId}`);
+  };
+
   const formattedViews = formatCompact(viewCount);
   const formattedLikes = formatCompact(likeCount);
   const formattedBookmarks = formatCompact(bookmarkCount);
@@ -93,7 +107,10 @@ export function ContentCard({
       {/* Content Area */}
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
-           <div className="flex items-center gap-2">
+           <div
+             className={cn("flex items-center gap-2", authorId && "hover:opacity-70 transition-opacity")}
+             onClick={handleAuthorClick}
+           >
              <Avatar name={authorName || "User"} className="h-5 w-5" />
              <span className="text-xs font-bold text-neutral-dark truncate max-w-[100px]">{authorName || "알 수 없는 사용자"}</span>
            </div>

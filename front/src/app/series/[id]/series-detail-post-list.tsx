@@ -13,6 +13,7 @@ interface Post {
   title: string;
   description: string;
   accessLevel: "FREE" | "PAID";
+  authorId?: number;
   authorName: string;
   createdAt: string;
   viewCount: number;

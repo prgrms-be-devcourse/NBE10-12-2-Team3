@@ -42,6 +42,7 @@ interface Post {
   description: string;
   accessLevel: "FREE" | "PAID";
   thumbnailUrl?: string;
+  authorId?: number;
   authorName: string;
   createdAt: string;
   viewCount: number;

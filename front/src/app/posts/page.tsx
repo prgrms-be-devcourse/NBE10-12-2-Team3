@@ -193,6 +193,7 @@ export default function PostsPage() {
                                     description=""
                                     accessLevel={post.accessLevel}
                                     thumbnailUrl={post.thumbnailUrl ? resolveMediaUrl(post.thumbnailUrl) : undefined}
+                                    authorId={post.userId}
                                     authorName={post.nickname}
                                     createdAt={post.createdAt.split("T")[0]}
                                     viewCount={post.viewCount}
@@ -215,6 +216,7 @@ export default function PostsPage() {
                                     description=""
                                     accessLevel={post.accessLevel}
                                     thumbnailUrl={post.thumbnailUrl ? resolveMediaUrl(post.thumbnailUrl) : undefined}
+                                    authorId={post.userId}
                                     authorName={post.nickname}
                                     createdAt={post.createdAt.split("T")[0]}
                                     viewCount={post.viewCount}

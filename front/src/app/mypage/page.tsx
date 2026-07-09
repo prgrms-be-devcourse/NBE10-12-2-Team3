@@ -26,18 +26,21 @@ export default function MyPage() {
   const router = useRouter();
 
   useEffect(() => {
+    if (isAuthLoading) return;
+    if (!isLoggedIn) {
+      router.push("/users/login");
+      return;
+    }
     apiFetch<number>("/api/subscriptions/followers/count")
       .then(setFollowerCount)
       .catch((e) => {
         if (e instanceof ApiError && e.status === 401) {
-          alert("로그인이 필요합니다.");
-          // TODO: 로그인 화면 PR 머지 후, "/"이 아니라 로그인 페이지로 리다이렉트하도록 변경
-          router.push("/");
+          router.push("/users/login");
           return;
         }
         console.error(e);
       });
-  }, [isLoggedIn, router]);
+  }, [isAuthLoading, isLoggedIn, router]);
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-24">

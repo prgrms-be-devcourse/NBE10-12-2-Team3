@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Check, X } from "lucide-react";
@@ -93,8 +94,10 @@ export function CommentList({ postId, isLocked = false }: { postId: number; isLo
                     <div key={comment.id} className="rounded-xl border border-neutral-border bg-white p-4">
                         <div className="mb-2 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Avatar name={comment.nickname} size="sm" />
-                                <span className="text-sm font-bold text-neutral-dark">{comment.nickname}</span>
+                                <Link href={`/users/${comment.userId}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                    <Avatar name={comment.nickname} size="sm" />
+                                    <span className="text-sm font-bold text-neutral-dark">{comment.nickname}</span>
+                                </Link>
                                 <span className="text-xs text-neutral-meta">{comment.createdAt}</span>
                             </div>
                             {hasMounted && isLoggedIn && user?.id === comment.userId && (

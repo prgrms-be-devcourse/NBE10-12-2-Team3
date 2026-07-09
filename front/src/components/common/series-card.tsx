@@ -13,6 +13,7 @@ interface SeriesCardProps {
   title: string;
   body?: string;
   postCount?: number;
+  userId?: number;
   authorName?: string;
   lastUpdatedAt: string;
   thumbnailUrl?: string;
@@ -28,6 +29,7 @@ export function SeriesCard({
                              title,
                              body,
                              postCount = 0,
+                             userId,
                              authorName,
                              lastUpdatedAt,
                              thumbnailUrl,
@@ -71,6 +73,13 @@ export function SeriesCard({
     } catch {
       alert("삭제에 실패했습니다.");
     }
+  };
+
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    if (!userId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/users/${userId}`);
   };
 
   return (
@@ -167,7 +176,13 @@ export function SeriesCard({
 
           {/* 하단 메타데이터 */}
           <div className="mt-auto pt-4 border-t border-neutral-100 flex items-center justify-between">
-            <span className="text-[12px] font-bold text-neutral-700 truncate pr-2">
+            <span
+              className={cn(
+                "text-[12px] font-bold text-neutral-700 truncate pr-2",
+                userId && "hover:text-primary hover:underline transition-colors"
+              )}
+              onClick={handleAuthorClick}
+            >
               by {authorName || "알 수 없는 사용자"}
             </span>
             <span className="flex items-center gap-1 text-[11px] font-medium text-neutral-400 shrink-0">
