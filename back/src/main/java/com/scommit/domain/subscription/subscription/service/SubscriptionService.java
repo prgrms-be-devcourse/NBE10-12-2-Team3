@@ -20,6 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionInfo;
+import com.scommit.domain.subscription.subscription.dto.SubscriptionStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -161,7 +168,27 @@ public class SubscriptionService {
 
     public Page<SubscriptionInfo> getMySubscriptions(Long userId, Pageable pageable) {
         Page<Subscription> subscriptionsPage = subscriptionRepository.findMySubscriptions(userId, pageable);
-        return subscriptionsPage.map(SubscriptionInfo::from);
+        
+        List<Long> creatorIds = subscriptionsPage.getContent().stream()
+                .map(s -> s.getCreator().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, Long> followerCounts = creatorIds.isEmpty() ? Map.of() : 
+                subscriptionRepository.countFollowersGroupedByCreatorIds(creatorIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+
+        return subscriptionsPage.map(sub -> {
+            Long count = followerCounts.getOrDefault(sub.getCreator().getId(), 0L);
+            return SubscriptionInfo.from(sub, count);
+        });
+    }
+
+    public long getMySubscriptionCount(Long userId) {
+        return subscriptionRepository.countByUserIdAndDeletedAtIsNull(userId);
     }
 
     public SubscriptionStatus getSubscriptionStatus(Long userId, Long creatorId) {

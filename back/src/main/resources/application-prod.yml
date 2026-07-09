@@ -1,3 +1,6 @@
+server:
+  forward-headers-strategy: native
+
 spring:
   datasource:
     url: "jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true"
@@ -19,7 +22,7 @@ cors:
   allowed-origins: ${CORS_ALLOWED_ORIGIN}
 
 cookie:
-  domain: .scommit.store
+  domain: scommit.store
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME}

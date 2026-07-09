@@ -10,9 +10,10 @@ public record SubscriptionInfo(
         String creatorProfileImage, // 구독받은 사람(창작자)의 프로필 이미지
         SubscriptionTier tier,
         LocalDate startedAt,
-        LocalDate expiredAt
+        LocalDate expiredAt,
+        Long followerCount
 ) {
-    public static SubscriptionInfo from(Subscription subscription) {
+    public static SubscriptionInfo from(Subscription subscription, Long followerCount) {
         return new SubscriptionInfo(
                 subscription.getCreator().getId(),
                 subscription.getCreator().getNickname(),
@@ -20,7 +21,8 @@ public record SubscriptionInfo(
                 "",
                 subscription.getTier(),
                 subscription.getStartedAt(),
-                subscription.getExpiredAt()
+                subscription.getExpiredAt(),
+                followerCount
         );
     }
 }

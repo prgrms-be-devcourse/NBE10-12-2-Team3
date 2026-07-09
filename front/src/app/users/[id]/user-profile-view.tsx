@@ -69,6 +69,9 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
   const [isMember, setIsMember] = useState(false);
   const [isFollowSubmitting, setIsFollowSubmitting] = useState(false);
   const [isMembershipSubmitting, setIsMembershipSubmitting] = useState(false);
+  // 팔로우/멤버십 가입·해지 시 새로고침 없이 구독자 수를 즉시 반영하기 위한 낙관적(optimistic) 카운트.
+  // 서버 진짜 값과는 다음 방문(재조회) 시 다시 맞춰집니다.
+  const [subscriberCount, setSubscriberCount] = useState(profile.subscriberCount);
 
   // useAuth().user.id(number)와 프로필 id를 비교해 본인 프로필 여부를 판단합니다.
   // hasMounted 가드: 서버는 로그인 여부를 몰라 항상 비로그인으로 렌더링하므로,
@@ -118,8 +121,10 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
     try {
       if (isFollowing) {
         await apiDelete(`/api/subscriptions/follow/${profile.id}`);
+        setSubscriberCount((prev) => prev - 1);
       } else {
         await apiPost(`/api/subscriptions/follow/${profile.id}`);
+        setSubscriberCount((prev) => prev + 1);
       }
       setIsFollowing((prev) => !prev);
     } catch {
@@ -143,6 +148,11 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
         // 이걸 빼먹으면 팔로우 없이 바로 멤버십에 가입한 사용자가 나중에 멤버십을 해지했을 때
         // isFollowing이 여전히 false로 남아 팔로우 버튼이 "팔로우"로 보이고, 클릭 시 백엔드가
         // 이미 존재하는 구독으로 거부(ALREADY_SUBSCRIBED)해 실패 alert가 뜨는 버그가 있었습니다.
+        // 이미 팔로우 중이었다면 백엔드는 기존 구독 row를 MEMBERSHIP으로 승급만 하고 새로 만들지
+        // 않으므로, 구독자 수는 팔로우 중이 아니었을 때(자동 팔로우로 row가 새로 생길 때)만 올립니다.
+        if (!isFollowing) {
+          setSubscriberCount((prev) => prev + 1);
+        }
         setIsFollowing(true);
       }
       setIsMember((prev) => !prev);
@@ -189,7 +199,7 @@ export function UserProfileView({ profile, tab, page, totalPages, isLastPostsPag
 
   const stats: { label: string; value: string }[] = [
     { label: "포스트", value: profile.postCount.toLocaleString("ko-KR") },
-    { label: "구독자", value: profile.subscriberCount.toLocaleString("ko-KR") },
+    { label: "구독자", value: subscriberCount.toLocaleString("ko-KR") },
     { label: "구독 중", value: profile.subscribingCount.toLocaleString("ko-KR") },
   ];
 

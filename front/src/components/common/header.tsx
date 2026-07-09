@@ -57,7 +57,11 @@ export function Header() {
     return () => clearTimeout(timer);
   }, [pathname, searchParams]);
   const [isMounted, setIsMounted] = useState(false);
-  
+  // isMounted 가드: 서버는 로그인 여부를 알 수 없어 항상 비로그인 상태로 렌더링하므로,
+  // 하이드레이션 이전(첫 클라이언트 렌더)에도 isLoggedIn을 그대로 쓰면 서버 HTML과
+  // 달라져 hydration mismatch가 납니다. 마운트 후에만 실제 로그인 상태를 반영합니다.
+  const isAuthReady = isMounted && isLoggedIn;
+
   const searchContainerRef = useRef<HTMLFormElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { recentSearches, addSearchTerm, removeSearchTerm } = useRecentSearches();
@@ -219,10 +223,7 @@ export function Header() {
               )}
             </form>
             
-            {/* isMounted 가드: 서버는 로그인 여부를 알 수 없어 항상 비로그인 상태로 렌더링하므로,
-                하이드레이션 이전(첫 클라이언트 렌더)에도 isLoggedIn을 그대로 쓰면 서버 HTML과
-                달라져 hydration mismatch가 납니다. 마운트 후에만 실제 로그인 상태를 반영합니다. */}
-            {isMounted && isLoggedIn && (
+            {isAuthReady && (
               <>
                 <Link href="/posts/new">
                   <Button variant="filled" className="hidden sm:flex items-center gap-1.5 text-sm font-bold px-4 py-2">
@@ -239,7 +240,7 @@ export function Header() {
 
           <div className="h-4 w-px bg-neutral-200 hidden sm:block"></div>
 
-          {isMounted && isLoggedIn ? (
+          {isAuthReady ? (
             <div className="flex items-center gap-4" ref={profileDropdownRef}>
               {user?.role === "ADMIN" ? (
                 <div className="relative group hidden sm:block">

@@ -5,7 +5,7 @@ import {ContentCard} from "@/components/common/content-card";
 import {ContentListCard} from "@/components/common/content-list-card";
 import {LayoutGrid, List} from "lucide-react";
 import {cn} from "@/lib/utils";
-import {apiDelete, apiFetch, apiPost} from "@/lib/api";
+import {apiDelete, apiFetch, apiPost, resolveMediaUrl} from "@/lib/api";
 import {useAuth} from "@/providers/auth-provider";
 
 interface Post {
@@ -14,6 +14,7 @@ interface Post {
     nickname: string;
     seriesId: number | null;
     title: string;
+    thumbnailUrl?: string;
     publishStatus: "PUBLIC" | "PRIVATE";
     accessLevel: "FREE" | "PAID";
     viewCount: number;
@@ -191,7 +192,7 @@ export default function PostsPage() {
                                     title={post.title}
                                     description=""
                                     accessLevel={post.accessLevel}
-                                    thumbnailUrl={undefined}
+                                    thumbnailUrl={post.thumbnailUrl ? resolveMediaUrl(post.thumbnailUrl) : undefined}
                                     authorId={post.userId}
                                     authorName={post.nickname}
                                     createdAt={post.createdAt.split("T")[0]}
@@ -214,7 +215,7 @@ export default function PostsPage() {
                                     title={post.title}
                                     description=""
                                     accessLevel={post.accessLevel}
-                                    thumbnailUrl={undefined}
+                                    thumbnailUrl={post.thumbnailUrl ? resolveMediaUrl(post.thumbnailUrl) : undefined}
                                     authorId={post.userId}
                                     authorName={post.nickname}
                                     createdAt={post.createdAt.split("T")[0]}

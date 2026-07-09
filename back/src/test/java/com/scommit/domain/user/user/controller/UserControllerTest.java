@@ -6,6 +6,7 @@ import com.scommit.domain.user.user.dto.SignupRequest;
 import com.scommit.domain.user.user.dto.UserDeleteRequest;
 import com.scommit.domain.user.user.dto.UserPasswordUpdateRequest;
 import com.scommit.domain.user.user.dto.UserUpdateRequest;
+import com.scommit.domain.subscription.subscription.service.SubscriptionService;
 import com.scommit.domain.user.user.entity.User;
 import com.scommit.domain.user.user.entity.UserRole;
 import com.scommit.domain.user.user.service.UserService;
@@ -71,6 +72,9 @@ public class UserControllerTest {
 
     @MockitoBean
     private UserMediaService userMediaService;
+
+    @MockitoBean
+    private SubscriptionService subscriptionService;
 
     @MockitoBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
@@ -739,11 +743,13 @@ public class UserControllerTest {
             given(userMediaService.getMedia(1L)).willReturn(
                     new UserMediaResponse(1L, 1L, "user/uuid.png", com.scommit.domain.media.media.entity.MediaType.IMAGE)
             );
+            given(subscriptionService.getFollowerCount(1L)).willReturn(5L);
 
             mvc.perform(get("/api/users/1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.resultCode").value("200-1"))
                     .andExpect(jsonPath("$.data.id").value(1))
+                    .andExpect(jsonPath("$.data.followerCount").value(5))
                     .andExpect(jsonPath("$.data.profile.nickname").value(NICKNAME))
                     .andExpect(jsonPath("$.data.profile.introduction").value(INTRODUCTION))
                     .andExpect(jsonPath("$.data.profile.profileImageUrl").value("user/uuid.png"));
@@ -755,21 +761,38 @@ public class UserControllerTest {
             User targetUser = mockTargetUser();
             given(userService.getUser(1L)).willReturn(java.util.Optional.of(targetUser));
             given(userMediaService.getMedia(1L)).willReturn(null);
+            given(subscriptionService.getFollowerCount(1L)).willReturn(0L);
 
             mvc.perform(get("/api/users/1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    .andExpect(jsonPath("$.data.followerCount").value(0))
                     .andExpect(jsonPath("$.data.profile.profileImageUrl").doesNotExist());
         }
 
         @Test
-        @DisplayName("존재하지 않는 유저 → 404")
+        @DisplayName("성공 (200) - 팔로워가 없는 유저를 조회하면 followerCount가 0으로 응답된다")
+        void getUserProfile_ZeroFollowers() throws Exception {
+            User targetUser = mockTargetUser();
+            given(userService.getUser(1L)).willReturn(java.util.Optional.of(targetUser));
+            given(userMediaService.getMedia(1L)).willReturn(null);
+            given(subscriptionService.getFollowerCount(1L)).willReturn(0L);
+
+            mvc.perform(get("/api/users/1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.followerCount").value(0));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 유저 → 404 (팔로워 수는 조회하지 않는다)")
         void getUserProfile_UserNotFound() throws Exception {
             given(userService.getUser(999L)).willReturn(java.util.Optional.empty());
 
             mvc.perform(get("/api/users/999"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.resultCode").value("404-2"));
+
+            verify(subscriptionService, never()).getFollowerCount(anyLong());
         }
     }
 

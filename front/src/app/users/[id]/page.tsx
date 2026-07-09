@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { MOCK_CREATORS, MOCK_POSTS } from "@/lib/mock-data";
+import { MOCK_CREATORS } from "@/lib/mock-data";
 import { apiFetch, ApiError, resolveMediaUrl } from "@/lib/api";
 import { UserProfileView } from "./user-profile-view";
 
@@ -11,6 +11,7 @@ const PAGE_SIZE = 10;
 // Swagger 확정 스펙: GET /api/users/{id} → RsData<UserProfileApiResponse>
 export interface UserProfileApiResponse {
   id: number;
+  followerCount: number;
   profile: {
     nickname: string;
     profileImageUrl: string;
@@ -19,18 +20,17 @@ export interface UserProfileApiResponse {
 }
 
 // UserProfileApiResponse를 평탄화한 화면용 뷰 모델.
-// id/nickname/profileImageUrl/introduction은 UserProfileApiResponse.profile을 그대로 매핑합니다.
+// id/nickname/profileImageUrl/introduction/subscriberCount(followerCount)는 UserProfileApiResponse를 그대로 매핑합니다.
 // user-profile-view.tsx에서도 이 타입을 그대로 import해서 재사용하므로 별도 타입을 만들지 마세요.
 export interface UserProfileResponse {
   id: number;
   nickname: string;
   introduction: string;
   profileImageUrl?: string;
-  // TODO: [백엔드 확인 필요] 포스트 수 / 구독자 수 / 구독 중 수 / 멤버십 제공 여부는
-  // UserProfileApiResponse에 없습니다. 통계 전용 엔드포인트(예: /users/{userId}/subscriptions/count)가
-  // Swagger에 아직 없음 — 백엔드 확인 후 추가 예정.
-  postCount: number;
   subscriberCount: number;
+  postCount: number;
+  // TODO: [백엔드 확인 필요] 구독 중 수 / 멤버십 제공 여부는 UserProfileApiResponse에 없고,
+  // 통계 전용 엔드포인트도 Swagger에 아직 없음 — 백엔드 확인 후 추가 예정.
   subscribingCount: number;
   offersMembership: boolean;
 }
@@ -59,6 +59,15 @@ export interface SlicePostListResponse {
   size: number;
   number: number;
   empty: boolean;
+}
+
+// Swagger 확정 스펙: GET /api/posts/users/{userId}?page={n}&size={s} → RsData<PagePostListResponse>
+// /api/posts(creatorId)는 Slice라 totalElements가 없어, 포스트 수(postCount) 집계 전용으로만 사용합니다.
+// (size=1로 요청해 content는 최소 1건만 받고 totalElements만 사용)
+export interface PagePostListResponse {
+  content: PostListResponse[];
+  totalElements: number;
+  totalPages: number;
 }
 
 // Swagger 확정 스펙: GET /api/series/users/{userId}?page={n}&size={s} → RsData<PageResponseSeriesListResponse>
@@ -123,19 +132,30 @@ export default async function UserProfilePage({
     );
   }
 
-  // TODO: [백엔드 확인 필요]  수 / 구독자 수 / 구독 중 수 / 멤버십 제공 여부는
-  // UserProfileApiResponse에 없습니다. 통계 전용 엔드포인트가 Swagger에 아직 없음 — 백엔드 확인 후 실데이터로 교체 예정.
+  // TODO: [백엔드 확인 필요] 구독 중 수 / 멤버십 제공 여부는 UserProfileApiResponse에 없습니다.
+  // 통계 전용 엔드포인트가 Swagger에 아직 없음 — 백엔드 확인 후 실데이터로 교체 예정.
   // 실제 유저 id와 매칭되는 mock 크리에이터가 없으면 첫 번째 mock 크리에이터 값으로 대체합니다.
   const mockCreator = MOCK_CREATORS.find((c) => c.id === apiProfile.id) ?? MOCK_CREATORS[0];
-  const mockPostCount = MOCK_POSTS.filter((p) => p.authorId === mockCreator.id).length;
+
+  // 포스트 수는 총 개수만 필요하므로 size=1로 요청해 totalElements만 사용합니다.
+  let postCount = 0;
+  try {
+    const postCountData = await apiFetch<PagePostListResponse>(
+      `/api/posts/users/${id}?page=0&size=1`,
+      { cache: "no-store", headers: authHeaders }
+    );
+    postCount = postCountData.totalElements;
+  } catch {
+    // TODO: [백엔드 확인 필요] 401/403 등 상태별 세분화된 에러 처리는 아직 없음 — 실패 시 0으로 표시합니다.
+  }
 
   const profile: UserProfileResponse = {
     id: apiProfile.id,
     nickname: apiProfile.profile.nickname,
     introduction: apiProfile.profile.introduction,
     profileImageUrl: apiProfile.profile.profileImageUrl ? resolveMediaUrl(apiProfile.profile.profileImageUrl) : undefined,
-    postCount: mockPostCount,
-    subscriberCount: mockCreator.subscriberCount,
+    postCount,
+    subscriberCount: apiProfile.followerCount,
     subscribingCount: mockCreator.subscribingCount,
     offersMembership: mockCreator.offersMembership,
   };
@@ -188,6 +208,9 @@ export default async function UserProfilePage({
       </div>
 
       <UserProfileView
+        // 다른 유저의 프로필로 넘어갈 때 완전히 새로 마운트되도록 key를 줘서, 팔로우/멤버십 상태와
+        // 낙관적으로 반영한 구독자 수 등 이전 프로필의 로컬 state가 남지 않게 합니다.
+        key={profile.id}
         profile={profile}
         tab={tab}
         page={tab === "series" ? page : postPage}
