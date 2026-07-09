@@ -1,15 +1,15 @@
   "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/providers/auth-provider";
-import Link from "next/link";
-import { Loader2 } from "lucide-react";
+  import React, {useEffect, useState} from "react";
+  import {useRouter} from "next/navigation";
+  import {motion} from "framer-motion";
+  import {Input} from "@/components/ui/input";
+  import {Button} from "@/components/ui/button";
+  import {useAuth} from "@/providers/auth-provider";
+  import Link from "next/link";
+  import {Loader2} from "lucide-react";
 
-export default function SignupPage() {
+  export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +19,12 @@ export default function SignupPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const router = useRouter();
-  const { signupWithCredentials } = useAuth();
+    const {signupWithCredentials, isLoggedIn, isAuthLoading} = useAuth();
+
+    useEffect(() => {
+        if (isAuthLoading) return;
+        if (isLoggedIn) router.replace("/");
+    }, [isLoggedIn, isAuthLoading, router]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
