@@ -33,7 +33,7 @@ interface PageResponse {
 const PAGE_SIZE = 10;
 
 export default function BookmarksPage() {
-    const {isLoggedIn} = useAuth();
+    const {isLoggedIn, isAuthLoading} = useAuth();
     const router = useRouter();
     const [posts, setPosts] = useState<BookmarkedPost[]>([]);
     const [hasMore, setHasMore] = useState(true);
@@ -70,6 +70,7 @@ export default function BookmarksPage() {
     }, [isLoggedIn]);
 
     useEffect(() => {
+        if (isAuthLoading) return;
         if (!isLoggedIn) {
             router.push("/users/login");
             return;
@@ -79,7 +80,7 @@ export default function BookmarksPage() {
             loadMore();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoggedIn]);
+    }, [isLoggedIn, isAuthLoading]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
