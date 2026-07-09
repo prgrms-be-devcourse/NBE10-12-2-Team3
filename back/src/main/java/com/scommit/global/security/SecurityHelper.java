@@ -34,7 +34,7 @@ public class SecurityHelper { // 14183의 Rq 복붙
                 .map(Authentication::getPrincipal)
                 .filter(principal -> principal instanceof SecurityUser)
                 .map(principal -> (SecurityUser) principal)
-                .map(securityUser -> new User(securityUser.getId(), securityUser.getUsername(), securityUser.getEmail()))
+                .map(securityUser -> new User(securityUser.getId(), securityUser.getUsername(), securityUser.getNickname()))
                 .orElse(null);
     }
 
