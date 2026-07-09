@@ -107,7 +107,11 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
             const created = await createSeries(title, body);
             savedSeriesId = created.id;
             if (thumbnailFile) {
-                await uploadSeriesMedia(savedSeriesId, thumbnailFile);
+                try {
+                    await uploadSeriesMedia(savedSeriesId, thumbnailFile);
+                } catch {
+                    // 썸네일 업로드 실패는 시리즈 생성 성공 후 발생 — 편집 페이지에서 다시 올릴 수 있음
+                }
             }
             // replace: 뒤로가기 시 생성 폼(/series/new)으로 돌아오지 않도록
             router.replace(`/series/${savedSeriesId}/edit`);
