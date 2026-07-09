@@ -109,8 +109,8 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
             if (thumbnailFile) {
                 await uploadSeriesMedia(savedSeriesId, thumbnailFile);
             }
-            // 생성 후 편집 페이지로 이동해 포스트를 추가할 수 있게 함
-            router.push(`/series/${savedSeriesId}/edit`);
+            // replace: 뒤로가기 시 생성 폼(/series/new)으로 돌아오지 않도록
+            router.replace(`/series/${savedSeriesId}/edit`);
             return;
         } else {
             await updateSeries(initialData.id, title, body);
