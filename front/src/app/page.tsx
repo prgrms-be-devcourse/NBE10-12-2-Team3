@@ -7,14 +7,13 @@ import {Button} from "@/components/ui/button";
 import {AnimatePresence, motion} from "framer-motion";
 import {useRouter} from "next/navigation";
 import Link from "next/link";
-import { Sparkles, TrendingUp, Zap, ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useCarouselObserver } from "@/hooks/use-carousel-observer";
-import { useAuth } from "@/providers/auth-provider";
-import { useHasMounted } from "@/hooks/use-has-mounted";
+import {ChevronLeft, ChevronRight, Sparkles, TrendingUp, Zap} from "lucide-react";
+import {cn} from "@/lib/utils";
+import {useCarouselObserver} from "@/hooks/use-carousel-observer";
+import {useAuth} from "@/providers/auth-provider";
+import {useHasMounted} from "@/hooks/use-has-mounted";
 
 import {apiDelete, apiFetch, apiPost} from "@/lib/api";
-import {MOCK_CREATORS} from "@/lib/mock-data";
 
 interface PostItem {
   id: number;
@@ -34,6 +33,16 @@ interface SliceResponse {
   content: PostItem[];
   last: boolean;
 }
+
+interface CreatorItem {
+    id: number;
+    nickname: string;
+    subscriberCount: number;
+    introduction?: string;
+    profileImageUrl?: string;
+}
+
+const TOP_CREATOR_IDS = [2, 3, 4, 5, 6];
 
 function toCardProps(post: PostItem) {
   return {
@@ -72,11 +81,31 @@ export default function Home() {
 
     const [freePosts, setFreePosts] = useState<PostItem[]>([]);
     const [trendingPaidPosts, setTrendingPaidPosts] = useState<PostItem[]>([]);
+    const [topCreators, setTopCreators] = useState<CreatorItem[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setHeroIdx((prev) => (prev + 1) % HERO_ITEMS.length);
     }, 3000);
+
+      // 창작자 카드 (ID 2~6 고정)
+      Promise.all(
+          TOP_CREATOR_IDS.map((id) =>
+              apiFetch<{
+                  id: number;
+                  followerCount: number;
+                  profile: { nickname: string; introduction?: string; profileImageUrl?: string }
+              }>(`/api/users/${id}`)
+                  .then((res) => ({
+                      id: res.id,
+                      nickname: res.profile.nickname,
+                      subscriberCount: res.followerCount,
+                      introduction: res.profile.introduction,
+                      profileImageUrl: res.profile.profileImageUrl,
+                  }))
+                  .catch(() => null)
+          )
+      ).then((results) => setTopCreators(results.filter(Boolean) as CreatorItem[]));
 
     // 캐러셀용 데이터 (viewCount 정렬, 충분히 많이 가져와서 FREE/PAID 분리)
     apiFetch<SliceResponse>("/api/posts?size=50&sort=viewCount,desc")
@@ -278,13 +307,14 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pb-6 pt-2">
-            {MOCK_CREATORS.slice(0, 5).map((creator) => (
+              {topCreators.map((creator) => (
               <CreatorCard
                 key={creator.id}
                 id={creator.id}
                 nickname={creator.nickname}
                 subscriberCount={creator.subscriberCount}
                 introduction={creator.introduction}
+                profileImageUrl={creator.profileImageUrl}
                 className="w-full"
               />
             ))}
