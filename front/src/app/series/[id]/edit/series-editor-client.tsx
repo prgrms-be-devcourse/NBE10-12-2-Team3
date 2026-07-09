@@ -258,7 +258,11 @@ export function SeriesEditorClient({ initialData }: SeriesEditorClientProps) {
                       placeholder="이 시리즈에 어떤 포스트들이 담길지 1~2줄로 짧게 요약해주세요."
                       className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-neutral-600 min-h-[100px] resize-y leading-relaxed"
                       rows={3}
+                      maxLength={255}
                   />
+                  <p className={`text-xs text-right mt-1 ${body.length >= 240 ? "text-red-400" : "text-neutral-400"}`}>
+                      {body.length} / 255
+                  </p>
               </div>
 
               {/* 포스트 관리 (편집 모드에서만) */}
