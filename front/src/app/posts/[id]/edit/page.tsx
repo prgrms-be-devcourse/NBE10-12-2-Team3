@@ -202,7 +202,7 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
               취소
             </Button>
             <Button type="button" variant="filled" onClick={() => setShowModal(true)} className="flex-1">
-              수정 완료
+                완료
             </Button>
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
               취소
             </Button>
             <Button type="button" variant="filled" onClick={handleSubmit}>
-              수정 완료
+                완료
             </Button>
           </div>
         </aside>
@@ -267,7 +267,7 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
           onRemoveThumbnail={removeThumbnail}
           onClose={() => setShowModal(false)}
           onSubmit={() => { setShowModal(false); handleSubmit(); }}
-          submitLabel="수정 완료"
+          submitLabel="완료"
         />
       )}
     </div>

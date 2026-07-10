@@ -64,7 +64,10 @@ export function SeriesViewContainer({initialSeries, initialHasNext}: SeriesViewC
                 lastUpdatedAt: s.updatedAt ? s.updatedAt.split("T")[0] : "",
                 thumbnailUrl: s.thumbnailUrl ? resolveMediaUrl(s.thumbnailUrl) : "",
             }));
-            setSeriesList((prev) => [...prev, ...newItems]);
+            setSeriesList((prev) => {
+                const seenIds = new Set(prev.map((s) => s.id));
+                return [...prev, ...newItems.filter((s) => !seenIds.has(s.id))];
+            });
             setHasNext(!data.last);
             setNextPage((p) => p + 1);
         } catch {

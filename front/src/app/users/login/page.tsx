@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/providers/auth-provider";
+import React, {useEffect, useState} from "react";
+import {useRouter} from "next/navigation";
+import {motion} from "framer-motion";
+import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button";
+import {useAuth} from "@/providers/auth-provider";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import {Loader2} from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,7 +16,12 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const router = useRouter();
-  const { loginWithCredentials } = useAuth();
+    const {loginWithCredentials, isLoggedIn, isAuthLoading} = useAuth();
+
+    useEffect(() => {
+        if (isAuthLoading) return;
+        if (isLoggedIn) router.replace("/");
+    }, [isLoggedIn, isAuthLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

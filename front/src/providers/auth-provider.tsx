@@ -1,7 +1,7 @@
 "use client";
 
-import React, {createContext, ReactNode, useContext, useState, useEffect} from "react";
-import {apiFetch, apiPost, ApiError, resolveMediaUrl} from "@/lib/api";
+import React, {createContext, ReactNode, useContext, useEffect, useState} from "react";
+import {ApiError, apiFetch, apiPost, resolveMediaUrl} from "@/lib/api";
 
 export interface User {
   id: number;
@@ -63,17 +63,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 실제 백엔드 로그인 — JWT 쿠키 세팅 + 유저 상태 동기화
   const loginWithCredentials = async (email: string, password: string) => {
-    await apiPost("/api/users/login", { email, password });
+      const res = await apiPost<{
+          accessToken: string;
+          refreshToken: string;
+          expiresIn: number;
+          user: { id: number; email: string; nickname: string; role: "USER" | "ADMIN" };
+      }>("/api/users/login", {email, password});
+
+      // 로그인 응답에서 즉시 기본 상태를 세팅합니다. 이후 refreshUser()가 실패해도
+      // isLoggedIn이 false로 롤백되지 않습니다.
+      setIsLoggedIn(true);
+      setUser({
+          id: res.user.id,
+          email: res.user.email,
+          nickname: res.user.nickname,
+          role: res.user.role,
+      });
 
     // 로그인 응답(LoginResponse.LoginProfile)에는 프로필 이미지가 없어서, 로그인 직후
     // avatarUrl이 빈 상태로 남는 문제가 있었습니다. /api/users/me를 다시 불러와
-    // 프로필 이미지를 포함한 최신 정보로 채웁니다.
-    // TODO: [로그인 화면 PR에서 확인] 로그인(POST) 자체는 성공했는데 바로 이어지는
-    // refreshUser()의 /api/users/me 호출만 일시적으로 실패하면, refreshUser 내부 catch가
-    // isLoggedIn을 다시 false로 돌려버려 "로그인 성공했지만 화면은 비로그인 상태"인
-    // 엣지케이스가 생길 수 있습니다. 로그인 응답의 유저 정보로 우선 상태를 세팅하고
-    // refreshUser()는 avatarUrl 보강용으로만 쓰는 방식으로 분리하는 걸 고려해보세요.
-    await refreshUser();
+      // 프로필 이미지를 포함한 최신 정보로 채웁니다. 실패해도 이미 로그인 상태이므로 무시합니다.
+      refreshUser().catch(() => {
+      });
   };
 
   // 회원가입 요청
