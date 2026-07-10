@@ -3,7 +3,7 @@ import {Search} from "lucide-react";
 import {SearchResultsView} from "./search-results-view";
 import {searchSeries} from "@/lib/series-api";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 async function searchPosts(keyword: string, page: number = 0) {
     const res = await fetch(`${BASE_URL}/api/posts/search?keyword=${encodeURIComponent(keyword)}&size=10&page=${page}&sort=id,desc`, { cache: "no-store" });
