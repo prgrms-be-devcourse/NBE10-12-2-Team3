@@ -48,11 +48,18 @@ class JwtFilterTest {
 
     @BeforeEach
     void setUp() {
-        jwtProvider = new JwtProvider(SECRET, EXPIRATION);
+        jwtProvider = new JwtProvider(authTokenProperties(SECRET, EXPIRATION));
         jwtFilter = new JwtFilter(jwtProvider, securityHelper, userService);
         SecurityContextHolder.clearContext();
         // JsonUtility.objectMapper는 스프링 DI로 채워지는 static 필드라 순수 단위테스트에서는 직접 채워줘야 한다.
         new JsonUtility(new tools.jackson.databind.ObjectMapper());
+    }
+
+    private static AuthTokenProperties authTokenProperties(String secretKey, Duration expiration) {
+        return new AuthTokenProperties(
+                new AuthTokenProperties.AccessToken(secretKey, expiration, null),
+                null
+        );
     }
 
     @AfterEach
@@ -98,7 +105,7 @@ class JwtFilterTest {
     @Test
     @DisplayName("액세스 토큰이 만료됐어도 유효한 리프레시 토큰이 있으면 리프레시 토큰으로 재인증하고 다음 필터로 넘어간다")
     void expiredAccessToken_withValidRefreshToken_reAuthenticatesAndChainProceeds() throws Exception {
-        JwtProvider expiredProvider = new JwtProvider(SECRET, Duration.ofMillis(-1));
+        JwtProvider expiredProvider = new JwtProvider(authTokenProperties(SECRET, Duration.ofMillis(-1)));
         String expiredAccessToken = expiredProvider.generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
         String refreshToken = "valid-refresh-token";
         User user = User.builder()
@@ -124,7 +131,7 @@ class JwtFilterTest {
     @Test
     @DisplayName("액세스 토큰이 만료되면 새 액세스 토큰을 발급해 쿠키와 Authorization 헤더에 재설정한다")
     void expiredAccessToken_withValidRefreshToken_reissuesNewAccessTokenViaCookieAndHeader() throws Exception {
-        JwtProvider expiredProvider = new JwtProvider(SECRET, Duration.ofMillis(-1));
+        JwtProvider expiredProvider = new JwtProvider(authTokenProperties(SECRET, Duration.ofMillis(-1)));
         String expiredAccessToken = expiredProvider.generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
         String refreshToken = "valid-refresh-token";
         User user = new User(1L, "user@test.com", "nickname", UserRole.USER);
@@ -156,7 +163,7 @@ class JwtFilterTest {
     @Test
     @DisplayName("쿠키로 전달된 액세스 토큰이 만료되어도 리프레시 토큰이 유효하면 새 액세스 토큰을 재발급한다")
     void expiredAccessToken_fromCookies_alsoReissuesNewAccessToken() throws Exception {
-        JwtProvider expiredProvider = new JwtProvider(SECRET, Duration.ofMillis(-1));
+        JwtProvider expiredProvider = new JwtProvider(authTokenProperties(SECRET, Duration.ofMillis(-1)));
         String expiredAccessToken = expiredProvider.generateAccessToken(2L, "cookie@test.com", "cookieUser", UserRole.USER);
         String refreshToken = "valid-refresh-token-cookie";
         User user = new User(2L, "cookie@test.com", "cookieUser", UserRole.USER);
@@ -220,7 +227,7 @@ class JwtFilterTest {
     @Test
     @DisplayName("액세스 토큰이 만료되고 리프레시 토큰마저 유효하지 않으면 액세스 토큰을 재발급하지 않고 401 예외 응답을 반환한다")
     void expiredAccessToken_withInvalidRefreshToken_doesNotReissueAndReturnsErrorResponse() throws Exception {
-        JwtProvider expiredProvider = new JwtProvider(SECRET, Duration.ofMillis(-1));
+        JwtProvider expiredProvider = new JwtProvider(authTokenProperties(SECRET, Duration.ofMillis(-1)));
         String expiredAccessToken = expiredProvider.generateAccessToken(5L, "invalid@test.com", "invalidUser", UserRole.USER);
         String refreshToken = "invalid-refresh-token";
         given(securityHelper.getHeader("Authorization", "")).willReturn("Bearer " + refreshToken + " " + expiredAccessToken);
