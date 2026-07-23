@@ -1,9 +1,11 @@
 package com.scommit.global.security;
 
 import com.scommit.global.dto.RsData;
+import com.scommit.global.security.jwt.AuthTokenProperties;
 import com.scommit.global.security.jwt.JwtFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,6 +23,7 @@ import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
+@EnableConfigurationProperties(AuthTokenProperties.class)
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
 

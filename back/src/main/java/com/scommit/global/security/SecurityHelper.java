@@ -1,6 +1,7 @@
 package com.scommit.global.security;
 
 import com.scommit.domain.user.user.entity.User;
+import com.scommit.global.security.jwt.AuthTokenProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,8 +20,7 @@ import java.util.Optional;
 public class SecurityHelper { // 14183의 Rq 복붙
     private final HttpServletRequest req;
     private final HttpServletResponse resp;
-    @Value("${jwt.cookie.max-age}")
-    private Duration cookieMaxAge;
+    private final AuthTokenProperties authTokenProperties;
 
     @Value("${cookie.domain}")
     private String cookieDomain;
@@ -64,8 +64,8 @@ public class SecurityHelper { // 14183의 Rq 복붙
                 .orElse(defaultValue);
     }
 
-    public int getCookieExpiresInSecond() {
-        return (int) cookieMaxAge.toSeconds();
+    public int getAccessTokenCookieExpiresInSecond() {
+        return (int) authTokenProperties.accessToken().cookieMaxAge().toSeconds();
     }
 
     public void setCookie(String name, String value) {
@@ -78,8 +78,17 @@ public class SecurityHelper { // 14183의 Rq 복붙
         cookie.setSecure(true);
         cookie.setAttribute("SameSite", "Lax"); // TODO: 포트 다를 때 Strict로도 되는지 확인
 
-        if (value.isBlank()) cookie.setMaxAge(0);
-        else cookie.setMaxAge((int) cookieMaxAge.toSeconds());
+        if (value.isBlank()) {
+            cookie.setMaxAge(0);
+        } else {
+            Duration maxAge;
+            if ("refreshToken".equals(name)) {
+                maxAge = authTokenProperties.refreshToken().cookieMaxAge();
+            } else {
+                maxAge = authTokenProperties.accessToken().cookieMaxAge();
+            }
+            cookie.setMaxAge((int) maxAge.toSeconds());
+        }
 
         resp.addCookie(cookie);
     }

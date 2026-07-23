@@ -22,7 +22,14 @@ class JwtProviderTest {
 
     @BeforeEach
     void setUp() {
-        jwtProvider = new JwtProvider(SECRET, EXPIRATION);
+        jwtProvider = new JwtProvider(authTokenProperties(SECRET, EXPIRATION));
+    }
+
+    private static AuthTokenProperties authTokenProperties(String secretKey, Duration expiration) {
+        return new AuthTokenProperties(
+                new AuthTokenProperties.AccessToken(secretKey, expiration, null),
+                null
+        );
     }
 
     @Test
@@ -92,7 +99,7 @@ class JwtProviderTest {
     @Test
     @DisplayName("parseAccessToken: 만료된 토큰은 ExpiredJwtException을 던진다")
     void parseAccessToken_expired_throwsExpiredJwtException() {
-        JwtProvider expiredProvider = new JwtProvider(SECRET, Duration.ofMillis(-1));
+        JwtProvider expiredProvider = new JwtProvider(authTokenProperties(SECRET, Duration.ofMillis(-1)));
         String expiredToken = expiredProvider.generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
 
         assertThatThrownBy(() -> expiredProvider.parseAccessToken(expiredToken))

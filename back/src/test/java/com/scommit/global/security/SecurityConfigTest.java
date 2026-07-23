@@ -1,6 +1,7 @@
 package com.scommit.global.security;
 
 import com.scommit.domain.user.user.entity.UserRole;
+import com.scommit.global.security.jwt.AuthTokenProperties;
 import com.scommit.global.security.jwt.JwtProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ class SecurityConfigTest {
     @Autowired
     private JwtProvider jwtProvider;
 
-    @Value("${jwt.secret-key}")
+    @Value("${auth-token.access-token.secret-key}")
     private String secretKey;
 
     private String validToken() {
@@ -37,7 +38,12 @@ class SecurityConfigTest {
     }
 
     private String expiredToken() {
-        return new JwtProvider(secretKey, Duration.ofMillis(-1))
+        AuthTokenProperties properties = new AuthTokenProperties(
+                new AuthTokenProperties.AccessToken(secretKey, Duration.ofMillis(-1), null),
+                null
+        );
+
+        return new JwtProvider(properties)
                 .generateAccessToken(1L, "user@test.com", "nickname", UserRole.USER);
     }
 
