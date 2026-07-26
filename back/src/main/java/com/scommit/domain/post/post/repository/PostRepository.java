@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -36,4 +37,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 키워드 검색 (제목·본문, PUBLIC만)
     @Query("SELECT p FROM Post p WHERE p.deletedAt IS NULL AND p.publishStatus = :status AND (p.title LIKE %:keyword% OR p.body LIKE %:keyword%)")
     Page<Post> searchByKeyword(@Param("keyword") String keyword, @Param("status") PublishStatus status, Pageable pageable);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Post p SET p.likeCount = p.likeCount + 1 WHERE p.id = :postId")
+    void increaseLikeCount(@Param("postId") Long postId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Post p SET p.likeCount = CASE WHEN p.likeCount > 0 THEN p.likeCount - 1 ELSE 0 END WHERE p.id = :postId")
+    void decreaseLikeCount(@Param("postId") Long postId);
 }

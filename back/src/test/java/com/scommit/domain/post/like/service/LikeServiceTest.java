@@ -22,7 +22,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -78,22 +77,22 @@ class LikeServiceTest {
 
             // then
             verify(likeRepository).save(any(Like.class));
-            assertThat(post.getLikeCount()).isEqualTo(1L);
+            verify(postRepository).increaseLikeCount(10L);
         }
 
         @Test
-        @DisplayName("성공: 이미 좋아요한 경우 조용히 무시된다")
-        void createLike_alreadyLiked_ignored() {
+        @DisplayName("실패: 이미 좋아요한 경우 ALREADY_LIKED 예외를 던진다")
+        void createLike_alreadyLiked() {
             // given
             given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
             given(likeRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(true);
 
-            // when
-            likeService.createLike(10L, actor);
+            // when & then
+            assertThatThrownBy(() -> likeService.createLike(10L, actor))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ALREADY_LIKED);
 
-            // then
             verify(likeRepository, never()).save(any());
-            assertThat(post.getLikeCount()).isEqualTo(0L);
         }
 
         @Test
@@ -130,7 +129,7 @@ class LikeServiceTest {
 
             // then
             verify(likeRepository).delete(like);
-            assertThat(post.getLikeCount()).isEqualTo(0L);
+            verify(postRepository).decreaseLikeCount(10L);
         }
 
         @Test
