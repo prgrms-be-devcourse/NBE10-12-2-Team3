@@ -82,7 +82,6 @@ class BookmarkServiceTest {
         void createBookmark_success() {
             // given
             given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
-            given(bookmarkRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(false);
 
             // when
             bookmarkService.createBookmark(10L, actor);
@@ -93,18 +92,17 @@ class BookmarkServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 이미 북마크한 경우 ALREADY_BOOKMARKED 예외를 던진다")
+        @DisplayName("실패: 이미 북마크한 경우 DataIntegrityViolationException이 발생하면 ALREADY_BOOKMARKED 예외를 던진다")
         void createBookmark_alreadyBookmarked() {
             // given
             given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
-            given(bookmarkRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(true);
+            given(bookmarkRepository.save(any(Bookmark.class)))
+                    .willThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate entry"));
 
             // when & then
             assertThatThrownBy(() -> bookmarkService.createBookmark(10L, actor))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ALREADY_BOOKMARKED);
-
-            verify(bookmarkRepository, never()).save(any());
         }
 
         @Test
