@@ -70,7 +70,6 @@ class LikeServiceTest {
         void createLike_success() {
             // given
             given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
-            given(likeRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(false);
 
             // when
             likeService.createLike(10L, actor);
@@ -81,18 +80,17 @@ class LikeServiceTest {
         }
 
         @Test
-        @DisplayName("실패: 이미 좋아요한 경우 ALREADY_LIKED 예외를 던진다")
+        @DisplayName("실패: 이미 좋아요한 경우 DataIntegrityViolationException이 발생하면 ALREADY_LIKED 예외를 던진다")
         void createLike_alreadyLiked() {
             // given
             given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
-            given(likeRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(true);
+            given(likeRepository.save(any(Like.class)))
+                    .willThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate entry"));
 
             // when & then
             assertThatThrownBy(() -> likeService.createLike(10L, actor))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ALREADY_LIKED);
-
-            verify(likeRepository, never()).save(any());
         }
 
         @Test

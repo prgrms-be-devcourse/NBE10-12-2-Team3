@@ -23,10 +23,6 @@ public class LikeService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
-        if (likeRepository.existsByPostIdAndUserId(postId, actor.getId())) {
-            throw new BusinessException(ErrorCode.ALREADY_LIKED);
-        }
-
         try {
             likeRepository.save(new Like(post, actor));
             postRepository.increaseLikeCount(postId);
