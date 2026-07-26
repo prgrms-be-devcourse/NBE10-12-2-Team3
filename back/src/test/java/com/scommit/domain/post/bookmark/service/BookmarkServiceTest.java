@@ -89,22 +89,22 @@ class BookmarkServiceTest {
 
             // then
             verify(bookmarkRepository).save(any(Bookmark.class));
-            assertThat(post.getBookmarkCount()).isEqualTo(1L);
+            verify(postRepository).increaseBookmarkCount(10L);
         }
 
         @Test
-        @DisplayName("성공: 이미 북마크한 경우 조용히 무시된다")
-        void createBookmark_alreadyBookmarked_ignored() {
+        @DisplayName("실패: 이미 북마크한 경우 ALREADY_BOOKMARKED 예외를 던진다")
+        void createBookmark_alreadyBookmarked() {
             // given
             given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(post));
             given(bookmarkRepository.existsByPostIdAndUserId(10L, 1L)).willReturn(true);
 
-            // when
-            bookmarkService.createBookmark(10L, actor);
+            // when & then
+            assertThatThrownBy(() -> bookmarkService.createBookmark(10L, actor))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ALREADY_BOOKMARKED);
 
-            // then
             verify(bookmarkRepository, never()).save(any());
-            assertThat(post.getBookmarkCount()).isEqualTo(0L);
         }
 
         @Test
@@ -141,7 +141,7 @@ class BookmarkServiceTest {
 
             // then
             verify(bookmarkRepository).delete(bookmark);
-            assertThat(post.getBookmarkCount()).isEqualTo(0L);
+            verify(postRepository).decreaseBookmarkCount(10L);
         }
 
         @Test

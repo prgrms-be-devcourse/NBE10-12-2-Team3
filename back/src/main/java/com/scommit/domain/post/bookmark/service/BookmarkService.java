@@ -27,9 +27,15 @@ public class BookmarkService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
-        if (!bookmarkRepository.existsByPostIdAndUserId(postId, actor.getId())) {
+        if (bookmarkRepository.existsByPostIdAndUserId(postId, actor.getId())) {
+            throw new BusinessException(ErrorCode.ALREADY_BOOKMARKED);
+        }
+
+        try {
             bookmarkRepository.save(new Bookmark(post, actor));
-            post.increaseBookmarkCount();
+            postRepository.increaseBookmarkCount(postId);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.ALREADY_BOOKMARKED);
         }
     }
 
@@ -51,6 +57,6 @@ public class BookmarkService {
         Bookmark bookmark = bookmarkRepository.findByPostIdAndUserId(postId, actor.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.BOOKMARK_NOT_FOUND));
         bookmarkRepository.delete(bookmark);
-        post.decreaseBookmarkCount();
+        postRepository.decreaseBookmarkCount(postId);
     }
 }
