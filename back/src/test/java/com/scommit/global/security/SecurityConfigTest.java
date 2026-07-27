@@ -80,4 +80,14 @@ class SecurityConfigTest {
                         assertThat(result.getResponse().getStatus())
                                 .isNotEqualTo(HttpStatus.UNAUTHORIZED.value()));
     }
+
+    @Test
+    @DisplayName("공개(permitAll) 엔드포인트는 액세스 토큰이 만료되고 리프레시 토큰도 무효하면 401이 아니라 익명 요청으로 통과한다")
+    void publicEndpoint_withExpiredAccessTokenAndInvalidRefreshToken_notUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/posts")
+                        .header("Authorization", "Bearer invalid-refresh-token " + expiredToken()))
+                .andExpect(result ->
+                        assertThat(result.getResponse().getStatus())
+                                .isNotEqualTo(HttpStatus.UNAUTHORIZED.value()));
+    }
 }

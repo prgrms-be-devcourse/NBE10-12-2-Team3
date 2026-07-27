@@ -24,9 +24,9 @@ import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
-//@RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter { // 14183의 CustomAuthenticationFilter에 해당
     private final JwtProvider jwtProvider; // 14183의 AuthTokenService
     private final UserService userService; // 14183의 memberService
@@ -48,7 +48,7 @@ public class JwtFilter extends OncePerRequestFilter { // 14183의 CustomAuthenti
             work(request, response, filterChain);
         } catch (SecurityException e) {
             RsData<Void> rsData = e.getRsData();
-            response.setContentType("application/json");
+            response.setContentType("application/json;charset=UTF-8");
             response.setStatus(rsData.statusCode());
             response.getWriter().write(
                     JsonUtility.toString(rsData)
@@ -121,9 +121,13 @@ public class JwtFilter extends OncePerRequestFilter { // 14183의 CustomAuthenti
         }
 
         if (user == null) {
-            user = userService
-                    .getUserByRefreshToken(refreshToken)
-                    .orElseThrow(() -> new SecurityException("401-3", "리프레시 토큰이 유효하지 않습니다."));
+            // 인증 실패시 익명 요청으로 다음 필터(Spring Security 인가 규칙)에 맡긴다.
+            Optional<User> refreshedUser = userService.getUserByRefreshToken(refreshToken);
+            if (refreshedUser.isEmpty()) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+            user = refreshedUser.get();
         }
 
         if (isAccessTokenExists && !isAccessTokenValid) {
