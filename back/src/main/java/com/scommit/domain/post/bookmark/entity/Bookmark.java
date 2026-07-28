@@ -11,7 +11,15 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "post_bookmarks")
+@Table(
+        name = "post_bookmarks",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_post_bookmarks_post_user",
+                        columnNames = {"post_id", "user_id"}
+                )
+        }
+)
 public class Bookmark extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

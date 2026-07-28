@@ -43,6 +43,7 @@ public enum ErrorCode {
     ALREADY_JOINED_MEMBERSHIP(HttpStatus.CONFLICT, "409-5", "이미 멤버십에 가입되어 있습니다."),
     NOT_MEMBERSHIP_SUBSCRIBER(HttpStatus.CONFLICT, "409-6", "멤버십에 가입되어 있지 않습니다."),
     ALREADY_LIKED(HttpStatus.CONFLICT, "409-7", "이미 좋아요를 누른 게시글입니다."),
+    ALREADY_BOOKMARKED(HttpStatus.CONFLICT, "409-8", "이미 북마크한 게시글입니다."),
 
     // 415 Unsupported Media Type
     UNSUPPORTED_FILE_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "415-1", "지원하지 않는 파일 형식입니다."),

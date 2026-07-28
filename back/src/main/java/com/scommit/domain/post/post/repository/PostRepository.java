@@ -39,6 +39,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> searchByKeyword(@Param("keyword") String keyword, @Param("status") PublishStatus status, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
+    @Query("UPDATE Post p SET p.bookmarkCount = p.bookmarkCount + 1 WHERE p.id = :postId")
+    void increaseBookmarkCount(@Param("postId") Long postId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Post p SET p.bookmarkCount = CASE WHEN p.bookmarkCount > 0 THEN p.bookmarkCount - 1 ELSE 0 END WHERE p.id = :postId")
+    void decreaseBookmarkCount(@Param("postId") Long postId);
+  
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE Post p SET p.likeCount = p.likeCount + 1 WHERE p.id = :postId")
     void increaseLikeCount(@Param("postId") Long postId);
 

@@ -10,6 +10,7 @@ import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,9 +28,11 @@ public class BookmarkService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
-        if (!bookmarkRepository.existsByPostIdAndUserId(postId, actor.getId())) {
+        try {
             bookmarkRepository.save(new Bookmark(post, actor));
-            post.increaseBookmarkCount();
+            postRepository.increaseBookmarkCount(postId);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.ALREADY_BOOKMARKED);
         }
     }
 
@@ -51,6 +54,6 @@ public class BookmarkService {
         Bookmark bookmark = bookmarkRepository.findByPostIdAndUserId(postId, actor.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.BOOKMARK_NOT_FOUND));
         bookmarkRepository.delete(bookmark);
-        post.decreaseBookmarkCount();
+        postRepository.decreaseBookmarkCount(postId);
     }
 }
