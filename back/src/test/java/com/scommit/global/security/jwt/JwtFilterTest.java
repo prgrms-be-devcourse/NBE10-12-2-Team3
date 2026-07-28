@@ -225,8 +225,8 @@ class JwtFilterTest {
     }
 
     @Test
-    @DisplayName("액세스 토큰이 만료되고 리프레시 토큰마저 유효하지 않으면 액세스 토큰을 재발급하지 않고 401 예외 응답을 반환한다")
-    void expiredAccessToken_withInvalidRefreshToken_doesNotReissueAndReturnsErrorResponse() throws Exception {
+    @DisplayName("액세스 토큰이 만료되고 리프레시 토큰마저 유효하지 않으면 401을 강제하지 않고 익명 요청으로 다음 필터에 넘긴다")
+    void expiredAccessToken_withInvalidRefreshToken_proceedsAnonymously() throws Exception {
         JwtProvider expiredProvider = new JwtProvider(authTokenProperties(SECRET, Duration.ofMillis(-1)));
         String expiredAccessToken = expiredProvider.generateAccessToken(5L, "invalid@test.com", "invalidUser", UserRole.USER);
         String refreshToken = "invalid-refresh-token";
@@ -241,7 +241,7 @@ class JwtFilterTest {
 
         verify(securityHelper, never()).setCookie(eq("accessToken"), anyString());
         verify(securityHelper, never()).setHeader(eq("Authorization"), anyString());
-        assertThat(response.getStatus()).isEqualTo(401);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        assertThat(chain.getRequest()).isNotNull(); // chain.doFilter()가 호출됐음을 확인
     }
 }

@@ -8,6 +8,7 @@ import com.scommit.domain.user.user.entity.User;
 import com.scommit.global.exception.BusinessException;
 import com.scommit.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,9 +23,11 @@ public class LikeService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
-        if (!likeRepository.existsByPostIdAndUserId(postId, actor.getId())) {
+        try {
             likeRepository.save(new Like(post, actor));
-            post.increaseLikeCount();
+            postRepository.increaseLikeCount(postId);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.ALREADY_LIKED);
         }
     }
 
@@ -36,6 +39,6 @@ public class LikeService {
         Like like = likeRepository.findByPostIdAndUserId(postId, actor.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.LIKE_NOT_FOUND));
         likeRepository.delete(like);
-        post.decreaseLikeCount();
+        postRepository.decreaseLikeCount(postId);
     }
 }
