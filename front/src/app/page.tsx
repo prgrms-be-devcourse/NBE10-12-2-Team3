@@ -107,8 +107,8 @@ export default function Home() {
           )
       ).then((results) => setTopCreators(results.filter(Boolean) as CreatorItem[]));
 
-    // 캐러셀용 데이터 (viewCount 정렬, 충분히 많이 가져와서 FREE/PAID 분리)
-    apiFetch<SliceResponse>("/api/posts?size=50&sort=viewCount,desc")
+      // 캐러셀용 데이터 (viewCount 정렬 상위 200개를 조회하여  FREE/PAID 분리)
+      apiFetch<SliceResponse>("/api/posts?size=200&sort=viewCount,desc")
       .then((data) => {
         setTrendingPaidPosts(data.content.filter(p => p.accessLevel === "PAID").slice(0, 15));
         setFreePosts(data.content.filter(p => p.accessLevel === "FREE").slice(0, 10));
