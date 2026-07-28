@@ -14,7 +14,13 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "series")
+@Table(
+        name = "series",
+        indexes = {
+                @Index(name = "idx_series_user_deleted", columnList = "user_id, deleted_at"),
+                @Index(name = "idx_series_deleted_at", columnList = "deleted_at")
+        }
+)
 public class Series extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
